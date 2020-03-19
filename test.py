@@ -5,7 +5,8 @@ print('test')
 print(f'pwd: {os.getcwd()}')
 print(f'path: {sys.path}')
 
-import util
-util.foo()
+from krs import token
+t = token.get_token()
+print(f'token: {t}')
 
 print('done')
