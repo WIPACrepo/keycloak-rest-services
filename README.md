@@ -1,8 +1,7 @@
 # keycloak-rest-services
 Services surrounding KeyCloak, that use the REST API to read/update state.
 
-[![CircleCI](https://circleci.com/gh/WIPACrepo/keycloak-rest-services/tree/master.svg?style=shield)](https://circleci.com/gh/WIPACrepo/keycloak-rest-services/tree/master)
-
+[![CircleCI](https://circleci.com/gh/WIPACrepo/keycloak-rest-services.svg?style=svg&circle-token=87c420d0b5ba0dffb28337618e7cf0df7a905bf8)](https://circleci.com/gh/WIPACrepo/keycloak-rest-services)
 
 ## Basic Design
 
