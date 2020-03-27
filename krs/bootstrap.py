@@ -7,6 +7,22 @@ import requests
 from .util import config, ConfigRequired
 
 
+def wait_for_keycloak(timeout=300):
+    cfg = config({
+        'keycloak_url': ConfigRequired,
+    })
+
+    url = f'{cfg["keycloak_url"]}/auth/'
+    for _ in range(timeout):
+        try:
+            r = requests.get(url)
+            r.raise_for_status()
+            break
+        except requests.exceptions.RequestException:
+            time.sleep(1)
+    else:
+        raise Exception('KeyCloak did not start')
+
 def get_token():
     if get_token.cache:
         return get_token.cache
@@ -49,6 +65,24 @@ def create_realm(realm, token=None):
         print(f'realm "{realm}" created')
     else:
         print(f'realm "{realm}" already exists')
+
+def delete_realm(realm, token=None):
+    cfg = config({
+        'keycloak_url': ConfigRequired,
+    })
+
+    try:
+        url = f'{cfg["keycloak_url"]}/auth/admin/realms/{realm}'
+        r = requests.get(url, headers={'Authorization': f'bearer {token}'})
+        r.raise_for_status()
+    except requests.exceptions.HTTPError:
+        print(f'realm "{realm}" does not exist')
+    else:
+        print(f'deleting realm "{realm}"')
+        url = f'{cfg["keycloak_url"]}/auth/admin/realms/'
+        r = requests.delete(url, headers={'Authorization': f'bearer {token}'})
+        r.raise_for_status()
+        print(f'realm "{realm}" deleted')
 
 def create_service_role(client_id, realm=None, token=None):
     cfg = config({
@@ -145,14 +179,9 @@ def bootstrap():
         'client_id': 'rest-access',
     })
 
-    for _ in range(300): # wait 5 minutes
-        try:
-            token = get_token()
-            break
-        except requests.exceptions.RequestException:
-            time.sleep(1)
-    else:
-        raise Exception('could not get admin token')
+    wait_for_keycloak()
+
+    token = get_token()
     print('KeyCloak token obtained, setting up...')
 
     create_realm(cfg['realm'], token=token)

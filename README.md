@@ -1,5 +1,24 @@
 # keycloak-rest-services
-Services surrounding KeyCloak, that use the REST API to read/update state
+Services surrounding KeyCloak, that use the REST API to read/update state.
+
+## Basic Design
+
+### Direct Actions
+
+Any action that does not require approval will be made directly against
+KeyCloak using the REST API.
+
+### Approval Actions
+
+Approval actions require temporary storage to hold the action until approval
+has been granted.  Any database would do, but we have chosen MongoDB for
+several reasons:
+
+1. We are already familiar with it and use it in several other projects.
+2. It can expire entries automatically with TTL Indexes.
+3. Tailable cursors allow "watching" changes in real time.
+
+Once approval has been granted, the action will then be applied to KeyCloak.
 
 ## Bootstrap KeyCloak
 
