@@ -79,7 +79,7 @@ def delete_realm(realm, token=None):
         print(f'realm "{realm}" does not exist')
     else:
         print(f'deleting realm "{realm}"')
-        url = f'{cfg["keycloak_url"]}/auth/admin/realms/'
+        url = f'{cfg["keycloak_url"]}/auth/admin/realms/{realm}'
         r = requests.delete(url, headers={'Authorization': f'bearer {token}'})
         r.raise_for_status()
         print(f'realm "{realm}" deleted')
@@ -126,7 +126,6 @@ def create_service_role(client_id, realm=None, token=None):
         except:
             print(r.text)
             raise
-
 
         url = f'{cfg["keycloak_url"]}/auth/admin/realms/master/clients'
         r = requests.get(url, headers={'Authorization': f'bearer {token}'})
