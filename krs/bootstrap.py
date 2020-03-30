@@ -172,6 +172,35 @@ def create_service_role(client_id, realm=None, token=None):
     r.raise_for_status()
     return r.json()['value']
 
+def delete_service_role(client_id, token=None):
+    cfg = config({
+        'keycloak_url': ConfigRequired,
+    })
+
+    url = f'{cfg["keycloak_url"]}/auth/admin/realms/master/clients'
+    r = requests.get(url, headers={'Authorization': f'bearer {token}'})
+    r.raise_for_status()
+    clients = r.json()
+
+    # get actual system id
+    system_id = None
+    for c in clients:
+        if c['clientId'] == client_id:
+            system_id = c['id']
+            break
+
+    if not system_id:
+        print(f'client "{client_id}" does not exist')
+    else:
+        print(f'deleting client "{client_id}"')
+        url = f'{cfg["keycloak_url"]}/auth/admin/realms/master/clients/{system_id}'
+        r = requests.delete(url, headers={'Authorization': f'bearer {token}'})
+        try:
+            r.raise_for_status()
+        except:
+            print(r.text)
+            raise
+
 def bootstrap():
     cfg = config({
         'realm': ConfigRequired,
