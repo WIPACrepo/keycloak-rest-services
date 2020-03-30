@@ -6,8 +6,8 @@ import requests
 from .util import config, ConfigRequired
 
 
-def get_token():
-    if get_token.cache:
+def get_token(from_cache=True):
+    if from_cache and get_token.cache:
         return get_token.cache
 
     cfg = config({
