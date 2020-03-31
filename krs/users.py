@@ -25,6 +25,30 @@ def list_users(token=None):
         ret[u['username']] = u
     return ret
 
+def user_info(username, token=None):
+    """
+    Get user information.
+
+    Args:
+        username (str): username of user
+
+    Returns:
+        dict: user info
+    """
+    cfg = config({
+        'realm': ConfigRequired,
+        'keycloak_url': ConfigRequired,
+    })
+
+    url = f'{cfg["keycloak_url"]}/auth/admin/realms/{cfg["realm"]}/users?username={username}'
+    r = requests.get(url, headers={'Authorization': f'bearer {token}'})
+    r.raise_for_status()
+    ret = r.json()
+
+    if not ret:
+        raise Exception(f'user "{username}" does not exist')
+    return ret[0]
+
 def create_user(username, first_name, last_name, email, token=None):
     """
     Create a user in KeyCloak.
@@ -40,14 +64,9 @@ def create_user(username, first_name, last_name, email, token=None):
         'keycloak_url': ConfigRequired,
     })
 
-    url = f'{cfg["keycloak_url"]}/auth/admin/realms/{cfg["realm"]}/users?username={username}'
-    r = requests.get(url, headers={'Authorization': f'bearer {token}'})
-    r.raise_for_status()
-    ret = r.json()
-
-    if ret:
-        print(f'user "{username}" already exists')
-    else:
+    try:
+        user_info(username, token=token)
+    except Exception:
         print(f'creating user "{username}"')
         url = f'{cfg["keycloak_url"]}/auth/admin/realms/{cfg["realm"]}/users'
         user = {
@@ -59,6 +78,8 @@ def create_user(username, first_name, last_name, email, token=None):
         r = requests.post(url, json=user, headers={'Authorization': f'bearer {token}'})
         r.raise_for_status()
         print(f'user "{username}" created')
+    else:
+        print(f'user "{username}" already exists')
 
 def delete_user(username, token=None):
     """
@@ -72,15 +93,12 @@ def delete_user(username, token=None):
         'keycloak_url': ConfigRequired,
     })
 
-    url = f'{cfg["keycloak_url"]}/auth/admin/realms/{cfg["realm"]}/users?username={username}'
-    r = requests.get(url, headers={'Authorization': f'bearer {token}'})
-    r.raise_for_status()
-    ret = r.json()
-
-    if not ret:
+    try:
+        ret = user_info(username, token=token)
+    except Exception:
         print(f'user "{username}" does not exist')
     else:
-        user_id = ret[0]['id']
+        user_id = ret['id']
         url = f'{cfg["keycloak_url"]}/auth/admin/realms/{cfg["realm"]}/users/{user_id}'
         r = requests.delete(url, headers={'Authorization': f'bearer {token}'})
         r.raise_for_status()
@@ -95,6 +113,9 @@ def main():
     subparsers = parser.add_subparsers()
     parser_list = subparsers.add_parser('list', help='list users')
     parser_list.set_defaults(func=list_users)
+    parser_info = subparsers.add_parser('info', help='list users')
+    parser_info.set_defaults(func=user_info)
+    parser_info.add_argument('username', help='user name')
     parser_create = subparsers.add_parser('create', help='create a new user')
     parser_create.add_argument('username', help='user name')
     parser_create.add_argument('first_name', help='first name')
@@ -111,7 +132,7 @@ def main():
     args = vars(args)
     func = args.pop('func')
     ret = func(token=token, **args)
-    if ret:
+    if ret is not None:
         pprint(ret)
 
 if __name__ == '__main__':
