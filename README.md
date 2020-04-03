@@ -3,6 +3,13 @@ Services surrounding KeyCloak, that use the REST API to read/update state.
 
 [![CircleCI](https://circleci.com/gh/WIPACrepo/keycloak-rest-services.svg?style=svg&circle-token=87c420d0b5ba0dffb28337618e7cf0df7a905bf8)](https://circleci.com/gh/WIPACrepo/keycloak-rest-services)
 
+* [Basic Design](#basic-design)
+  + [Direct Actions](#direct-actions)
+  + [Approval Actions](#approval-actions)
+* [Running Tests](#running-tests)
+  + [Getting Test Coverage](#getting-test-coverage)
+* [Manually Running Scripts](#manually-running-scripts)
+
 ## Basic Design
 
 ### Direct Actions
@@ -62,7 +69,7 @@ and groups.
     Then, run the bootstrap script to create a realm and the REST service account:
 
     ```bash
-    realm=test keycloak_url=http://localhost:8080 username=admin password=admin python3 -m krs.bootstrap
+    keycloak_url=http://localhost:8080 username=admin password=admin realm=test python3 -m krs.bootstrap
     ```
 
     Save the `client_secret` that gets printed, as you will need this.
