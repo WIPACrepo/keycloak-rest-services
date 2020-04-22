@@ -1,5 +1,5 @@
 """
-Group actions against KeyCloak.
+Group actions against Keycloak.
 """
 import requests
 
@@ -8,7 +8,7 @@ from .util import config, ConfigRequired
 
 def list_groups(token=None):
     """
-    List groups in KeyCloak.
+    List groups in Keycloak.
 
     Returns:
         dict: groupname: group details
@@ -35,9 +35,39 @@ def list_groups(token=None):
     add_groups(group_hierarchy)
     return ret
 
+def group_info(groupname, token=None):
+    """
+    Get group information.
+
+    Args:
+        groupname (str): group name
+
+    Returns:
+        dict: group info
+    """
+    cfg = config({
+        'realm': ConfigRequired,
+        'keycloak_url': ConfigRequired,
+    })
+
+    groups = list_groups(token=token)
+    if groupname not in groups:
+        raise Exception(f'group "{groupname}" does not exist')
+
+    group_id = groups[groupname]['id']
+
+    url = f'{cfg["keycloak_url"]}/auth/admin/realms/{cfg["realm"]}/groups/{group_id}'
+    r = requests.get(url, headers={'Authorization': f'bearer {token}'})
+    r.raise_for_status()
+    ret = r.json()
+
+    if not ret:
+        raise Exception(f'group "{groupname}" does not exist')
+    return ret
+
 def create_group(groupname, parent=None, token=None):
     """
-    Create a group in KeyCloak.
+    Create a group in Keycloak.
 
     Args:
         groupname (str): group name
@@ -70,7 +100,7 @@ def create_group(groupname, parent=None, token=None):
 
 def delete_group(groupname, token=None):
     """
-    Delete a group in KeyCloak.
+    Delete a group in Keycloak.
 
     Args:
         groupname (str): group name to delete
@@ -117,7 +147,7 @@ def get_user_groups(username, token=None):
 
 def add_user_group(groupname, username, token=None):
     """
-    Add a user to a group in KeyCloak.
+    Add a user to a group in Keycloak.
 
     Args:
         groupname (str): group name
@@ -145,7 +175,7 @@ def add_user_group(groupname, username, token=None):
 
 def remove_user_group(groupname, username, token=None):
     """
-    Remove a user from a group in KeyCloak.
+    Remove a user from a group in Keycloak.
 
     Args:
         groupname (str): group name
@@ -176,10 +206,13 @@ def main():
     from pprint import pprint
     from .token import get_token
 
-    parser = argparse.ArgumentParser(description='KeyCloak group management')
+    parser = argparse.ArgumentParser(description='Keycloak group management')
     subparsers = parser.add_subparsers()
     parser_list = subparsers.add_parser('list', help='list groups')
     parser_list.set_defaults(func=list_groups)
+    parser_info = subparsers.add_parser('info', help='group info')
+    parser_info.add_argument('groupname', help='group name')
+    parser_info.set_defaults(func=group_info)
     parser_create = subparsers.add_parser('create', help='create a new group')
     parser_create.add_argument('-p','--parent', help='group parent')
     parser_create.add_argument('groupname', help='group name')

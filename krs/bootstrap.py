@@ -1,5 +1,5 @@
 """
-Bootstrap a KeyCloak instance with an admin role account for REST access.
+Bootstrap a Keycloak instance with an admin role account for REST access.
 """
 import time
 import requests
@@ -21,7 +21,7 @@ def wait_for_keycloak(timeout=300):
         except requests.exceptions.RequestException:
             time.sleep(1)
     else:
-        raise Exception('KeyCloak did not start')
+        raise Exception('Keycloak did not start')
 
 def get_token():
     if get_token.cache:
@@ -210,7 +210,7 @@ def bootstrap():
     wait_for_keycloak()
 
     token = get_token()
-    print('KeyCloak token obtained, setting up...')
+    print('Keycloak token obtained, setting up...')
 
     create_realm(cfg['realm'], token=token)
     client_secret = create_service_role(cfg['client_id'], realm=cfg['realm'], token=token)

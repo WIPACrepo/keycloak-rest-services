@@ -1,5 +1,5 @@
 """
-User actions against KeyCloak.
+User actions against Keycloak.
 """
 import requests
 
@@ -7,7 +7,7 @@ from .util import config, ConfigRequired
 
 def list_users(token=None):
     """
-    List users in KeyCloak.
+    List users in Keycloak.
 
     Returns:
         dict: username: user info
@@ -51,7 +51,7 @@ def user_info(username, token=None):
 
 def create_user(username, first_name, last_name, email, token=None):
     """
-    Create a user in KeyCloak.
+    Create a user in Keycloak.
 
     Args:
         username (str): username of user to create
@@ -83,7 +83,7 @@ def create_user(username, first_name, last_name, email, token=None):
 
 def delete_user(username, token=None):
     """
-    Delete a user in KeyCloak.
+    Delete a user in Keycloak.
 
     Args:
         username (str): username of user to delete
@@ -109,13 +109,13 @@ def main():
     from pprint import pprint
     from .token import get_token
 
-    parser = argparse.ArgumentParser(description='KeyCloak user management')
+    parser = argparse.ArgumentParser(description='Keycloak user management')
     subparsers = parser.add_subparsers()
     parser_list = subparsers.add_parser('list', help='list users')
     parser_list.set_defaults(func=list_users)
-    parser_info = subparsers.add_parser('info', help='list users')
-    parser_info.set_defaults(func=user_info)
+    parser_info = subparsers.add_parser('info', help='user info')
     parser_info.add_argument('username', help='user name')
+    parser_info.set_defaults(func=user_info)
     parser_create = subparsers.add_parser('create', help='create a new user')
     parser_create.add_argument('username', help='user name')
     parser_create.add_argument('first_name', help='first name')

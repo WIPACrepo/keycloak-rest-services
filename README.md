@@ -1,5 +1,5 @@
 # keycloak-rest-services
-Services surrounding KeyCloak, that use the REST API to read/update state.
+Services surrounding Keycloak, that use the REST API to read/update state.
 
 [![CircleCI](https://circleci.com/gh/WIPACrepo/keycloak-rest-services.svg?style=svg&circle-token=87c420d0b5ba0dffb28337618e7cf0df7a905bf8)](https://circleci.com/gh/WIPACrepo/keycloak-rest-services)
 
@@ -15,7 +15,9 @@ Services surrounding KeyCloak, that use the REST API to read/update state.
 ### Direct Actions
 
 Any action that does not require approval will be made directly against
-KeyCloak using the REST API.
+Keycloak using the REST API.
+
+Examples include modifying users, groups, and applications.
 
 ### Approval Actions
 
@@ -27,7 +29,7 @@ several reasons:
 2. It can expire entries automatically with TTL Indexes.
 3. Tailable cursors allow "watching" changes in real time.
 
-Once approval has been granted, the action will then be applied to KeyCloak.
+Once approval has been granted, the action will then be applied to Keycloak.
 
 ## Running Tests
 
@@ -39,11 +41,11 @@ First, build and load the local python environment:
     ./setupenv.sh
     . env/bin/activate
 
-Then, start an instance of KeyCloak in another terminal:
+Then, start an instance of Keycloak in another terminal:
 
     docker run --rm -it -e KEYCLOAK_USER=admin -e KEYCLOAK_PASSWORD=admin --network host jboss/keycloak:8.0.2 -Djboss.bind.address.private=127.0.0.1 -Djboss.bind.address=127.0.0.1
 
-KeyCloak may take a minute to start.  If it does not, check your network settings,
+Keycloak may take a minute to start.  If it does not, check your network settings,
 as it does not play well with VPNs and other more exotic network situations.
 
 Finally, run the tests:
@@ -63,9 +65,9 @@ under the coverage tool:
 It is possible to manually run all of the basic operations for controlling users
 and groups.
 
-1. Bootstrap KeyCloak
+1. Bootstrap Keycloak
 
-    If you do not already have a KeyCloak instance, start a test instance as shown above.
+    If you do not already have a Keycloak instance, start a test instance as shown above.
     Then, run the bootstrap script to create a realm and the REST service account:
 
     ```bash
