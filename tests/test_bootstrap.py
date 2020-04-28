@@ -15,6 +15,15 @@ def test_realm(monkeypatch):
     # cleanup
     bootstrap.delete_realm('testrealm', token=tok)
 
+def test_create_public_app(monkeypatch):
+    bootstrap.wait_for_keycloak()
+    tok = bootstrap.get_token()
+    bootstrap.create_realm('testrealm', token=tok)
+    bootstrap.create_public_app(realm='testrealm', token=tok)
+
+    # cleanup
+    bootstrap.delete_realm('testrealm', token=tok)
+
 def test_create_service_role(monkeypatch):
     bootstrap.wait_for_keycloak()
     tok = bootstrap.get_token()

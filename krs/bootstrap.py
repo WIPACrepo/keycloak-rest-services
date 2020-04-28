@@ -201,6 +201,68 @@ def delete_service_role(client_id, token=None):
             print(r.text)
             raise
 
+def create_public_app(realm=None, token=None):
+    cfg = config({
+        'keycloak_url': ConfigRequired,
+    })
+
+    appname = 'public'
+    appurl = ''
+
+    url = f'{cfg["keycloak_url"]}/auth/admin/realms/{realm}/clients?clientId={appname}'
+    r = requests.get(url, headers={'Authorization': f'bearer {token}'})
+    r.raise_for_status()
+    ret = r.json()
+
+    if ret:
+        print('public app already exists')
+    else:
+        url = f'{cfg["keycloak_url"]}/auth/admin/realms/{realm}/clients'
+        args = {
+            'access': {'configure': True, 'manage': True, 'view': True},
+            'adminUrl': appurl,
+            'attributes': {
+                'display.on.consent.screen': 'false',
+                'exclude.session.state.from.auth.response': 'false',
+                'saml.assertion.signature': 'false',
+                'saml.authnstatement': 'false',
+                'saml.client.signature': 'false',
+                'saml.encrypt': 'false',
+                'saml.force.post.binding': 'false',
+                'saml.multivalued.roles': 'false',
+                'saml.onetimeuse.condition': 'false',
+                'saml.server.signature': 'false',
+                'saml.server.signature.keyinfo.ext': 'false',
+                'saml_force_name_id_format': 'false',
+                'tls.client.certificate.bound.access.tokens': 'false',
+            },
+            'authenticationFlowBindingOverrides': {},
+            'bearerOnly': False,
+            'clientAuthenticatorType': 'public',
+            'clientId': appname,
+            'consentRequired': False,
+            'defaultClientScopes': [],
+            'directAccessGrantsEnabled': True,
+            'enabled': True,
+            'frontchannelLogout': False,
+            'fullScopeAllowed': True,
+            'implicitFlowEnabled': False,
+            'nodeReRegistrationTimeout': -1,
+            'notBefore': 0,
+            'optionalClientScopes': ['profile'],
+            'protocol': 'openid-connect',
+            'publicClient': False,
+            'redirectUris': [f'{appurl}/*'],
+            'rootUrl': appurl,
+            'serviceAccountsEnabled': False,
+            'standardFlowEnabled': False,
+            'surrogateAuthRequired': False,
+            'webOrigins': [appurl],
+        }
+        r = requests.post(url, json=args, headers={'Authorization': f'bearer {token}'})
+        r.raise_for_status()
+        print('public app created')
+
 def bootstrap():
     cfg = config({
         'realm': ConfigRequired,
@@ -213,6 +275,9 @@ def bootstrap():
     print('Keycloak token obtained, setting up...')
 
     create_realm(cfg['realm'], token=token)
+
+    create_public_app(cfg['realm'], token=token)
+
     client_secret = create_service_role(cfg['client_id'], realm=cfg['realm'], token=token)
 
     print(f'\nclient_id={cfg["client_id"]}')
