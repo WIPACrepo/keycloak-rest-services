@@ -25,6 +25,10 @@ def test_user_info(keycloak_bootstrap):
 def test_create_user(keycloak_bootstrap):
     users.create_user('testuser', first_name='first', last_name='last', email='foo@test', token=keycloak_bootstrap)
 
+def test_set_user_password(keycloak_bootstrap):
+    users.create_user('testuser', first_name='first', last_name='last', email='foo@test', token=keycloak_bootstrap)
+    users.set_user_password('testuser', 'foo', token=keycloak_bootstrap)
+
 def test_delete_user(keycloak_bootstrap):
     users.create_user('testuser', first_name='first', last_name='last', email='foo@test', token=keycloak_bootstrap)
     users.delete_user('testuser', token=keycloak_bootstrap)

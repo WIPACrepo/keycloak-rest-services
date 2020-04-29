@@ -69,3 +69,16 @@ def test_delete_app_role_mapping(keycloak_bootstrap):
 
     ret = apps.get_app_role_mappings('testapp', token=keycloak_bootstrap)
     assert ret == {}
+
+def test_get_public_token(keycloak_bootstrap):
+    apps.create_app('testapp', 'http://url', token=keycloak_bootstrap)
+    groups.create_group('testgroup', token=keycloak_bootstrap)
+    apps.add_app_role_mapping('testapp', role='read', group='testgroup', token=keycloak_bootstrap)
+
+    users.create_user('testuser', 'test', 'user', 'test@user', token=keycloak_bootstrap)
+    users.set_user_password('testuser', 'foo', token=keycloak_bootstrap)
+    groups.add_user_group('testgroup', 'testuser', token=keycloak_bootstrap)
+
+    ret = apps.get_public_token(username='testuser', password='foo', scopes=['testapp'], token=keycloak_bootstrap)
+    assert ret['scope'] == 'testapp'
+    assert ret['roles'] == {'testapp': ['read']}

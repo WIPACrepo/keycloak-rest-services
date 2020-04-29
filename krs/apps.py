@@ -470,6 +470,68 @@ def delete_app_role_mapping(appname, role, group, token=None):
         r.raise_for_status()
         print(f'app "{appname}" role mapping {role}-{group} deleted')
 
+def get_public_token(username, password, scopes=None, **kwargs):
+    import jwt
+    import json
+    cfg = config({
+        'realm': ConfigRequired,
+        'keycloak_url': ConfigRequired,
+    })
+
+    if not scopes:
+        scopes = []
+
+    if password is None:
+        # get password from cmdline
+        import getpass
+        password = getpass.getpass()
+
+    base_url = f'{cfg["keycloak_url"]}/auth/realms/{cfg["realm"]}/'
+
+    # discovery
+    r = requests.get(base_url+'.well-known/openid-configuration')
+    r.raise_for_status()
+    provider_info = r.json()
+
+    # get keys
+    r = requests.get(provider_info['jwks_uri'])
+    r.raise_for_status()
+    public_keys = {}
+    for jwk in r.json()['keys']:
+        kid = jwk['kid']
+        public_keys[kid] = jwt.algorithms.RSAAlgorithm.from_jwk(json.dumps(jwk))
+
+    def decode(encoded):
+        header = jwt.get_unverified_header(encoded)
+        if header['kid'] in public_keys:
+            key = public_keys[header['kid']]
+            return jwt.decode(encoded, key, algorithms=['RS256','RS512'], options={'verify_aud':False})
+        else:
+            raise Exception('key not found')
+
+    # actually get an access token
+    data = {
+        'grant_type': 'password',
+        'username': username,
+        'password': password,
+#        'audience': api_identifier,
+        'scope': ' '.join(scopes),
+        'client_id': 'public',
+#        'client_secret': client_secret,
+    }
+    r = requests.post(provider_info['token_endpoint'], data=data)
+    try:
+        r.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        try:
+            print('Error:', e.response.json()['error_description'])
+        except Exception:
+            pass
+        raise
+    tokens = r.json()
+
+    return decode(tokens['access_token'])
+
 def main():
     import argparse
     from pprint import pprint
@@ -507,6 +569,11 @@ def main():
     parser_delete_role_mapping.add_argument('role', help='role name')
     parser_delete_role_mapping.add_argument('group', help='group name')
     parser_delete_role_mapping.set_defaults(func=delete_app_role_mapping)
+    parser_get_public_token = subparsers.add_parser('get_public_token', help='delete an app role-group mapping')
+    parser_get_public_token.add_argument('username', help='username of user')
+    parser_get_public_token.add_argument('--password', default=None, help='password of user')
+    parser_get_public_token.add_argument('-s', '--scopes', action='append', help='app scopes to request')
+    parser_get_public_token.set_defaults(func=get_public_token)
     args = parser.parse_args()
 
     token = get_token()

@@ -59,7 +59,7 @@ def create_realm(realm, token=None):
     except requests.exceptions.HTTPError:
         print(f'creating realm "{realm}"')
         url = f'{cfg["keycloak_url"]}/auth/admin/realms/'
-        r = requests.post(url, json={'realm': realm},
+        r = requests.post(url, json={'realm': realm, 'enabled': True},
                           headers={'Authorization': f'bearer {token}'})
         r.raise_for_status()
         print(f'realm "{realm}" created')
@@ -238,7 +238,7 @@ def create_public_app(realm=None, token=None):
             },
             'authenticationFlowBindingOverrides': {},
             'bearerOnly': False,
-            'clientAuthenticatorType': 'public',
+            'clientAuthenticatorType': 'client-secret',
             'clientId': appname,
             'consentRequired': False,
             'defaultClientScopes': [],
@@ -251,13 +251,12 @@ def create_public_app(realm=None, token=None):
             'notBefore': 0,
             'optionalClientScopes': ['profile'],
             'protocol': 'openid-connect',
-            'publicClient': False,
+            'publicClient': True,
             'redirectUris': [f'{appurl}/*'],
-            'rootUrl': appurl,
             'serviceAccountsEnabled': False,
             'standardFlowEnabled': False,
             'surrogateAuthRequired': False,
-            'webOrigins': [appurl],
+            'webOrigins': [],
         }
         r = requests.post(url, json=args, headers={'Authorization': f'bearer {token}'})
         r.raise_for_status()

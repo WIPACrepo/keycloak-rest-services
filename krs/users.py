@@ -74,12 +74,45 @@ def create_user(username, first_name, last_name, email, token=None):
             'firstName': first_name,
             'lastName': last_name,
             'username': username,
+            'enabled': True,
         }
         r = requests.post(url, json=user, headers={'Authorization': f'bearer {token}'})
         r.raise_for_status()
         print(f'user "{username}" created')
     else:
         print(f'user "{username}" already exists')
+
+def set_user_password(username, password=None, token=None):
+    """
+    Set a user's password in Keycloak.
+
+    Args:
+        username (str): username of user
+        password (str): new password
+    """
+    cfg = config({
+        'realm': ConfigRequired,
+        'keycloak_url': ConfigRequired,
+    })
+
+    if password is None:
+        # get password from cmdline
+        import getpass
+        password = getpass.getpass()
+
+    try:
+        ret = user_info(username, token=token)
+    except Exception:
+        print(f'user "{username}" does not exist')
+    else:
+        user_id = ret['id']
+        url = f'{cfg["keycloak_url"]}/auth/admin/realms/{cfg["realm"]}/users/{user_id}/reset-password'
+        args = {
+            'value': password,
+        }
+        r = requests.put(url, json=args, headers={'Authorization': f'bearer {token}'})
+        r.raise_for_status()
+        print(f'user "{username}" password set')
 
 def delete_user(username, token=None):
     """
@@ -122,6 +155,10 @@ def main():
     parser_create.add_argument('last_name', help='last name')
     parser_create.add_argument('email', help='email address')
     parser_create.set_defaults(func=create_user)
+    parser_set_password = subparsers.add_parser('set_password', help='set a user\'s password')
+    parser_set_password.add_argument('username', help='user name')
+    parser_set_password.add_argument('--password', default=None, help='password')
+    parser_set_password.set_defaults(func=set_user_password)
     parser_delete = subparsers.add_parser('delete', help='delete a user')
     parser_delete.add_argument('username', help='user name')
     parser_delete.set_defaults(func=delete_user)
