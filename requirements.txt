@@ -1,5 +1,9 @@
 pytest
+pytest-asyncio
+pytest-mock
 coverage
 requests
 cryptography
 pyjwt
+motor
+-e git+https://github.com/WIPACrepo/rest-tools#egg=rest_tools
