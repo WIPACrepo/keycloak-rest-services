@@ -1,4 +1,12 @@
-Home = Vue.component('page-home', {
+var institution_list = [
+    'UWMadison', 'Aachen', 'DESY'
+];
+var institution_obj = institution_list.reduce( (obj, value) => {
+    obj[value] = value;
+    return obj
+}, {});
+
+Home = {
     data: function(){
         return {
             title: ''
@@ -9,34 +17,150 @@ Home = Vue.component('page-home', {
     <h4>Welcome to the IceCube Neutrino Observatory identity management console.</h4>
     <p>Existing users should <router-link to="/login">Login</router-link></p>
     <p>New users should ask their PI for a registration link.</p>
-</article>
-    `
-})
+</article>`
+}
 
-Register = Vue.component('page-register', {
+Register = {
+    data: function(){
+        return {
+            institution: '',
+            firstName: '',
+            lastName: '',
+            authorListName: '',
+            valid: true,
+            errMessage: '',
+            submitted: false
+        }
+    },
+    props: ['institution'],
+    computed: {
+        validInstitution: function() {
+            return this.institution in institution_obj
+        },
+        validFirstName: function() {
+            console.log('validFirstName:'+this.firstName)
+            return this.firstName
+        },
+        validLastName: function() {
+            return this.lastName
+        },
+        validAuthorListName: function() {
+            return this.authorListName
+        }
+    },
+    methods: {
+        submit: async function(e) {
+            // validate
+            this.valid = (this.validInstitution && this.validFirstName
+                    && this.validLastName && (!this.authorListName || this.validAuthorListName))
+
+            // now submit
+            if (this.valid) {
+                this.errMessage = 'Submission processing';
+                try {
+                    const resp = await axios.post('/api/user_registration', {
+                        first_name: this.firstName,
+                        last_name: this.lastName,
+                        author_name: this.authorListName,
+                        institution: this.institution
+                    });
+                    console.log('Response:')
+                    console.log(resp)
+                    this.errMessage = 'Submission successful'
+                    this.submitted = true
+                } catch (error) {
+                    console.log('error')
+                    console.log(error)
+                    let error_message = 'undefined error';
+                    if (error.response) {
+                        if ('code' in error.response.data) {
+                            error_message = 'Code: '+error.response.data['code']+'<br>Message: '+error.response.data['error'];
+                        } else {
+                            error_message = JSON.stringify(error.response.data)
+                        }
+                    } else if (error.request) {
+                        error_message = 'server did not respond';
+                    }
+                    this.errMessage = '<span class="red">Error in submission<br>'+error_message+'</span>'
+                }
+            } else {
+                this.errMessage = '<span class="red">Please fix invalid entries</span>'
+            }
+        }
+    },
+    template: `
+<article class="register">
+    <h2>Register a new account</h2>
+    <form class="newuser" @submit.prevent="submit">
+      <div class="entry">
+        <span class="red">* entry is requred</span>
+      </div>
+      <div class="entry">
+        <p>Select your institution: <span class="red">*</span></p>
+        <select v-model="institution">
+          <option disabled value="">Please select one</option>
+          <option v-for="inst in institution_list">{{ inst }}</option>
+        </select>
+        <span class="red" v-if="!valid && !validInstitution">invalid entry</span>
+      </div>
+      <textinput name="First Name" inputName="first_name" v-model.trim="firstName"
+       required=true :valid="validFirstName" :allValid="valid"></textinput>
+      <textinput name="Last Name" inputName="last_name" v-model.trim="lastName"
+       required=true :valid="validLastName" :allValid="valid"></textinput>
+      <textinput name="Author List Name (usually abbreviated)" inputName="authorname"
+       v-model.trim="authorListName" :valid="validAuthorListName" :allValid="valid"></textinput>
+      <div v-if="errMessage" class="error_box" v-html="errMessage"></div>
+      <div class="entry" v-if="!submitted">
+        <input type="submit" value="Submit Registration">
+      </div>
+    </form>
+</article>`
+}
+
+Login = {
     data: function(){
         return {
             title: ''
         }
     },
     template: `
-        <article>
-            <h2>Register a new account</h2>
-        </article>
-    `
-})
+<article class="login">
+    <h2>Login to an existing account</h2>
+</article>`
+}
 
-Login = Vue.component('page-login', {
+Error404 = {
     data: function(){
         return {
-            title: ''
+        }
+    },
+    computed: {
+        'pathMatch': function() {
+            return this.$route.params[0];
         }
     },
     template: `
-        <article class="login">
-            <h2>Login to an existing account</h2>
-        </article>
-    `
+<article class="error">
+    <h2>Error: page not found</h2>
+    <p><span class="code">{{ pathMatch }}</span> does not exist</p>
+</article>`
+}
+
+Vue.component('textinput', {
+    data: function(){
+        return {
+            required: false,
+            valid: true,
+            allValid: true
+        }
+    },
+    props: ['name', 'inputName', 'value', 'required', 'valid', 'allValid'],
+    template: `
+<div class="entry">
+  <p>{{ name }}: <span v-if="required" class="red">*</span></p>
+  <input :name="inputName" :value="value" @input="$emit('input', $event.target.value)">
+  <span class="red" v-if="!allValid && !valid && (required || value)">invalid entry</span>
+</div>`
 })
 
 Vue.component('navpage', {
@@ -50,32 +174,18 @@ Vue.component('navpage', {
     props: ['path', 'name', 'current'],
     computed: {
         classObj: function() {
-            console.log('path:'+this.path+'   current:'+this.current)
+            console.log('name:'+this.name+'   current:'+this.current)
             return {
-                active: this.path == this.current
+                active: this.name == this.current
             }
         },
-    },
-    methods: {
-        gotopage: function() {
-            router.push(this.path)
-        }
     },
     beforeRouteEnter(to, from, next) {
         this.current = to.params.route
         next()
     },
-    template: '<li :class="classObj" @click="gotopage"><router-link :to="path">{{ name }}</router-link></li>'
+    template: '<li :class="classObj"><router-link :to="path">{{ name }}</router-link></li>'
 });
-
-var page_data = {
-    pages: [
-        { id: 'home', name: 'Home' },
-        { id: 'register', name: 'Register' }
-    ],
-    page_id: 'home'
-};
-
 
 // scrollBehavior:
 // - only available in html5 history mode
@@ -129,8 +239,9 @@ const scrollBehavior = function (to, from, savedPosition) {
 
 var routes = [
   { path: '/', name: 'home', component: Home },
-  { path: '/register', name: 'register', component: Register },
-  { path: '/login', name: 'login', component: Login }
+  { path: '/register/:institution', name: 'register', component: Register, props: true },
+  { path: '/login', name: 'login', component: Login },
+  { path: '*', name: '404', component: Error404, props: true }
 ];
 
 var router = new VueRouter({
@@ -143,15 +254,17 @@ var app = new Vue({
     el: '#page-container',
     data: {
         routes: routes,
-        current: '/'
+        current: 'home'
     },
     router: router,
     computed: {
         visibleRoutes: function() {
             var current = this.current;
             return this.routes.filter(function (r) {
+                if (r.path[0] == '*') // filter 404 page
+                    return false
                 console.log('filter route '+r.path+'. current='+current)
-                if (r.path == '/register' && current != '/register')
+                if (r.path.startsWith('/register') && current != 'register')
                     return false
                 return true
             })
@@ -161,7 +274,7 @@ var app = new Vue({
         '$route.currentRoute.path': {
             handler: function() {
                 console.log('currentPath update:'+router.currentRoute.path)
-                this.current = router.currentRoute.path
+                this.current = router.currentRoute.name
             },
             deep: true,
             immediate: true,

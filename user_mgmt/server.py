@@ -3,12 +3,14 @@ Server for user management
 """
 
 import os
+import logging
 
 from tornado.web import RequestHandler, StaticFileHandler, HTTPError
 from rest_tools.server import RestServer, RestHandlerSetup, from_environment
-import motor
+import motor.motor_asyncio
 
 from .users import Users, UserDetails, UserGroups
+from .user_registration import UserRegistration
 from .group_mgmt import Groups
 
 def create_server():
@@ -44,9 +46,14 @@ def create_server():
     }
 
     kwargs = RestHandlerSetup(rest_config)
-    kwargs['db'] = motor.motor_tornado.MotorClient(config['DB_URL'])
+    logging.info(f'DB: {config["DB_URL"]}')
+    db = motor.motor_asyncio.AsyncIOMotorClient(config['DB_URL'])
+    db_name = config['DB_URL'].split('/')[-1]
+    logging.info(f'DB name: {db_name}')
+    kwargs['db'] = db[db_name]
 
     server = RestServer(static_path=static_path, debug=config['DEBUG'])
+    server.add_route('/api/user_registration', UserRegistration, kwargs)
     server.add_route('/api/users', Users, kwargs)
     server.add_route(r'/api/users/(?P<user_id>\w+)', UserDetails, kwargs)
     server.add_route(r'/api/users/(?P<user_id>\w+)/groups', UserGroups, kwargs)
