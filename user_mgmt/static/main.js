@@ -6,6 +6,12 @@ var institution_obj = institution_list.reduce( (obj, value) => {
     return obj
 }, {});
 
+var keycloak = new Keycloak({
+    url: 'http://127.0.0.1:8080/auth',
+    realm: 'IceCube',
+    clientId: 'mgmt'
+});
+
 Home = {
     data: function(){
         return {
@@ -123,9 +129,20 @@ Login = {
             title: ''
         }
     },
+    asyncComputed: {
+        userinfo: async function() {
+            try {
+                var ret = await keycloak.loadUserInfo();
+                return ret
+            } catch (error) {
+                return {"error": JSON.stringify(error)}
+            }
+        }
+    },
     template: `
 <article class="login">
-    <h2>Login to an existing account</h2>
+    <h2>User details:</h2>
+    <div v-for="(value, name) in userinfo">{{ name }}: {{ value }}</div>
 </article>`
 }
 
@@ -244,40 +261,66 @@ var routes = [
   { path: '*', name: '404', component: Error404, props: true }
 ];
 
-var router = new VueRouter({
-    mode: 'history',
-    routes: routes,
-    scrollBehavior: scrollBehavior
-})
-
-var app = new Vue({
-    el: '#page-container',
-    data: {
-        routes: routes,
-        current: 'home'
-    },
-    router: router,
-    computed: {
-        visibleRoutes: function() {
-            var current = this.current;
-            return this.routes.filter(function (r) {
-                if (r.path[0] == '*') // filter 404 page
-                    return false
-                console.log('filter route '+r.path+'. current='+current)
-                if (r.path.startsWith('/register') && current != 'register')
-                    return false
-                return true
-            })
-        }
-    },
-    watch: {
-        '$route.currentRoute.path': {
-            handler: function() {
-                console.log('currentPath update:'+router.currentRoute.path)
-                this.current = router.currentRoute.name
-            },
-            deep: true,
-            immediate: true,
-        }
+(async function(){ // startup
+    var isAuthenticated = false;
+    try {
+        isAuthenticated = await keycloak.init();
+    } catch (error) {
+        console.log("error initializing keycloak")
     }
-})
+
+    var router = new VueRouter({
+        mode: 'history',
+        routes: routes,
+        scrollBehavior: scrollBehavior
+    })
+    router.beforeEach(async function(to, from, next){
+      try {
+        await keycloak.updateToken(60);
+        isAuthenticated = true;
+      } catch (error) {
+        isAuthenticated = false;
+      }
+      console.log('baseurl: '+window.location.origin)
+
+      if (to.name !== 'register' && to.name !== 'home' && !isAuthenticated) {
+        // do login process
+        console.log("keycloak needs login")
+        await keycloak.login({redirectUri:window.location.origin+to.path})
+        // next({ name: 'Login' })
+      }
+      else next()
+    })
+
+    var app = new Vue({
+        el: '#page-container',
+        data: {
+            routes: routes,
+            current: 'home'
+        },
+        router: router,
+        computed: {
+            visibleRoutes: function() {
+                var current = this.current;
+                return this.routes.filter(function (r) {
+                    if (r.path[0] == '*') // filter 404 page
+                        return false
+                    console.log('filter route '+r.path+'. current='+current)
+                    if (r.path.startsWith('/register') && current != 'register')
+                        return false
+                    return true
+                })
+            }
+        },
+        watch: {
+            '$route.currentRoute.path': {
+                handler: function() {
+                    console.log('currentPath update:'+router.currentRoute.path)
+                    this.current = router.currentRoute.name
+                },
+                deep: true,
+                immediate: true,
+            }
+        }
+    })
+})()
