@@ -85,7 +85,7 @@ def create_group(group_path, token=None):
         if '/' not in group_path:
             raise Exception('"group_path" must start with /')
         parent,groupname = group_path.rsplit('/',1)
-        if parent != '/':
+        if parent:
             if parent not in groups:
                 raise Exception(f'parent group {parent} does not exist')
             parent_id = groups[parent]['id']
