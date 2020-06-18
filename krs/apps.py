@@ -427,7 +427,7 @@ def delete_app_role_mapping(appname, role, group, token=None):
     Args:
         appname (str): appname ("clientId") of application
         role (str): application role name
-        group (str): group name
+        group (str): group path
     """
     cfg = config({
         'realm': ConfigRequired,
@@ -562,12 +562,12 @@ def main():
     parser_add_role_mapping = subparsers.add_parser('add_role_mapping', help='add an app role-group mapping')
     parser_add_role_mapping.add_argument('appname', help='application name')
     parser_add_role_mapping.add_argument('role', help='role name')
-    parser_add_role_mapping.add_argument('group', help='group name')
+    parser_add_role_mapping.add_argument('group', help='group path')
     parser_add_role_mapping.set_defaults(func=add_app_role_mapping)
     parser_delete_role_mapping = subparsers.add_parser('delete_role_mapping', help='delete an app role-group mapping')
     parser_delete_role_mapping.add_argument('appname', help='application name')
     parser_delete_role_mapping.add_argument('role', help='role name')
-    parser_delete_role_mapping.add_argument('group', help='group name')
+    parser_delete_role_mapping.add_argument('group', help='group path')
     parser_delete_role_mapping.set_defaults(func=delete_app_role_mapping)
     parser_get_public_token = subparsers.add_parser('get_public_token', help='delete an app role-group mapping')
     parser_get_public_token.add_argument('username', help='username of user')
