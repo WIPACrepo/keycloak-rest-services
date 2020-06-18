@@ -48,15 +48,15 @@ def test_add_app_role_mapping(keycloak_bootstrap):
     with pytest.raises(Exception):
         apps.add_app_role_mapping('testapp', role='read', group='/badgroup', token=keycloak_bootstrap)
 
-    groups.create_group('testgroup', token=keycloak_bootstrap)
+    groups.create_group('/testgroup', token=keycloak_bootstrap)
     apps.add_app_role_mapping('testapp', role='read', group='/testgroup', token=keycloak_bootstrap)
 
     ret = apps.get_app_role_mappings('testapp', token=keycloak_bootstrap)
-    assert ret == {'read': ['testgroup']}
+    assert ret == {'read': ['/testgroup']}
 
 def test_delete_app_role_mapping(keycloak_bootstrap):
     apps.create_app('testapp', 'http://url', token=keycloak_bootstrap)
-    groups.create_group('testgroup', token=keycloak_bootstrap)
+    groups.create_group('/testgroup', token=keycloak_bootstrap)
     apps.add_app_role_mapping('testapp', role='read', group='/testgroup', token=keycloak_bootstrap)
 
     with pytest.raises(Exception):
