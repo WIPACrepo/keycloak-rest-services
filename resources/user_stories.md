@@ -1,5 +1,16 @@
 # User Stories
 
+* [Institutional Changes](#institutional-changes)
+    * [New user](#new-user)
+    * [Second institution](#second-institution)
+    * [Changing institution](#changing-institution)
+    * [Institution PI removes user](#institution-pi-removes-user)
+* [Group Changes](#group-changes)
+    * [User asks to join group](#user-asks-to-join-group)
+    * [User asks to leave group](#user-asks-to-leave-group)
+    * [Group admin adds user to group](#group-admin-adds-user-to-group)
+    * [Group admin removes user from group](#group-admin-removes-user-from-group)
+
 ## Institutional Changes
 
 ### New user
