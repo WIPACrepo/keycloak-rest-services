@@ -15,13 +15,23 @@ PI's view workflow:
 - load request page
 - approve request
 
-Approval workflow:
-- new user record
-- inst approval record
-- inst approval action
-- user added to Keycloak
-- user added to inst
-- email to create new password
+REST workflow:
+- get institution list:
+    - Keycloak - get inst groups
+- submit registration:
+    - Keycloak - user does not already exist
+    - DB - put new user record
+    - DB - put inst approval record
+- PI request page
+    - DB - get inst approval record
+- PI approval
+    - DB - get inst approval record
+    - DB - get new user record
+    - Keycloak - user creation
+    - Keycloak - user added to inst group
+    - DB - delete inst approval record
+    - DB - delete new user record
+    - Email - to user: successful registration, create new password
 
 ### Second institution
 
@@ -38,11 +48,19 @@ PI's view workflow
 - load request page
 - approve request
 
-Workflow:
-- inst approval record
-- inst approval action
-- user added to inst
- 
+REST workflow:
+- get institution list:
+    - Keycloak - get inst groups
+- submit request:
+    - DB - put inst approval record
+- PI request page
+    - DB - get inst approval record
+- PI approval
+    - DB - get inst approval record
+    - Keycloak - user added to inst group
+    - DB - delete inst approval record
+    - Email - to user: inst approval
+
 ### Changing institution
 
 User is moving from one institution to another.
@@ -58,12 +76,22 @@ PI's view workflow
 - load request page
 - approve request
 
-Workflow:
-- inst approval record
-- inst removal record
-- inst approval action
-- user added to new inst
-- user removed from old inst
+REST workflow:
+- get institution list:
+    - Keycloak - get inst groups
+- submit request:
+    - DB - put inst removal record
+    - DB - put inst approval record
+- PI request page
+    - DB - get inst approval record
+- PI approval
+    - DB - get inst approval record
+    - DB - get inst removal record
+    - Keycloak - user added to new inst group
+    - Keycloak - user removed from old inst group
+    - DB - delete inst approval record
+    - DB - delete inst removal record
+    - Email - to user: inst approval
 
 ### Institution PI removes user
 
@@ -73,10 +101,14 @@ PI's view workflow
 - log in
 - load admin dashboard
 - go to instutition page
-- submit request
+- click delete button next to user
+- confirm request
 
-Worflow:
-- user removed from old inst 
+REST workflow:
+- PI institution page
+    - Keycloak - get members of inst
+- removal request
+    - Keycloak - user removed from inst group
 
 ## Group Changes
 
@@ -94,10 +126,17 @@ Group admin's view workflow
 - load request page
 - approve request
 
-Workflow:
-- group approval record
-- group approval action
-- user added to group
+REST workflow:
+- add group page
+    - Keycloak - get list of (public) groups
+- group request
+    - DB - put group approval record
+- Admin group request page
+    - DB - get group approval record
+- Admin group approval
+    - Keycloak - add user to group
+    - DB - delete group approval record
+    - Email - to user: group approval
 
 ### User asks to leave group
 
@@ -107,8 +146,9 @@ User view workflow:
 - click delete button next to group
 - confirm request
 
-Workflow:
-- user removed from group
+REST Workflow:
+- group removal request
+    - Keycloak - remove user from group
 
 ### Group admin adds user to group
 
@@ -119,8 +159,11 @@ Group admin's view workflow
 - go to group user add page
 - approve request
 
-Workflow:
-- user added to group
+REST Workflow:
+- Admin group page
+    - Keycloak - get users in group and experiment
+- Admin group approval
+    - Keycloak - add user to group
 
 ### Group admin removes user from group
 
@@ -131,7 +174,8 @@ Group admin's view workflow
 - click delete button next to user
 - confirm request
 
-Workflow:
-- user removed from group
-
-
+REST Workflow:
+- Admin group page
+    - Keycloak - get users in group and experiment
+- Admin group removal
+    - Keycloak - remove user from group
