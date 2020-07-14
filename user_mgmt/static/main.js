@@ -9,7 +9,7 @@ var institution_obj = institution_list.reduce( (obj, value) => {
 var keycloak = new Keycloak({
     url: 'http://127.0.0.1:8080/auth',
     realm: 'IceCube',
-    clientId: 'mgmt'
+    clientId: 'user_mgmt'
 });
 
 Home = {
@@ -146,6 +146,46 @@ Login = {
 </article>`
 }
 
+UserApproval = {
+    data: function(){
+        return {
+            users: {}
+        }
+    },
+    asyncComputed: {
+        userinfo: async function() {
+            try {
+                var ret = await keycloak.loadUserInfo();
+                return ret
+            } catch (error) {
+                return {"error": JSON.stringify(error)}
+            }
+        }
+    },
+    methods: {
+        userlist: async function() {
+            try {
+                await keycloak.updateToken(60);
+                var token = keycloak.token;
+                var ret = axios.post('/api/users', {
+                        first_name: this.firstName,
+                        last_name: this.lastName,
+                        author_name: this.authorListName,
+                        institution: this.institution
+                    });
+            } catch (error) {
+                return {"error": JSON.stringify(error)}
+            }
+        }
+    },
+    template: `
+<article class="user_approval">
+    <h2>Users needing approval:</h2>
+    <div v-for="(value, name) in userlist">{{ name }}: {{ value }}</div>
+</article>`
+}
+
+
 Error404 = {
     data: function(){
         return {
@@ -258,6 +298,7 @@ var routes = [
   { path: '/', name: 'home', component: Home },
   { path: '/register/:institution', name: 'register', component: Register, props: true },
   { path: '/login', name: 'login', component: Login },
+  { path: '/userApproval', name: 'user_approval', component: UserApproval, meta: { requiresAuth: true } },
   { path: '*', name: '404', component: Error404, props: true }
 ];
 
@@ -279,6 +320,7 @@ var routes = [
         await keycloak.updateToken(60);
         isAuthenticated = true;
       } catch (error) {
+        console.log(error);
         isAuthenticated = false;
       }
       console.log('baseurl: '+window.location.origin)
@@ -287,7 +329,7 @@ var routes = [
         // do login process
         console.log("keycloak needs login")
         await keycloak.login({redirectUri:window.location.origin+to.path})
-        // next({ name: 'Login' })
+        // next({ name: 'login' })
       }
       else next()
     })

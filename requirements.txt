@@ -6,4 +6,5 @@ requests
 cryptography
 pyjwt
 motor
+unidecode
 -e git+https://github.com/WIPACrepo/rest-tools#egg=rest_tools

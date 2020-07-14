@@ -9,9 +9,17 @@ from tornado.web import RequestHandler, StaticFileHandler, HTTPError
 from rest_tools.server import RestServer, RestHandlerSetup, from_environment
 import motor.motor_asyncio
 
-from .users import Users, UserDetails, UserGroups
-from .user_registration import UserRegistration
-from .group_mgmt import Groups
+import krs.token
+
+from .insts import (Experiments, Institutions, InstApprovals,
+                    InstApprovalsActionApprove, InstApprovalsActionDeny)
+from .groups import (MultiGroups, Group, GroupUser, GroupApprovals,
+                     GroupApprovalsActionApprove, GroupApprovalsActionDeny)
+
+
+class Error(RequestHandler):
+    def prepare(self):
+        raise HTTPError(404, 'invalid api route')
 
 def create_server():
     static_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),'static')
@@ -21,9 +29,6 @@ def create_server():
         def get_absolute_path(cls, root: str, path: str) -> str:
             return os.path.join(static_path, 'index.html')
 
-    class Error(RequestHandler):
-        def prepare(self):
-            raise HTTPError(404, 'invalid api route')
 
     default_config = {
        'HOST': 'localhost',
@@ -52,14 +57,28 @@ def create_server():
     logging.info(f'DB name: {db_name}')
     kwargs['db'] = db[db_name]
 
+    kwargs['token'] = krs.token.get_token()
+
     server = RestServer(static_path=static_path, debug=config['DEBUG'])
-    server.add_route('/api/user_registration', UserRegistration, kwargs)
-    server.add_route('/api/users', Users, kwargs)
-    server.add_route(r'/api/users/(?P<user_id>\w+)', UserDetails, kwargs)
-    server.add_route(r'/api/users/(?P<user_id>\w+)/groups', UserGroups, kwargs)
-    server.add_route('/api/manage-groups', Groups, kwargs)
+
+    server.add_route('/api/experiments', Experiments, kwargs)
+    server.add_route('/api/experiments/(?P<experiment>\w+)/institutions', Institutions, kwargs)
+
+    server.add_route('/api/inst_approvals', InstApprovals, kwargs)
+    server.add_route(r'/api/inst_approvals/(?P<approval_id>\w+)/actions/approve', InstApprovalsActionApprove, kwargs)
+    server.add_route(r'/api/inst_approvals/(?P<approval_id>\w+)/actions/deny', InstApprovalsActionDeny, kwargs)
+
+    server.add_route('/api/groups', MultiGroups, kwargs)
+    server.add_route(r'/api/groups/(?P<group>\w+)', Group, kwargs)
+    server.add_route(r'/api/groups/(?P<group>\w+)/(?P<username>\w+)', GroupUser, kwargs)
+
+    server.add_route('/api/group_approvals', GroupApprovals, kwargs)
+    server.add_route(r'/api/group_approvals/(?P<approval_id>\w+)/actions/approve', GroupApprovalsActionApprove, kwargs)
+    server.add_route(r'/api/group_approvals/(?P<approval_id>\w+)/actions/deny', GroupApprovalsActionDeny, kwargs)
+
     server.add_route(r'/api/(.*)', Error)
     server.add_route(r'/(.*)', Main, {'path': ''})
+
     server.startup(address=config['HOST'], port=config['PORT'])
 
     return server
