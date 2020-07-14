@@ -79,6 +79,24 @@ def user_mgmt_app(appurl, token):
         r = requests.post(url, json=args, headers={'Authorization': f'bearer {token}'})
         r.raise_for_status()
         
+        url = f'{cfg["keycloak_url"]}/auth/admin/realms/{cfg["realm"]}/clients/{client_id}/protocol-mappers/models'
+        args = {
+            'config': {
+                'access.token.claim': 'true',
+                'claim.name': 'username',
+                'id.token.claim': 'true',
+                'jsonType.label': 'String',
+                'user.attribute': 'username',
+                'userinfo.token.claim': 'true',
+            },
+            'consentRequired': False,
+            'name': 'username',
+            'protocol': 'openid-connect',
+            'protocolMapper': 'oidc-usermodel-property-mapper',
+        }
+        r = requests.post(url, json=args, headers={'Authorization': f'bearer {token}'})
+        r.raise_for_status()
+        
         print('user_mgmt app created')
 
 
