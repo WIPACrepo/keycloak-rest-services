@@ -122,6 +122,35 @@ def delete_group(group_path, token=None):
     else:
         print(f'group "{group_path}" does not exist')
 
+def get_group_membership(group_path, token=None):
+    """
+    Get the membership list of a group.
+
+    Args:
+        group_path (str): group path (/parent/parent/name)
+
+    Returns:
+        list: group paths
+    """
+    cfg = config({
+        'realm': ConfigRequired,
+        'keycloak_url': ConfigRequired,
+    })
+
+    groups = list_groups(token=token)
+    if group_path not in groups:
+        raise Exception(f'group "{group_path}" does not exist')
+    group_id = groups[group_path]['id']
+
+    url = f'{cfg["keycloak_url"]}/auth/admin/realms/{cfg["realm"]}/groups/{group_id}/members'
+    r = requests.get(url, headers={'Authorization': f'bearer {token}'})
+    r.raise_for_status()
+
+    ret = []
+    for user in r.json():
+        ret.append(user['username'])
+    return ret
+
 def get_user_groups(username, token=None):
     """
     Get the groups a user has membership in.
@@ -222,6 +251,9 @@ def main():
     parser_delete = subparsers.add_parser('delete', help='delete a group')
     parser_delete.add_argument('group_path', help='group path (/parentA/parentB/name)')
     parser_delete.set_defaults(func=delete_group)
+    parser_get_members = subparsers.add_parser('members', help='get group membership')
+    parser_get_members.add_argument('group_path', help='group path (/parentA/parentB/name)')
+    parser_get_members.set_defaults(func=get_group_membership)
     parser_get_user_groups = subparsers.add_parser('get_user_groups', help="get a user's group memberships")
     parser_get_user_groups.add_argument('username', help='username of user')
     parser_get_user_groups.set_defaults(func=get_user_groups)
