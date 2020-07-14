@@ -49,7 +49,7 @@ def user_info(username, token=None):
         raise Exception(f'user "{username}" does not exist')
     return ret[0]
 
-def create_user(username, first_name, last_name, email, token=None):
+def create_user(username, first_name, last_name, email, attribs=None, token=None):
     """
     Create a user in Keycloak.
 
@@ -58,6 +58,7 @@ def create_user(username, first_name, last_name, email, token=None):
         first_name (str): first name
         last_name (str): last name
         email (str): email address
+        attribs (dict): user attributes
     """
     cfg = config({
         'realm': ConfigRequired,
@@ -75,7 +76,9 @@ def create_user(username, first_name, last_name, email, token=None):
             'lastName': last_name,
             'username': username,
             'enabled': True,
+            'attributes': {item.split('=',1)[0]:item.split('=',1)[-1] for item in attribs},
         }
+        print(user)
         r = requests.post(url, json=user, headers={'Authorization': f'bearer {token}'})
         r.raise_for_status()
         print(f'user "{username}" created')
@@ -154,6 +157,7 @@ def main():
     parser_create.add_argument('first_name', help='first name')
     parser_create.add_argument('last_name', help='last name')
     parser_create.add_argument('email', help='email address')
+    parser_create.add_argument('attribs', nargs=argparse.REMAINDER)
     parser_create.set_defaults(func=create_user)
     parser_set_password = subparsers.add_parser('set_password', help='set a user\'s password')
     parser_set_password.add_argument('username', help='user name')
