@@ -66,6 +66,29 @@ async def group_info(group_path, token=None):
         raise Exception(f'group "{group_path}" does not exist')
     return ret
 
+async def group_info_by_id(group_id, token=None):
+    """
+    Get group information.
+
+    Args:
+        group_path (str): group path (/parent/parent/name)
+
+    Returns:
+        dict: group info
+    """
+    cfg = config({
+        'realm': ConfigRequired,
+        'keycloak_url': ConfigRequired,
+    })
+
+    url = f'/auth/admin/realms/{cfg["realm"]}/groups/{group_id}'
+    r = RestClient(cfg["keycloak_url"], token=token)
+    ret = await r.request('GET', url)
+
+    if not ret:
+        raise Exception(f'group "{group_id}" does not exist')
+    return ret
+
 async def create_group(group_path, token=None):
     """
     Create a group in Keycloak.

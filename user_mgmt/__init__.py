@@ -59,19 +59,20 @@ class MyHandler(RestHandler):
         if '/admin' in self.auth_data['groups']: # super admin - all groups
             admin_groups = await krs.groups.list_groups(token=self.token)
         else:
-            admin_groups = [g[:-6] for g in self.auth_data['groups'] if g.endswith('/_admin')]
+            admin_groups = [g[:-7] for g in self.auth_data['groups'] if g.endswith('/_admin')]
         groups = set()
         for group in admin_groups:
             val = group.strip('/').split('/')
-            if len(val) > 1 and val[0] != 'institutions':
+            if len(val) >= 1 and val[0] != 'institutions':
                 groups.add(group)
+        logging.info(f'get_admin_groups: {groups}')
         return groups
 
     async def get_admin_institutions(self):
         if '/admin' in self.auth_data['groups']: # super admin - all institutions
             admin_groups = await krs.groups.list_groups(token=self.token)
         else:
-            admin_groups = [g[:-6] for g in self.auth_data['groups'] if g.endswith('/_admin')]
+            admin_groups = [g[:-7] for g in self.auth_data['groups'] if g.endswith('/_admin')]
         insts = {}
         for group in admin_groups:
             val = group.strip('/').split('/')

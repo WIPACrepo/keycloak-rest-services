@@ -65,8 +65,8 @@ def create_server():
     server.add_route(r'/api/inst_approvals/(?P<approval_id>\w+)/actions/deny', InstApprovalsActionDeny, kwargs)
 
     server.add_route('/api/groups', MultiGroups, kwargs)
-    server.add_route(r'/api/groups/(?P<group>\w+)', Group, kwargs)
-    server.add_route(r'/api/groups/(?P<group>\w+)/(?P<username>\w+)', GroupUser, kwargs)
+    server.add_route(r'/api/groups/(?P<group_id>[\w\-]+)', Group, kwargs)
+    server.add_route(r'/api/groups/(?P<group_id>[\w\-]+)/(?P<username>\w+)', GroupUser, kwargs)
 
     server.add_route('/api/group_approvals', GroupApprovals, kwargs)
     server.add_route(r'/api/group_approvals/(?P<approval_id>\w+)/actions/approve', GroupApprovalsActionApprove, kwargs)

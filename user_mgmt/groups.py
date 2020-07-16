@@ -12,6 +12,22 @@ import krs.groups
 
 from . import MyHandler
 
+audit_logger = logging.getLogger('audit')
+
+
+def get_administered_groups(ret):
+    groups = {}
+    for group in ret:
+        val = group.strip('/').split('/')
+        # only select groups that can be administered by users
+        if len(val) > 1 and val[0] != 'institutions' and val[-1] == '_admin':
+            groups[group[:-7]] = ret[group[:-7]]['id']
+    # get sub-groups of administered groups
+    for group in ret:
+        if (not group.rsplit('/')[-1].startswith('_')) and any(g.startswith(group) for g in groups):
+            groups[group] = ret[group]['id']
+    return groups
+
 
 class MultiGroups(MyHandler):
     @authenticated
@@ -19,82 +35,93 @@ class MultiGroups(MyHandler):
     async def get(self):
         """Get a list of all groups."""
         ret = await krs.groups.list_groups(token=self.token)
-        groups = set()
-        for group in ret:
-            val = group.strip('/').split('/')
-            # only select groups that can be administered by users
-            if len(val) > 1 and val[0] != 'institutions' and val[-1] == '_admin':
-                groups.add(group[:-6])
-        # get sub-groups of administered groups
-        for group in ret:
-            if (not group.rsplit('/')[-1].startswith('_')) and any(g.startswith(group) for g in groups):
-                groups.add(group)
-        self.write(sorted(exps))
+        self.write(get_administered_groups(ret))
 
 
 class Group(MyHandler):
     @authenticated
     @catch_error
-    async def get(self, group):
+    async def get(self, group_id):
         """
         Get members of a group.  Must be admin.
 
         Args:
-            group (str): group path
+            group_id (str): group id
         Returns:
             list: usernames
         """
-        if group.rsplit('/')[-1].startswith('_'):
-            raise HTTPError(400, 'bad group request')
-        admin_groups = await self.get_admin_groups()
-        if not any(group.startswith(g) for g in admin_groups):
-            raise HTTPError(403, 'invalid authorization')
         try:
-            ret = await krs.groups.get_group_membership(token=self.token)
+            group = await krs.groups.group_info_by_id(group_id, token=self.token)
         except Exception:
             raise HTTPError(404, 'group does not exist')
+        
+        if group['name'].startswith('_'):
+            raise HTTPError(400, 'bad group request')
+        admin_groups = await self.get_admin_groups()
+        if not any(group['path'].startswith(g) for g in admin_groups):
+            raise HTTPError(403, 'invalid authorization')
+
+        ret = await krs.groups.get_group_membership(group['path'], token=self.token)
         self.write(sorted(ret))
 
 
 class GroupUser(MyHandler):
     @authenticated
     @catch_error
-    async def put(self, group, username):
+    async def put(self, group_id, username):
         """
         Add a user to a group.  Must be admin.
 
         Args:
-            group (str): group path
+            group_id (str): group id
             username (str): username of new member
-        Returns:
-            list: usernames
         """
-        if group.rsplit('/')[-1].startswith('_'):
+        try:
+            group = await krs.groups.group_info_by_id(group_id, token=self.token)
+        except Exception:
+            raise HTTPError(404, 'group does not exist')
+        
+        if group['name'].startswith('_'):
             raise HTTPError(400, 'bad group request')
         admin_groups = await self.get_admin_groups()
-        if not any(group.startswith(g) for g in admin_groups):
+        if not any(group['path'].startswith(g) for g in admin_groups):
             raise HTTPError(403, 'invalid authorization')
-        await krs.groups.add_user_group(group, username, token=self.token)
+
+        try:
+            await krs.users.user_info(username, token=self.token)
+        except Exception:
+            raise HTTPError(404, 'username does not exist')
+
+        await krs.groups.add_user_group(group['path'], username, token=self.token)
         self.write({})
 
     @authenticated
     @catch_error
-    async def delete(self, group, username):
+    async def delete(self, group_id, username):
         """
         Remove a user from a group.  Must be admin or the user in question.
 
         Args:
-            group (str): group path
+            group_id (str): group id
             username (str): username of new member
-        Returns:
-            list: usernames
         """
-        if group.rsplit('/')[-1].startswith('_'):
+        try:
+            group = await krs.groups.group_info_by_id(group_id, token=self.token)
+        except Exception:
+            raise HTTPError(404, 'group does not exist')
+        
+        if group['name'].startswith('_'):
             raise HTTPError(400, 'bad group request')
         admin_groups = await self.get_admin_groups()
-        if username != self.auth_data['username'] and not any(group.startswith(g) for g in admin_groups):
+        if not any(group['path'].startswith(g) for g in admin_groups):
             raise HTTPError(403, 'invalid authorization')
-        await krs.groups.remove_user_group(group, username, token=self.token)
+
+        try:
+            await krs.users.user_info(username, token=self.token)
+        except Exception:
+            raise HTTPError(404, 'username does not exist')
+
+        await krs.groups.remove_user_group(group['path'], username, token=self.token)
         self.write({})
 
 
@@ -115,11 +142,15 @@ class GroupApprovals(MyHandler):
 
         if approval_data['group'].rsplit('/')[-1].startswith('_'):
             raise HTTPError(400, 'bad group request')
+            
+        ret = await krs.groups.list_groups(token=self.token)
+        if approval_data['group'] not in get_administered_groups(ret):
+            raise HTTPError(400, 'bad group request')
 
         await self.db.group_approvals.insert_one(approval_data)
 
         self.set_status(201)
-        self.write({})
+        self.write({'id': approval_data['id']})
 
     @authenticated
     @catch_error
@@ -137,7 +168,7 @@ class GroupApprovals(MyHandler):
 class GroupApprovalsActionApprove(MyHandler):
     @authenticated
     @catch_error
-    async def put(self, approval_id):
+    async def post(self, approval_id):
         """
         Approve a group approval.
 
@@ -167,7 +198,7 @@ class GroupApprovalsActionApprove(MyHandler):
 class GroupApprovalsActionDeny(MyHandler):
     @authenticated
     @catch_error
-    async def put(self, approval_id):
+    async def post(self, approval_id):
         """
         Deny a group approval.
 
@@ -187,4 +218,3 @@ class GroupApprovalsActionDeny(MyHandler):
         # TODO: send email
 
         self.write({})
-

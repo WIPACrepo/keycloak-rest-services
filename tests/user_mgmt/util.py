@@ -66,8 +66,10 @@ async def mongo_client():
 
     await ret.user_registrations.drop()
     await ret.inst_approvals.drop()
+    await ret.group_approvals.drop()
     try:
         yield ret
     finally:
         await ret.user_registrations.drop()
         await ret.inst_approvals.drop()
+        await ret.group_approvals.drop()

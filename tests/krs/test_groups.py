@@ -19,6 +19,32 @@ async def test_list_groups(keycloak_bootstrap):
     assert ret['/testgroup']['children'] == ['testgroup2']
 
 @pytest.mark.asyncio
+async def test_group_info(keycloak_bootstrap):
+    with pytest.raises(Exception):
+        await groups.group_info('/testgroup', token=keycloak_bootstrap)
+
+    await groups.create_group('/testgroup', token=keycloak_bootstrap)
+    await groups.create_group('/testgroup/testgroup2', token=keycloak_bootstrap)
+    ret = await groups.group_info('/testgroup', token=keycloak_bootstrap)
+    assert ret['name'] == 'testgroup'
+    assert ret['path'] == '/testgroup'
+    assert [g['name'] for g in ret['subGroups']] == ['testgroup2']
+
+@pytest.mark.asyncio
+async def test_group_info_by_id(keycloak_bootstrap):
+    with pytest.raises(Exception):
+        await groups.group_info('/testgroup', token=keycloak_bootstrap)
+
+    await groups.create_group('/testgroup', token=keycloak_bootstrap)
+    await groups.create_group('/testgroup/testgroup2', token=keycloak_bootstrap)
+    ret = await groups.group_info('/testgroup', token=keycloak_bootstrap)
+    group_id = ret['id']
+    ret = await groups.group_info_by_id(group_id, token=keycloak_bootstrap)
+    assert ret['name'] == 'testgroup'
+    assert ret['path'] == '/testgroup'
+    assert [g['name'] for g in ret['subGroups']] == ['testgroup2']
+
+@pytest.mark.asyncio
 async def test_create_group(keycloak_bootstrap):
     await groups.create_group('/testgroup', token=keycloak_bootstrap)
 
