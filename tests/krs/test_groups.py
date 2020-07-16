@@ -3,7 +3,7 @@ import pytest
 from krs.token import get_token
 from krs import groups, users
 
-from .util import keycloak_bootstrap
+from ..util import keycloak_bootstrap
 
 def test_list_groups(keycloak_bootstrap):
     # first test with no groups
@@ -74,3 +74,20 @@ def test_remove_user_group(keycloak_bootstrap):
     groups.remove_user_group('/testgroup', 'testuser', token=keycloak_bootstrap)
     ret = groups.get_user_groups('testuser', token=keycloak_bootstrap)
     assert ret == []
+
+def test_get_group_membership(keycloak_bootstrap):
+    with pytest.raises(Exception):
+        groups.add_user_group('/testgroup', 'testuser', token=keycloak_bootstrap)
+
+    users.create_user('testuser', 'first', 'last', 'email', token=keycloak_bootstrap)
+    with pytest.raises(Exception):
+        groups.add_user_group('/testgroup', 'testuser', token=keycloak_bootstrap)
+
+    groups.create_group('/testgroup', token=keycloak_bootstrap)
+    ret = groups.get_group_membership('/testgroup', token=keycloak_bootstrap)
+    assert ret == []
+    
+    groups.add_user_group('/testgroup', 'testuser', token=keycloak_bootstrap)
+
+    ret = groups.get_group_membership('/testgroup', token=keycloak_bootstrap)
+    assert ret == ['testuser']

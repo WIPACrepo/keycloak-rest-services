@@ -21,13 +21,14 @@ class Experiments(MyHandler):
     @catch_error
     async def get(self):
         """Get a list of experiments"""
-        ret = await krs.groups.list_groups(token=self.token)
+        ret = krs.groups.list_groups(token=self.token)
         exps = set()
         for group in ret:
             val = group.strip('/').split('/')
             if len(val) == 2 and val[0] == 'institutions':
                 exps.add(val[1])
-        return sorted(exps)
+        logging.info(f'exps: {exps}')
+        self.write(sorted(exps))
 
 
 class Institutions(MyHandler):
@@ -40,7 +41,7 @@ class Institutions(MyHandler):
             val = group.strip('/').split('/')
             if len(val) == 3 and val[0] == 'institutions' and val[1] == experiment:
                 insts.add(val[2])
-        return sorted(insts)
+        self.write(sorted(insts))
 
 
 class InstApprovals(MyHandler):

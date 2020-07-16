@@ -3,7 +3,7 @@ from krs import users,groups,apps
 
 import pytest
 
-from .util import keycloak_bootstrap
+from ..util import keycloak_bootstrap
 
 def test_list_apps_empty(keycloak_bootstrap):
     ret = apps.list_apps(token=keycloak_bootstrap)

@@ -23,12 +23,13 @@ class MultiGroups(MyHandler):
         for group in ret:
             val = group.strip('/').split('/')
             # only select groups that can be administered by users
-            if len(val) > 1 and val[0] != 'institutions' and val[-1] == 'admin':
+            if len(val) > 1 and val[0] != 'institutions' and val[-1] == '_admin':
                 groups.add(group[:-6])
+        # get sub-groups of administered groups
         for group in ret:
-            if (not group.endswith('/admin')) and any(g.startswith(group) for g in groups):
+            if (not group.rsplit('/')[-1].startswith('_')) and any(g.startswith(group) for g in groups):
                 groups.add(group)
-        return sorted(exps)
+        self.write(sorted(exps))
 
 
 class Group(MyHandler):
@@ -43,11 +44,16 @@ class Group(MyHandler):
         Returns:
             list: usernames
         """
+        if group.rsplit('/')[-1].startswith('_'):
+            raise HTTPError(400, 'bad group request')
         admin_groups = await self.get_admin_groups()
         if not any(group.startswith(g) for g in admin_groups):
             raise HTTPError(403, 'invalid authorization')
-        ret = await krs.groups.get_group_membership(token=self.token)
-        return sorted(ret)
+        try:
+            ret = await krs.groups.get_group_membership(token=self.token)
+        except Exception:
+            raise HTTPError(404, 'group does not exist')
+        self.write(sorted(ret))
 
 
 class GroupUser(MyHandler):
@@ -63,6 +69,8 @@ class GroupUser(MyHandler):
         Returns:
             list: usernames
         """
+        if group.rsplit('/')[-1].startswith('_'):
+            raise HTTPError(400, 'bad group request')
         admin_groups = await self.get_admin_groups()
         if not any(group.startswith(g) for g in admin_groups):
             raise HTTPError(403, 'invalid authorization')
@@ -81,6 +89,8 @@ class GroupUser(MyHandler):
         Returns:
             list: usernames
         """
+        if group.rsplit('/')[-1].startswith('_'):
+            raise HTTPError(400, 'bad group request')
         admin_groups = await self.get_admin_groups()
         if username != self.auth_data['username'] and not any(group.startswith(g) for g in admin_groups):
             raise HTTPError(403, 'invalid authorization')
@@ -102,6 +112,9 @@ class GroupApprovals(MyHandler):
         approval_data = self.json_filter(req_fields, opt_fields)
         approval_data['username'] = self.auth_data['username']
         approval_data['id'] = uuid.uuid1().hex
+
+        if approval_data['group'].rsplit('/')[-1].startswith('_'):
+            raise HTTPError(400, 'bad group request')
 
         await self.db.group_approvals.insert_one(approval_data)
 
@@ -146,6 +159,7 @@ class GroupApprovalsActionApprove(MyHandler):
         # TODO: send email
         
         self.write({})
+
 
 class GroupApprovalsActionDeny(MyHandler):
     @authenticated

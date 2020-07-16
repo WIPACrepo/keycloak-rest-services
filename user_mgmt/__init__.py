@@ -1,5 +1,5 @@
 from tornado.web import HTTPError
-from tornado.escape import json_decode
+from tornado.escape import json_decode, json_encode
 from rest_tools.server import RestHandler
 
 class MyHandler(RestHandler):
@@ -7,6 +7,23 @@ class MyHandler(RestHandler):
         super().initialize(**kwargs)
         self.db = db
         self.token = token
+
+    def write(self, chunk):
+        """
+        Writes the given chunk to the output buffer.
+
+        A copy of the Tornado src, without the list json restriction.
+        """
+        if self._finished:
+            raise RuntimeError("Cannot write() after finish()")
+        if not isinstance(chunk, (bytes, str, dict, list)):
+            message = "write() only accepts bytes, str, dict, and list objects"
+            raise TypeError(message)
+        if isinstance(chunk, (dict,list)):
+            chunk = json_encode(chunk)
+            self.set_header("Content-Type", "application/json; charset=UTF-8")
+        chunk = chunk if isinstance(chunk, bytes) else chunk.encode("utf-8")
+        self._write_buffer.append(chunk)
 
     def json_filter(self, req_fields, opt_fields):
         """
@@ -40,7 +57,7 @@ class MyHandler(RestHandler):
         if '/admin' in self.auth_data['groups']: # super admin - all groups
             admin_groups = await krs.groups.list_groups(token=self.token)
         else:
-            admin_groups = [g[:-6] for g in self.auth_data['groups'] if g.endswith('/admin')]
+            admin_groups = [g[:-6] for g in self.auth_data['groups'] if g.endswith('/_admin')]
         groups = set()
         for group in admin_groups:
             val = group.strip('/').split('/')
@@ -52,7 +69,7 @@ class MyHandler(RestHandler):
         if '/admin' in self.auth_data['groups']: # super admin - all institutions
             admin_groups = await krs.groups.list_groups(token=self.token)
         else:
-            admin_groups = [g[:-6] for g in self.auth_data['groups'] if g.endswith('/admin')]
+            admin_groups = [g[:-6] for g in self.auth_data['groups'] if g.endswith('/_admin')]
         insts = {}
         for group in admin_groups:
             val = group.strip('/').split('/')

@@ -1,7 +1,7 @@
 from krs.token import get_token
 from krs import users
 
-from .util import keycloak_bootstrap
+from ..util import keycloak_bootstrap
 
 def test_list_users_empty(keycloak_bootstrap):
     ret = users.list_users(token=keycloak_bootstrap)

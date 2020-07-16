@@ -8,6 +8,13 @@ from rest_tools.client import RestClient
 
 from user_mgmt.server import create_server
 
+import krs.bootstrap
+import krs.users
+import krs.groups
+import krs.apps
+
+from ..util import keycloak_bootstrap
+
 @pytest.fixture
 def port():
     """Get an ephemeral port number."""
@@ -20,22 +27,30 @@ def port():
     return ephemeral_port
 
 @pytest.fixture
-async def rest(monkeypatch, port):
+async def server(monkeypatch, port, keycloak_bootstrap):
     monkeypatch.setenv('DEBUG', 'True')
     monkeypatch.setenv('PORT', str(port))
     monkeypatch.setenv('AUTH_SECRET', 'secret')
     monkeypatch.setenv('AUTH_ISSUER', 'issuer')
     monkeypatch.setenv('AUTH_ALGORITHM', 'HS512')
 
+    krs.bootstrap.user_mgmt_app(f'http://localhost:{port}', passwordGrant=True, token=keycloak_bootstrap)
+
     s = create_server()
     def client(username='admin', groups=[], timeout=60):
-        a = Auth('secret', issuer='issuer', algorithm='HS512')
-        token = a.create_token(username, expiration=timeout, payload={
-            'groups': groups,
-        })
+        krs.users.create_user(username, 'first', 'last', 'email@test', token=keycloak_bootstrap)
+        krs.users.set_user_password(username, 'test', token=keycloak_bootstrap)
+        for group in groups:
+            krs.groups.create_group(group, token=keycloak_bootstrap)
+            krs.groups.add_user_group(group, username, token=keycloak_bootstrap)
+
+        token = krs.apps.get_public_token(username=username, password='test',
+                                          scopes=['profile'], client='user_mgmt',
+                                          raw=True)
         print(token)
+
         return RestClient(f'http://localhost:{port}', token=token, timeout=timeout, retries=0)
 
-    yield client
+    yield client, keycloak_bootstrap
     s.stop()
     await asyncio.sleep(0.01)

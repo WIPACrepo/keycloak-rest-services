@@ -1,14 +1,13 @@
 version: 2
 jobs:
-    test:
+    test_krs:
         docker:
             - image: circleci/python:3.8
               environment:
                 keycloak_url: http://localhost:8080
                 username: admin
                 password: admin
-            #- image: circleci/mongo:3.7.9-ram
-            - image: jboss/keycloak:8.0.2
+            - image: quay.io/keycloak/keycloak:10.0.2
               environment:
                 KEYCLOAK_USER: admin
                 KEYCLOAK_PASSWORD: admin
@@ -17,9 +16,28 @@ jobs:
             - run: ./setupenv.sh
             - run: |
                 . env/bin/activate &&
-                pytest
+                python -m pytest tests/krs --log-level=INFO
+    test_user_mgmt:
+        docker:
+            - image: circleci/python:3.8
+              environment:
+                keycloak_url: http://localhost:8080
+                username: admin
+                password: admin
+            - image: circleci/mongo:3.7.9-ram
+            - image: quay.io/keycloak/keycloak:10.0.2
+              environment:
+                KEYCLOAK_USER: admin
+                KEYCLOAK_PASSWORD: admin
+        steps:
+            - checkout
+            - run: ./setupenv.sh
+            - run: |
+                . env/bin/activate &&
+                python -m pytest tests/user_mgmt --log-level=INFO
 workflows:
     version: 2
     build_and_test:
         jobs:
-            - test
+            - test_krs
+            - test_user_mgmt

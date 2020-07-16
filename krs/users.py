@@ -65,6 +65,9 @@ def create_user(username, first_name, last_name, email, attribs=None, token=None
         'keycloak_url': ConfigRequired,
     })
 
+    if not attribs:
+        attribs = {}
+
     try:
         user_info(username, token=token)
     except Exception:

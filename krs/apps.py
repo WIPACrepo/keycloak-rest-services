@@ -470,7 +470,7 @@ def delete_app_role_mapping(appname, role, group, token=None):
         r.raise_for_status()
         print(f'app "{appname}" role mapping {role}-{group} deleted')
 
-def get_public_token(username, password, scopes=None, **kwargs):
+def get_public_token(username, password, scopes=None, client='public', secret=None, raw=False, **kwargs):
     import jwt
     import json
     cfg = config({
@@ -516,9 +516,10 @@ def get_public_token(username, password, scopes=None, **kwargs):
         'password': password,
 #        'audience': api_identifier,
         'scope': ' '.join(scopes),
-        'client_id': 'public',
-#        'client_secret': client_secret,
+        'client_id': client,
     }
+    if secret:
+        data['client_secret'] = secret
     r = requests.post(provider_info['token_endpoint'], data=data)
     try:
         r.raise_for_status()
@@ -530,7 +531,10 @@ def get_public_token(username, password, scopes=None, **kwargs):
         raise
     tokens = r.json()
 
-    return decode(tokens['access_token'])
+    if raw:
+        return tokens['access_token']
+    else:
+        return decode(tokens['access_token'])
 
 def main():
     import argparse
@@ -569,10 +573,13 @@ def main():
     parser_delete_role_mapping.add_argument('role', help='role name')
     parser_delete_role_mapping.add_argument('group', help='group path')
     parser_delete_role_mapping.set_defaults(func=delete_app_role_mapping)
-    parser_get_public_token = subparsers.add_parser('get_public_token', help='delete an app role-group mapping')
+    parser_get_public_token = subparsers.add_parser('get_public_token', help='get a user token')
     parser_get_public_token.add_argument('username', help='username of user')
     parser_get_public_token.add_argument('--password', default=None, help='password of user')
     parser_get_public_token.add_argument('-s', '--scopes', action='append', help='app scopes to request')
+    parser_get_public_token.add_argument('--client', default='public', help='app (client) to request')
+    parser_get_public_token.add_argument('--secret', help='app (client) secret (if necessary)')
+    parser_get_public_token.add_argument('--raw', action='store_true', help='output raw token')
     parser_get_public_token.set_defaults(func=get_public_token)
     args = parser.parse_args()
 

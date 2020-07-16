@@ -262,6 +262,106 @@ def create_public_app(realm=None, token=None):
         r.raise_for_status()
         print('public app created')
 
+def user_mgmt_app(appurl, passwordGrant=False, token=None):
+    """
+    Create the user management client in Keycloak.
+
+    Args:
+        appurl (str): url where app is deployed
+        passwordGrant (bool): (optional) whether to allow password grands (default: False)
+        token (str): admin rest api token
+    """
+    cfg = config({
+        'realm': ConfigRequired,
+        'keycloak_url': ConfigRequired,
+    })
+
+    appname = 'user_mgmt'
+
+    url = f'{cfg["keycloak_url"]}/auth/admin/realms/{cfg["realm"]}/clients?clientId={appname}'
+    r = requests.get(url, headers={'Authorization': f'bearer {token}'})
+    r.raise_for_status()
+    ret = r.json()
+
+    if ret:
+        print('user_mgmt app already exists')
+    else:
+        url = f'{cfg["keycloak_url"]}/auth/admin/realms/{cfg["realm"]}/clients'
+        args = {
+            'access': {'configure': True, 'manage': True, 'view': True},
+            'adminUrl': appurl,
+            'attributes': {},
+            'authenticationFlowBindingOverrides': {},
+            'bearerOnly': False,
+            'clientAuthenticatorType': 'client-secret',
+            'clientId': appname,
+            'consentRequired': False,
+            'defaultClientScopes': ['profile', 'email'],
+            'directAccessGrantsEnabled': passwordGrant,
+            'enabled': True,
+            'frontchannelLogout': False,
+            'fullScopeAllowed': True,
+            'implicitFlowEnabled': False,
+            'nodeReRegistrationTimeout': -1,
+            'notBefore': 0,
+            'optionalClientScopes': [],
+            'protocol': 'openid-connect',
+            'publicClient': True,
+            'redirectUris': [f'{appurl}/*'],
+            'rootUrl': appurl,
+            'serviceAccountsEnabled': False,
+            'standardFlowEnabled': True,
+            'surrogateAuthRequired': False,
+            'webOrigins': [appurl],
+        }
+        r = requests.post(url, json=args, headers={'Authorization': f'bearer {token}'})
+        r.raise_for_status()
+
+        url = f'{cfg["keycloak_url"]}/auth/admin/realms/{cfg["realm"]}/clients?clientId={appname}'
+        r = requests.get(url, headers={'Authorization': f'bearer {token}'})
+        r.raise_for_status()
+        ret = r.json()
+        if not ret:
+            raise Exception('failed to create user_mgmt_app')
+        client_id = ret[0]['id']
+        
+        url = f'{cfg["keycloak_url"]}/auth/admin/realms/{cfg["realm"]}/clients/{client_id}/protocol-mappers/models'
+        args = {
+            'config': {
+                'access.token.claim': 'true',
+                'claim.name': 'groups',
+                'full.path': 'true',
+                'userinfo.token.claim': 'true',
+            },
+            'consentRequired': False,
+            'name': 'groups',
+            'protocol': 'openid-connect',
+            'protocolMapper': 'oidc-group-membership-mapper',
+        }
+        r = requests.post(url, json=args, headers={'Authorization': f'bearer {token}'})
+        r.raise_for_status()
+        
+        url = f'{cfg["keycloak_url"]}/auth/admin/realms/{cfg["realm"]}/clients/{client_id}/protocol-mappers/models'
+        args = {
+            'config': {
+                'access.token.claim': 'true',
+                'claim.name': 'username',
+                'id.token.claim': 'true',
+                'jsonType.label': 'String',
+                'user.attribute': 'username',
+                'userinfo.token.claim': 'true',
+            },
+            'consentRequired': False,
+            'name': 'username',
+            'protocol': 'openid-connect',
+            'protocolMapper': 'oidc-usermodel-property-mapper',
+        }
+        r = requests.post(url, json=args, headers={'Authorization': f'bearer {token}'})
+        r.raise_for_status()
+        
+        print('user_mgmt app created')
+
+
 def bootstrap():
     cfg = config({
         'realm': ConfigRequired,
