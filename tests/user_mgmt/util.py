@@ -37,12 +37,12 @@ async def server(monkeypatch, port, keycloak_bootstrap):
     krs.bootstrap.user_mgmt_app(f'http://localhost:{port}', passwordGrant=True, token=keycloak_bootstrap)
 
     s = create_server()
-    def client(username='admin', groups=[], timeout=60):
-        krs.users.create_user(username, 'first', 'last', 'email@test', token=keycloak_bootstrap)
-        krs.users.set_user_password(username, 'test', token=keycloak_bootstrap)
+    async def client(username='admin', groups=[], timeout=60):
+        await krs.users.create_user(username, 'first', 'last', 'email@test', token=keycloak_bootstrap)
+        await krs.users.set_user_password(username, 'test', token=keycloak_bootstrap)
         for group in groups:
-            krs.groups.create_group(group, token=keycloak_bootstrap)
-            krs.groups.add_user_group(group, username, token=keycloak_bootstrap)
+            await krs.groups.create_group(group, token=keycloak_bootstrap)
+            await krs.groups.add_user_group(group, username, token=keycloak_bootstrap)
 
         token = krs.apps.get_public_token(username=username, password='test',
                                           scopes=['profile'], client='user_mgmt',

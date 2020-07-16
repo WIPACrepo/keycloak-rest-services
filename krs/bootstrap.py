@@ -24,9 +24,6 @@ def wait_for_keycloak(timeout=300):
         raise Exception('Keycloak did not start')
 
 def get_token():
-    if get_token.cache:
-        return get_token.cache
-
     cfg = config({
         'keycloak_url': ConfigRequired,
         'username': ConfigRequired,
@@ -43,9 +40,7 @@ def get_token():
     r = requests.post(url, data=args)
     r.raise_for_status()
     req = r.json()
-    get_token.cache = req['access_token']
-    return get_token.cache
-get_token.cache = None
+    return req['access_token']
 
 def create_realm(realm, token=None):
     cfg = config({

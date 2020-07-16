@@ -1,11 +1,13 @@
 """
 User actions against Keycloak.
 """
-import requests
+import asyncio
+
+from rest_tools.client import RestClient
 
 from .util import config, ConfigRequired
 
-def list_users(token=None):
+async def list_users(token=None):
     """
     List users in Keycloak.
 
@@ -17,15 +19,15 @@ def list_users(token=None):
         'keycloak_url': ConfigRequired,
         'max_users': 10000,
     })
-    url = f'{cfg["keycloak_url"]}/auth/admin/realms/{cfg["realm"]}/users?max={cfg["max_users"]}'
-    r = requests.get(url, headers={'Authorization': f'bearer {token}'})
-    r.raise_for_status()
+    url = f'/auth/admin/realms/{cfg["realm"]}/users?max={cfg["max_users"]}'
+    r = RestClient(cfg["keycloak_url"], token=token)
+    data = await r.request('GET', url)
     ret = {}
-    for u in r.json():
+    for u in data:
         ret[u['username']] = u
     return ret
 
-def user_info(username, token=None):
+async def user_info(username, token=None):
     """
     Get user information.
 
@@ -40,16 +42,15 @@ def user_info(username, token=None):
         'keycloak_url': ConfigRequired,
     })
 
-    url = f'{cfg["keycloak_url"]}/auth/admin/realms/{cfg["realm"]}/users?username={username}'
-    r = requests.get(url, headers={'Authorization': f'bearer {token}'})
-    r.raise_for_status()
-    ret = r.json()
+    url = f'/auth/admin/realms/{cfg["realm"]}/users?username={username}'
+    r = RestClient(cfg["keycloak_url"], token=token)
+    ret = await r.request('GET', url)
 
     if not ret:
         raise Exception(f'user "{username}" does not exist')
     return ret[0]
 
-def create_user(username, first_name, last_name, email, attribs=None, token=None):
+async def create_user(username, first_name, last_name, email, attribs=None, token=None):
     """
     Create a user in Keycloak.
 
@@ -69,10 +70,10 @@ def create_user(username, first_name, last_name, email, attribs=None, token=None
         attribs = {}
 
     try:
-        user_info(username, token=token)
+        await user_info(username, token=token)
     except Exception:
         print(f'creating user "{username}"')
-        url = f'{cfg["keycloak_url"]}/auth/admin/realms/{cfg["realm"]}/users'
+        url = f'/auth/admin/realms/{cfg["realm"]}/users'
         user = {
             'email': email,
             'firstName': first_name,
@@ -82,13 +83,13 @@ def create_user(username, first_name, last_name, email, attribs=None, token=None
             'attributes': {item.split('=',1)[0]:item.split('=',1)[-1] for item in attribs},
         }
         print(user)
-        r = requests.post(url, json=user, headers={'Authorization': f'bearer {token}'})
-        r.raise_for_status()
+        r = RestClient(cfg["keycloak_url"], token=token)
+        ret = await r.request('POST', url, user)
         print(f'user "{username}" created')
     else:
         print(f'user "{username}" already exists')
 
-def set_user_password(username, password=None, token=None):
+async def set_user_password(username, password=None, token=None):
     """
     Set a user's password in Keycloak.
 
@@ -107,20 +108,20 @@ def set_user_password(username, password=None, token=None):
         password = getpass.getpass()
 
     try:
-        ret = user_info(username, token=token)
+        ret = await user_info(username, token=token)
     except Exception:
         print(f'user "{username}" does not exist')
     else:
         user_id = ret['id']
-        url = f'{cfg["keycloak_url"]}/auth/admin/realms/{cfg["realm"]}/users/{user_id}/reset-password'
+        url = f'/auth/admin/realms/{cfg["realm"]}/users/{user_id}/reset-password'
         args = {
             'value': password,
         }
-        r = requests.put(url, json=args, headers={'Authorization': f'bearer {token}'})
-        r.raise_for_status()
+        r = RestClient(cfg["keycloak_url"], token=token)
+        ret = await r.request('PUT', url, args)
         print(f'user "{username}" password set')
 
-def delete_user(username, token=None):
+async def delete_user(username, token=None):
     """
     Delete a user in Keycloak.
 
@@ -133,14 +134,14 @@ def delete_user(username, token=None):
     })
 
     try:
-        ret = user_info(username, token=token)
+        ret = await user_info(username, token=token)
     except Exception:
         print(f'user "{username}" does not exist')
     else:
         user_id = ret['id']
-        url = f'{cfg["keycloak_url"]}/auth/admin/realms/{cfg["realm"]}/users/{user_id}'
-        r = requests.delete(url, headers={'Authorization': f'bearer {token}'})
-        r.raise_for_status()
+        url = f'/auth/admin/realms/{cfg["realm"]}/users/{user_id}'
+        r = RestClient(cfg["keycloak_url"], token=token)
+        ret = await r.request('DELETE', url)
         print(f'user "{username}" deleted')
 
 def main():
@@ -175,7 +176,7 @@ def main():
 
     args = vars(args)
     func = args.pop('func')
-    ret = func(token=token, **args)
+    ret = asyncio.run(func(token=token, **args))
     if ret is not None:
         pprint(ret)
 

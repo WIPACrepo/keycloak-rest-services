@@ -21,7 +21,7 @@ class Experiments(MyHandler):
     @catch_error
     async def get(self):
         """Get a list of experiments"""
-        ret = krs.groups.list_groups(token=self.token)
+        ret = await krs.groups.list_groups(token=self.token)
         exps = set()
         for group in ret:
             val = group.strip('/').split('/')

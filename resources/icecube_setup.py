@@ -1,16 +1,34 @@
 import os
 import sys
 import argparse
+import asyncio
 
 import requests
 
 sys.path.append(os.getcwd())
 
-from krs.apps import app_info
 from krs.bootstrap import bootstrap, user_mgmt_app
 from krs.groups import create_group
 from krs.token import get_token
 from krs.util import config, ConfigRequired
+
+
+GROUPS = {
+    'institutions': {
+        'IceCube': {},
+        'IceCube-Gen2': {},
+        'HAWC': {},
+        'CTA': {},
+        'ARA': {},
+    },
+    'experiments': {
+        'IceCube': {
+            'Working Groups': {},
+        },
+    },
+    'posix': {},
+    'tokens': {},
+}
 
 
 def main():
@@ -34,29 +52,13 @@ def main():
     token = get_token()
 
     # set up basic group structure
-    g = {
-        'institutions': {
-            'IceCube': {},
-            'IceCube-Gen2': {},
-            'HAWC': {},
-            'CTA': {},
-            'ARA': {},
-        },
-        'experiments': {
-            'IceCube': {
-                'Working Groups': {},
-            },
-        },
-        'posix': {},
-        'tokens': {},
-    }
-    def create_subgroups(root, values):
+    async def create_subgroups(root, values):
         for name in values:
             groupname = root+'/'+name
-            create_group(groupname, token=token)
+            await create_group(groupname, token=token)
             if values[name]:
                 create_subgroups(groupname, values[name])
-    create_subgroups('', g)
+    asyncio.run(create_subgroups('', GROUPS))
 
     # set up user_mgmt app
     user_mgmt_app(args.user_mgmt_url, token)
