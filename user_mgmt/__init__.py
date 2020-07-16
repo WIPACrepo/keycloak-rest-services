@@ -1,3 +1,5 @@
+import logging
+
 from tornado.web import HTTPError
 from tornado.escape import json_decode, json_encode
 from rest_tools.server import RestHandler
@@ -75,4 +77,5 @@ class MyHandler(RestHandler):
             val = group.strip('/').split('/')
             if len(val) == 3 and val[0] == 'institutions':
                 insts[val[1]] = val[2]
+        logging.info(f'get_admin_instutitons: {insts}')
         return insts

@@ -1,10 +1,12 @@
 import time
 import asyncio
 import socket
+import os
 
 import pytest
-from rest_tools.server import Auth
+from rest_tools.server import Auth, from_environment
 from rest_tools.client import RestClient
+import motor.motor_asyncio
 
 from user_mgmt.server import create_server
 
@@ -30,15 +32,13 @@ def port():
 async def server(monkeypatch, port, keycloak_bootstrap):
     monkeypatch.setenv('DEBUG', 'True')
     monkeypatch.setenv('PORT', str(port))
-    monkeypatch.setenv('AUTH_SECRET', 'secret')
-    monkeypatch.setenv('AUTH_ISSUER', 'issuer')
-    monkeypatch.setenv('AUTH_ALGORITHM', 'HS512')
+    monkeypatch.setenv('AUTH_OPENID_URL', f'{os.environ["keycloak_url"]}/auth/realms/{os.environ["realm"]}/')
 
     krs.bootstrap.user_mgmt_app(f'http://localhost:{port}', passwordGrant=True, token=keycloak_bootstrap)
 
     s = create_server()
-    async def client(username='admin', groups=[], timeout=60):
-        await krs.users.create_user(username, 'first', 'last', 'email@test', token=keycloak_bootstrap)
+    async def client(username='admin', groups=[], timeout=10):
+        await krs.users.create_user(username, 'first', 'last', username+'@test', token=keycloak_bootstrap)
         await krs.users.set_user_password(username, 'test', token=keycloak_bootstrap)
         for group in groups:
             await krs.groups.create_group(group, token=keycloak_bootstrap)
@@ -51,6 +51,23 @@ async def server(monkeypatch, port, keycloak_bootstrap):
 
         return RestClient(f'http://localhost:{port}', token=token, timeout=timeout, retries=0)
 
-    yield client, keycloak_bootstrap
-    s.stop()
-    await asyncio.sleep(0.01)
+    yield client, keycloak_bootstrap, f'http://localhost:{port}'
+    await s.stop()
+
+@pytest.fixture
+async def mongo_client():
+    default_config = {
+       'DB_URL': 'mongodb://localhost/keycloak_user_mgmt',
+    }
+    config = from_environment(default_config)
+    db = motor.motor_asyncio.AsyncIOMotorClient(config['DB_URL'])
+    db_name = config['DB_URL'].split('/')[-1]
+    ret = db[db_name]
+
+    await ret.user_registrations.drop()
+    await ret.inst_approvals.drop()
+    try:
+        yield ret
+    finally:
+        await ret.user_registrations.drop()
+        await ret.inst_approvals.drop()

@@ -34,9 +34,7 @@ def create_server():
        'HOST': 'localhost',
        'PORT': 8080,
        'DEBUG': False,
-       'AUTH_SECRET': None,
-       'AUTH_ISSUER': None,
-       'AUTH_ALGORITHM': 'RS256',
+       'AUTH_OPENID_URL': None,
        'DB_URL': 'mongodb://localhost/keycloak_user_mgmt',
     }
     config = from_environment(default_config)
@@ -44,10 +42,8 @@ def create_server():
     rest_config = {
         'debug': config['DEBUG'],
         'auth': {
-            'secret': config['AUTH_SECRET'],
-            'issuer': config['AUTH_ISSUER'],
-            'algorithm': config['AUTH_ALGORITHM'],
-        },
+            'openid_url': config['AUTH_OPENID_URL']
+        }
     }
 
     kwargs = RestHandlerSetup(rest_config)

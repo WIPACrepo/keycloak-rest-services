@@ -83,30 +83,34 @@ class InstApprovals(MyHandler):
                 'first_name': data['first_name'],
                 'last_name': data['last_name'],
                 'external_email': data['email'],
-                'author_name': data['author_name'],
+                'author_name': data['author_name'] if 'author_name' in data else '',
             }
             await self.db.user_registrations.insert_one(user_data)
 
             approval_data = {
                 'experiment': data['experiment'],
                 'institution': data['institution'],
-                'authorlist': data['authorlist'],
                 'newuser': user_data['id'],
             }
+            if 'authorlist' in data:
+                approval_data['authorlist'] = data['authorlist']
 
         approval_data['id'] = uuid.uuid1().hex
         await self.db.inst_approvals.insert_one(approval_data)
 
         self.set_status(201)
-        self.write({})
+        self.write({'id': approval_data['id']})
 
     @authenticated
     @catch_error
     async def get(self):
         """Get list of requests a user can approve"""
         insts = await self.get_admin_institutions()
-        search = {'$or': {'experiment': exp, 'institution': insts[exp]} for exp in insts}
-        ret = await self.db.inst_approvals.find(search)
+        ret = []
+        if insts:
+            search = {'$or': [{'experiment': exp, 'institution': insts[exp]} for exp in insts]}
+            async for row in self.db.inst_approvals.find(search, projection={'_id': False}):
+                ret.append(row)
         self.write(ret)
 
 
@@ -121,14 +125,14 @@ class InstApprovalsActionApprove(MyHandler):
             approval_id (str): id of inst approval request
         """
         insts = await self.get_admin_institutions()
-        ret = await self.db.inst_approvals.find({'id': approval_id})
+        ret = await self.db.inst_approvals.find_one({'id': approval_id})
         if not ret:
             raise HTTPError(404, 'no record for approval_id')
         if not any(ret['experiment'] == exp and ret['institution'] == insts[exp] for exp in insts):
             raise HTTPError(403, 'invalid authorization')
 
         audit_logger.info(f'{self.auth_data["username"]} is approving request {approval_id}')
-        if ret['newuser']:
+        if 'newuser' in ret and ret['newuser']:
             # create new user account
             user_data = await self.db.user_registrations.find_one({'id': ret['newuser']})
             if not user_data:
@@ -143,7 +147,8 @@ class InstApprovalsActionApprove(MyHandler):
                 "attribs": {
                     "author_name": user_data['author_name'],
                     "homeDirectory": "",
-                }
+                },
+                "token": self.token,
             }
             await krs.users.create_user(**args)
             await self.db.user_registrations.delete_one({'id': ret['newuser']})
@@ -151,14 +156,14 @@ class InstApprovalsActionApprove(MyHandler):
 
         # add user to institution
         inst_group = f'/institutions/{ret["experiment"]}/{ret["institution"]}'
-        await krs.groups.add_user_group(inst_group, ret['username'])
-        if ret['authorlist']:
-            await krs.groups.add_user_group(inst_group+'/authorlist', ret['username'])
+        await krs.groups.add_user_group(inst_group, ret['username'], token=self.token)
+        if 'authorlist' in ret and ret['authorlist']:
+            await krs.groups.add_user_group(inst_group+'/authorlist', ret['username'], token=self.token)
 
-        if ret['remove_institution']:
+        if 'remove_institution' in ret and ret['remove_institution']:
             inst_group = f'/institutions/{ret["experiment"]}/{ret["remove_institution"]}'
-            await krs.groups.remove_user_group(inst_group, ret['username'])
-            await krs.groups.remove_user_group(inst_group+'/authorlist', ret['username'])
+            await krs.groups.remove_user_group(inst_group, ret['username'], token=self.token)
+            await krs.groups.remove_user_group(inst_group+'/authorlist', ret['username'], token=self.token)
 
         await self.db.inst_approvals.delete_one({'id': approval_id})
 
@@ -175,7 +180,7 @@ class InstApprovalsActionDeny(MyHandler):
         Approve a institution approval.
         """
         insts = await self.get_admin_institutions()
-        ret = await self.db.inst_approvals.find({'id': approval_id})
+        ret = await self.db.inst_approvals.find_one({'id': approval_id})
         if not ret:
             raise HTTPError(404, 'no record for approval_id')
         if not any(ret['experiment'] == exp and ret['institution'] == insts[exp] for exp in insts):

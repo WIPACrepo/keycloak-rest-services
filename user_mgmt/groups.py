@@ -74,7 +74,7 @@ class GroupUser(MyHandler):
         admin_groups = await self.get_admin_groups()
         if not any(group.startswith(g) for g in admin_groups):
             raise HTTPError(403, 'invalid authorization')
-        await krs.groups.add_user_group(group, username)
+        await krs.groups.add_user_group(group, username, token=self.token)
         self.write({})
 
     @authenticated
@@ -94,7 +94,7 @@ class GroupUser(MyHandler):
         admin_groups = await self.get_admin_groups()
         if username != self.auth_data['username'] and not any(group.startswith(g) for g in admin_groups):
             raise HTTPError(403, 'invalid authorization')
-        await krs.groups.remove_user_group(group, username)
+        await krs.groups.remove_user_group(group, username, token=self.token)
         self.write({})
 
 
@@ -126,8 +126,11 @@ class GroupApprovals(MyHandler):
     async def get(self):
         """Get list of requests a user can approve"""
         admin_groups = await self.get_admin_groups()
-        search = {'group': {'$in': list(admin_groups)}}
-        ret = await self.db.group_approvals.find(search)
+        ret = []
+        if admin_groups:
+            search = {'group': {'$in': list(admin_groups)}}
+            async for row in self.db.group_approvals.find(search, projection={'_id': False}):
+                ret.append(row)
         self.write(ret)
 
 
@@ -151,7 +154,7 @@ class GroupApprovalsActionApprove(MyHandler):
         audit_logger.info(f'{self.auth_data["username"]} is approving request {approval_id}')
 
         # add user to group
-        await krs.groups.add_user_group(ret['group'], ret['username'])
+        await krs.groups.add_user_group(ret['group'], ret['username'], token=self.token)
 
         # clean up approval
         await self.db.group_approvals.delete_one({'id': approval_id})
