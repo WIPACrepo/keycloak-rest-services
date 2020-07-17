@@ -57,11 +57,11 @@ def main():
             groupname = root+'/'+name
             await create_group(groupname, token=token)
             if values[name]:
-                create_subgroups(groupname, values[name])
+                await create_subgroups(groupname, values[name])
     asyncio.run(create_subgroups('', GROUPS))
 
     # set up user_mgmt app
-    user_mgmt_app(args.user_mgmt_url, token)
+    user_mgmt_app(args.user_mgmt_url, token=token)
 
 
 if __name__ == '__main__':

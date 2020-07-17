@@ -8,21 +8,15 @@ from rest_tools.client import RestClient
 from .users import user_info
 from .util import config, ConfigRequired
 
-async def list_groups(token=None):
+async def list_groups(max_groups=10000, rest_client=None):
     """
     List groups in Keycloak.
 
     Returns:
         dict: groupname: group details
     """
-    cfg = config({
-        'realm': ConfigRequired,
-        'keycloak_url': ConfigRequired,
-        'max_groups': 10000,
-    })
-    url = f'/auth/admin/realms/{cfg["realm"]}/groups?max={cfg["max_groups"]}'
-    r = RestClient(cfg["keycloak_url"], token=token)
-    group_hierarchy = await r.request('GET', url)
+    url = f'/groups?max={max_groups}'
+    group_hierarchy = await rest_client.request('GET', url)
     ret = {}
     def add_groups(groups):
         for g in groups:
@@ -37,7 +31,7 @@ async def list_groups(token=None):
     add_groups(group_hierarchy)
     return ret
 
-async def group_info(group_path, token=None):
+async def group_info(group_path, rest_client=None):
     """
     Get group information.
 
@@ -47,26 +41,20 @@ async def group_info(group_path, token=None):
     Returns:
         dict: group info
     """
-    cfg = config({
-        'realm': ConfigRequired,
-        'keycloak_url': ConfigRequired,
-    })
-
-    groups = await list_groups(token=token)
+    groups = await list_groups(rest_client=rest_client)
     if group_path not in groups:
         raise Exception(f'group "{group_path}" does not exist')
 
     group_id = groups[group_path]['id']
 
-    url = f'/auth/admin/realms/{cfg["realm"]}/groups/{group_id}'
-    r = RestClient(cfg["keycloak_url"], token=token)
-    ret = await r.request('GET', url)
+    url = f'/groups/{group_id}'
+    ret = await rest_client.request('GET', url)
 
     if not ret:
         raise Exception(f'group "{group_path}" does not exist')
     return ret
 
-async def group_info_by_id(group_id, token=None):
+async def group_info_by_id(group_id, rest_client=None):
     """
     Get group information.
 
@@ -76,32 +64,21 @@ async def group_info_by_id(group_id, token=None):
     Returns:
         dict: group info
     """
-    cfg = config({
-        'realm': ConfigRequired,
-        'keycloak_url': ConfigRequired,
-    })
-
-    url = f'/auth/admin/realms/{cfg["realm"]}/groups/{group_id}'
-    r = RestClient(cfg["keycloak_url"], token=token)
-    ret = await r.request('GET', url)
+    url = f'/groups/{group_id}'
+    ret = await rest_client.request('GET', url)
 
     if not ret:
         raise Exception(f'group "{group_id}" does not exist')
     return ret
 
-async def create_group(group_path, token=None):
+async def create_group(group_path, rest_client=None):
     """
     Create a group in Keycloak.
 
     Args:
         group_path (str): group path (/parent/parent/name)
     """
-    cfg = config({
-        'realm': ConfigRequired,
-        'keycloak_url': ConfigRequired,
-    })
-
-    groups = await list_groups(token=token)
+    groups = await list_groups(rest_client=rest_client)
     if group_path in groups:
         print(f'group "{group_path}" already exists')
     else:
@@ -112,40 +89,33 @@ async def create_group(group_path, token=None):
             if parent not in groups:
                 raise Exception(f'parent group {parent} does not exist')
             parent_id = groups[parent]['id']
-            url = f'/auth/admin/realms/{cfg["realm"]}/groups/{parent_id}/children'
+            url = f'/groups/{parent_id}/children'
         else:
-            url = f'/auth/admin/realms/{cfg["realm"]}/groups'
+            url = '/groups'
         
         print(f'creating group "{group_path}"')
         group = {
             'name': groupname,
         }
-        r = RestClient(cfg["keycloak_url"], token=token)
-        await r.request('POST', url, group)
+        await rest_client.request('POST', url, group)
         print(f'group "{group_path}" created')
 
-async def delete_group(group_path, token=None):
+async def delete_group(group_path, rest_client=None):
     """
     Delete a group in Keycloak.
 
     Args:
         group_path (str): group path (/parent/parent/name)
     """
-    cfg = config({
-        'realm': ConfigRequired,
-        'keycloak_url': ConfigRequired,
-    })
-
-    groups = await list_groups(token=token)
+    groups = await list_groups(rest_client=rest_client)
     if group_path in groups:
-        url = f'/auth/admin/realms/{cfg["realm"]}/groups/{groups[group_path]["id"]}'
-        r = RestClient(cfg["keycloak_url"], token=token)
-        await r.request('DELETE', url)
+        url = f'/groups/{groups[group_path]["id"]}'
+        await rest_client.request('DELETE', url)
         print(f'group "{group_path}" deleted')
     else:
         print(f'group "{group_path}" does not exist')
 
-async def get_group_membership(group_path, token=None):
+async def get_group_membership(group_path, rest_client=None):
     """
     Get the membership list of a group.
 
@@ -155,26 +125,20 @@ async def get_group_membership(group_path, token=None):
     Returns:
         list: group paths
     """
-    cfg = config({
-        'realm': ConfigRequired,
-        'keycloak_url': ConfigRequired,
-    })
-
-    groups = await list_groups(token=token)
+    groups = await list_groups(rest_client=rest_client)
     if group_path not in groups:
         raise Exception(f'group "{group_path}" does not exist')
     group_id = groups[group_path]['id']
 
-    url = f'/auth/admin/realms/{cfg["realm"]}/groups/{group_id}/members'
-    r = RestClient(cfg["keycloak_url"], token=token)
-    data = await r.request('GET', url)
+    url = f'/groups/{group_id}/members'
+    data = await rest_client.request('GET', url)
 
     ret = []
     for user in data:
         ret.append(user['username'])
     return ret
 
-async def get_user_groups(username, token=None):
+async def get_user_groups(username, rest_client=None):
     """
     Get the groups a user has membership in.
 
@@ -184,23 +148,17 @@ async def get_user_groups(username, token=None):
     Returns:
         list: group paths
     """
-    cfg = config({
-        'realm': ConfigRequired,
-        'keycloak_url': ConfigRequired,
-    })
+    info = await user_info(username, rest_client=rest_client)
 
-    info = await user_info(username, token=token)
-
-    url = f'/auth/admin/realms/{cfg["realm"]}/users/{info["id"]}/groups'
-    r = RestClient(cfg["keycloak_url"], token=token)
-    data = await r.request('GET', url)
+    url = f'/users/{info["id"]}/groups'
+    data = await rest_client.request('GET', url)
 
     ret = []
     for g in data:
         ret.append(g['path'])
     return ret
 
-async def add_user_group(group_path, username, token=None):
+async def add_user_group(group_path, username, rest_client=None):
     """
     Add a user to a group in Keycloak.
 
@@ -208,27 +166,21 @@ async def add_user_group(group_path, username, token=None):
         group_path (str): group path (/parent/parent/name)
         username (str): username of user
     """
-    cfg = config({
-        'realm': ConfigRequired,
-        'keycloak_url': ConfigRequired,
-    })
-
-    groups = await list_groups(token=token)
+    groups = await list_groups(rest_client=rest_client)
     if group_path not in groups:
         raise Exception(f'group "{group_path}" does not exist')
 
-    info = await user_info(username, token=token)
-    membership = await get_user_groups(username, token=token)
+    info = await user_info(username, rest_client=rest_client)
+    membership = await get_user_groups(username, rest_client=rest_client)
 
     if group_path in membership:
         print(f'user "{username}" already a member of group "{group_path}"')
     else:
-        url = f'/auth/admin/realms/{cfg["realm"]}/users/{info["id"]}/groups/{groups[group_path]["id"]}'
-        r = RestClient(cfg["keycloak_url"], token=token)
-        await r.request('PUT', url)
+        url = f'/users/{info["id"]}/groups/{groups[group_path]["id"]}'
+        await rest_client.request('PUT', url)
         print(f'user "{username}" added to group "{group_path}"')
 
-async def remove_user_group(group_path, username, token=None):
+async def remove_user_group(group_path, username, rest_client=None):
     """
     Remove a user from a group in Keycloak.
 
@@ -236,24 +188,18 @@ async def remove_user_group(group_path, username, token=None):
         group_path (str): group path (/parent/parent/name)
         username (str): username of user
     """
-    cfg = config({
-        'realm': ConfigRequired,
-        'keycloak_url': ConfigRequired,
-    })
-
-    groups = await list_groups(token=token)
+    groups = await list_groups(rest_client=rest_client)
     if group_path not in groups:
         raise Exception(f'group "{group_path}" does not exist')
 
-    info = await user_info(username, token=token)
-    membership = await get_user_groups(username, token=token)
+    info = await user_info(username, rest_client=rest_client)
+    membership = await get_user_groups(username, rest_client=rest_client)
 
     if group_path not in membership:
         print(f'user "{username}" not a member of group "{group_path}"')
     else:
-        url = f'/auth/admin/realms/{cfg["realm"]}/users/{info["id"]}/groups/{groups[group_path]["id"]}'
-        r = RestClient(cfg["keycloak_url"], token=token)
-        await r.request('DELETE', url)
+        url = f'/users/{info["id"]}/groups/{groups[group_path]["id"]}'
+        await rest_client.request('DELETE', url)
         print(f'user "{username}" removed from group "{group_path}"')
 
 def main():
@@ -290,11 +236,29 @@ def main():
     parser_remove_user_group.set_defaults(func=remove_user_group)
     args = parser.parse_args()
 
-    token = get_token()
+    cfg = config({
+        'KEYCLOAK_REALM': ConfigRequired,
+        'KEYCLOAK_URL': ConfigRequired,
+        'KEYCLOAK_CLIENT_ID': 'rest-access',
+        'KEYCLOAK_CLIENT_SECRET': ConfigRequired,
+    })
+
+    token = get_token(cfg['KEYCLOAK_URL'],
+            client_id=config['KEYCLOAK_CLIENT_ID'],
+            client_secret=config['KEYCLOAK_CLIENT_SECRET'],
+            refresh=True,
+    )
+    rest_client = OpenIDRestClient(
+            f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/{cfg["KEYCLOAK_REALM"]}',
+            f'{cfg["KEYCLOAK_URL"]}/auth/realms/master',
+            refresh_rest_client=rest_client,
+            client_id=config['KEYCLOAK_CLIENT_ID'],
+            client_secret=config['KEYCLOAK_CLIENT_SECRET'],
+    )
 
     args = vars(args)
     func = args.pop('func')
-    ret = asyncio.run(func(token=token, **args))
+    ret = asyncio.run(func(rest_client=rest_client, **args))
     if ret is not None:
         pprint(ret)
 

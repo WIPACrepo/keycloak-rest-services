@@ -21,7 +21,7 @@ class Experiments(MyHandler):
     @catch_error
     async def get(self):
         """Get a list of experiments"""
-        ret = await krs.groups.list_groups(token=self.token)
+        ret = await krs.groups.list_groups(rest_client=self.krs_client)
         exps = set()
         for group in ret:
             val = group.strip('/').split('/')
@@ -35,7 +35,7 @@ class Institutions(MyHandler):
     @catch_error
     async def get(self, experiment):
         """Get a list of institutions in the experiment"""
-        ret = await krs.groups.list_groups(token=self.token)
+        ret = await krs.groups.list_groups(rest_client=self.krs_client)
         insts = set()
         for group in ret:
             val = group.strip('/').split('/')
@@ -156,14 +156,14 @@ class InstApprovalsActionApprove(MyHandler):
 
         # add user to institution
         inst_group = f'/institutions/{ret["experiment"]}/{ret["institution"]}'
-        await krs.groups.add_user_group(inst_group, ret['username'], token=self.token)
+        await krs.groups.add_user_group(inst_group, ret['username'], rest_client=self.krs_client)
         if 'authorlist' in ret and ret['authorlist']:
-            await krs.groups.add_user_group(inst_group+'/authorlist', ret['username'], token=self.token)
+            await krs.groups.add_user_group(inst_group+'/authorlist', ret['username'], rest_client=self.krs_client)
 
         if 'remove_institution' in ret and ret['remove_institution']:
             inst_group = f'/institutions/{ret["experiment"]}/{ret["remove_institution"]}'
-            await krs.groups.remove_user_group(inst_group, ret['username'], token=self.token)
-            await krs.groups.remove_user_group(inst_group+'/authorlist', ret['username'], token=self.token)
+            await krs.groups.remove_user_group(inst_group, ret['username'], rest_client=self.krs_client)
+            await krs.groups.remove_user_group(inst_group+'/authorlist', ret['username'], rest_client=self.krs_client)
 
         await self.db.inst_approvals.delete_one({'id': approval_id})
 

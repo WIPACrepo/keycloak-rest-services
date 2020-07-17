@@ -32,20 +32,21 @@ def port():
 async def server(monkeypatch, port, keycloak_bootstrap):
     monkeypatch.setenv('DEBUG', 'True')
     monkeypatch.setenv('PORT', str(port))
-    monkeypatch.setenv('AUTH_OPENID_URL', f'{os.environ["keycloak_url"]}/auth/realms/{os.environ["realm"]}/')
+    monkeypatch.setenv('AUTH_OPENID_URL', f'{os.environ["KEYCLOAK_URL"]}/auth/realms/{os.environ["KEYCLOAK_REALM"]}/')
 
-    krs.bootstrap.user_mgmt_app(f'http://localhost:{port}', passwordGrant=True, token=keycloak_bootstrap)
+    krs.bootstrap.user_mgmt_app(f'http://localhost:{port}', passwordGrant=True, token=krs.bootstrap.get_token())
 
     s = create_server()
     async def client(username='admin', groups=[], timeout=10):
-        await krs.users.create_user(username, 'first', 'last', username+'@test', token=keycloak_bootstrap)
-        await krs.users.set_user_password(username, 'test', token=keycloak_bootstrap)
+        await krs.users.create_user(username, 'first', 'last', username+'@test', rest_client=keycloak_bootstrap)
+        await krs.users.set_user_password(username, 'test', rest_client=keycloak_bootstrap)
         for group in groups:
-            await krs.groups.create_group(group, token=keycloak_bootstrap)
-            await krs.groups.add_user_group(group, username, token=keycloak_bootstrap)
+            await krs.groups.create_group(group, rest_client=keycloak_bootstrap)
+            await krs.groups.add_user_group(group, username, rest_client=keycloak_bootstrap)
 
         token = krs.apps.get_public_token(username=username, password='test',
                                           scopes=['profile'], client='user_mgmt',
+                                          openid_url=os.environ["AUTH_OPENID_URL"],
                                           raw=True)
         print(token)
 

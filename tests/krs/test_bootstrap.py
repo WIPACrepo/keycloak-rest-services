@@ -4,10 +4,14 @@ def test_wait_for_keycloak(monkeypatch):
     bootstrap.wait_for_keycloak()
 
 def test_token(monkeypatch):
+    monkeypatch.setenv('USERNAME', 'admin')
+    monkeypatch.setenv('PASSWORD', 'admin')
     bootstrap.wait_for_keycloak()
     bootstrap.get_token()
 
 def test_realm(monkeypatch):
+    monkeypatch.setenv('USERNAME', 'admin')
+    monkeypatch.setenv('PASSWORD', 'admin')
     bootstrap.wait_for_keycloak()
     tok = bootstrap.get_token()
     bootstrap.create_realm('testrealm', token=tok)
@@ -16,6 +20,8 @@ def test_realm(monkeypatch):
     bootstrap.delete_realm('testrealm', token=tok)
 
 def test_create_public_app(monkeypatch):
+    monkeypatch.setenv('USERNAME', 'admin')
+    monkeypatch.setenv('PASSWORD', 'admin')
     bootstrap.wait_for_keycloak()
     tok = bootstrap.get_token()
     bootstrap.create_realm('testrealm', token=tok)
@@ -25,6 +31,8 @@ def test_create_public_app(monkeypatch):
     bootstrap.delete_realm('testrealm', token=tok)
 
 def test_create_service_role(monkeypatch):
+    monkeypatch.setenv('USERNAME', 'admin')
+    monkeypatch.setenv('PASSWORD', 'admin')
     bootstrap.wait_for_keycloak()
     tok = bootstrap.get_token()
     bootstrap.create_realm('testrealm', token=tok)
@@ -35,8 +43,10 @@ def test_create_service_role(monkeypatch):
     bootstrap.delete_realm('testrealm', token=tok)
 
 def test_bootstrap(monkeypatch):
-    monkeypatch.setenv('realm', 'testrealm')
-    monkeypatch.setenv('client_id', 'testclient')
+    monkeypatch.setenv('USERNAME', 'admin')
+    monkeypatch.setenv('PASSWORD', 'admin')
+    monkeypatch.setenv('KEYCLOAK_REALM', 'testrealm')
+    monkeypatch.setenv('KEYCLOAK_CLIENT_ID', 'testclient')
     bootstrap.bootstrap()
 
     # cleanup

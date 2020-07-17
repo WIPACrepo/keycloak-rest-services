@@ -5,10 +5,10 @@ from tornado.escape import json_decode, json_encode
 from rest_tools.server import RestHandler
 
 class MyHandler(RestHandler):
-    def initialize(self, db=None, token=None, **kwargs):
+    def initialize(self, db=None, krs_client=None, **kwargs):
         super().initialize(**kwargs)
         self.db = db
-        self.token = token
+        self.krs_client = krs_client
 
     def write(self, chunk):
         """

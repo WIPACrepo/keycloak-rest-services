@@ -1,100 +1,162 @@
-var institution_list = [
-    'UWMadison', 'Aachen', 'DESY'
-];
-var institution_obj = institution_list.reduce( (obj, value) => {
-    obj[value] = value;
-    return obj
-}, {});
-
 var keycloak = new Keycloak({
-    url: 'http://127.0.0.1:8080/auth',
-    realm: 'IceCube',
-    clientId: 'user_mgmt'
+  url: 'http://127.0.0.1:8080/auth',
+  realm: 'IceCube',
+  clientId: 'user_mgmt'
 });
 
+var list_to_obj = function(inputlist){
+  var ret = {}
+  for(let i=0;i<inputlist.length;i++){
+    ret[inputlist[i]] = inputlist[i]
+  }
+  return ret
+};
+
 Home = {
-    data: function(){
-        return {
-            title: ''
-        }
-    },
-    template: `
+  data: function(){
+    return {
+      title: ''
+    }
+  },
+  template: `
 <article class="home">
-    <h4>Welcome to the IceCube Neutrino Observatory identity management console.</h4>
-    <p>Existing users should <router-link to="/login">Login</router-link></p>
-    <p>New users should ask their PI for a registration link.</p>
+  <h4>Welcome to the IceCube Neutrino Observatory identity management console.</h4>
+  <p>Existing users should <router-link to="/login">Login</router-link></p>
+  <p>New users should ask their PI for a registration link.</p>
+</article>`
+}
+
+Login = {
+  data: function(){
+    return {
+      title: ''
+    }
+  },
+  asyncComputed: {
+    userinfo: async function() {
+      try {
+        var ret = await keycloak.loadUserInfo();
+        return ret
+      } catch (error) {
+        return {"error": JSON.stringify(error)}
+      }
+    }
+  },
+  template: `
+<article class="login">
+  <h2>User details:</h2>
+  <div v-for="(value, name) in userinfo">{{ name }}: {{ value }}</div>
 </article>`
 }
 
 Register = {
-    data: function(){
-        return {
-            institution: '',
-            firstName: '',
-            lastName: '',
-            authorListName: '',
-            valid: true,
-            errMessage: '',
-            submitted: false
-        }
+  data: function(){
+    return {
+      experiment: '',
+      institution: '',
+      firstName: '',
+      lastName: '',
+      authorListName: '',
+      email: '',
+      valid: true,
+      errMessage: '',
+      submitted: false
+    }
+  },
+  props: ['experiment', 'institution'],
+  computed: {
+    validFirstName: function() {
+      return this.firstName
     },
-    props: ['institution'],
-    computed: {
-        validInstitution: function() {
-            return this.institution in institution_obj
-        },
-        validFirstName: function() {
-            console.log('validFirstName:'+this.firstName)
-            return this.firstName
-        },
-        validLastName: function() {
-            return this.lastName
-        },
-        validAuthorListName: function() {
-            return this.authorListName
-        }
+    validLastName: function() {
+      return this.lastName
     },
-    methods: {
-        submit: async function(e) {
-            // validate
-            this.valid = (this.validInstitution && this.validFirstName
-                    && this.validLastName && (!this.authorListName || this.validAuthorListName))
+    validAuthorListName: function() {
+      return this.authorListName
+    },
+    validEmail: function() {
+      return this.email.indexOf('@',1) > 0
+    }
+  },
+  asyncComputed: {
+    validExperiment: function() {
+      return this.experiment != '' && this.experiments !== null && this.experiment in this.experiments
+    },
+    validInstitution: function() {
+      return this.institution != '' && this.institutions !== null && this.institution in this.institutions
+    },
+    experiments: async function() {
+      try {
+        const resp = await axios.get('/api/experiments');
+        console.log('Response:')
+        console.log(resp)
+        return list_to_obj(resp.data)
+      } catch (error) {
+        console.log('error')
+        console.log(error)
+      }
+      return {}
+    },
+    institutions: async function() {
+      if (this.validExperiment) {
+        try {
+          const resp = await axios.get('/api/experiments/'+this.experiment+'/institutions');
+          console.log('Response:')
+          console.log(resp)
+          return list_to_obj(resp.data)
+        } catch (error) {
+          console.log('error')
+          console.log(error)
+        }
+      }
+      return {}
+      
+    }
+  },
+  methods: {
+      submit: async function(e) {
+          // validate
+          this.valid = (this.validExperiment && this.validInstitution && this.validFirstName
+                  && this.validLastName && (!this.authorListName || this.validAuthorListName)
+                  && this.validEmail)
 
-            // now submit
-            if (this.valid) {
-                this.errMessage = 'Submission processing';
-                try {
-                    const resp = await axios.post('/api/user_registration', {
-                        first_name: this.firstName,
-                        last_name: this.lastName,
-                        author_name: this.authorListName,
-                        institution: this.institution
-                    });
-                    console.log('Response:')
-                    console.log(resp)
-                    this.errMessage = 'Submission successful'
-                    this.submitted = true
-                } catch (error) {
-                    console.log('error')
-                    console.log(error)
-                    let error_message = 'undefined error';
-                    if (error.response) {
-                        if ('code' in error.response.data) {
-                            error_message = 'Code: '+error.response.data['code']+'<br>Message: '+error.response.data['error'];
-                        } else {
-                            error_message = JSON.stringify(error.response.data)
-                        }
-                    } else if (error.request) {
-                        error_message = 'server did not respond';
-                    }
-                    this.errMessage = '<span class="red">Error in submission<br>'+error_message+'</span>'
-                }
-            } else {
-                this.errMessage = '<span class="red">Please fix invalid entries</span>'
-            }
-        }
-    },
-    template: `
+          // now submit
+          if (this.valid) {
+              this.errMessage = 'Submission processing';
+              try {
+                  const resp = await axios.post('/api/inst_approvals', {
+                      experiment: this.experiment,
+                      institution: this.institution,
+                      first_name: this.firstName,
+                      last_name: this.lastName,
+                      author_name: this.authorListName,
+                      email: this.email
+                  });
+                  console.log('Response:')
+                  console.log(resp)
+                  this.errMessage = 'Submission successful'
+                  this.submitted = true
+              } catch (error) {
+                  console.log('error')
+                  console.log(error)
+                  let error_message = 'undefined error';
+                  if (error.response) {
+                      if ('code' in error.response.data) {
+                          error_message = 'Code: '+error.response.data['code']+'<br>Message: '+error.response.data['error'];
+                      } else {
+                          error_message = JSON.stringify(error.response.data)
+                      }
+                  } else if (error.request) {
+                      error_message = 'server did not respond';
+                  }
+                  this.errMessage = '<span class="red">Error in submission<br>'+error_message+'</span>'
+              }
+          } else {
+              this.errMessage = '<span class="red">Please fix invalid entries</span>'
+          }
+      }
+  },
+  template: `
 <article class="register">
     <h2>Register a new account</h2>
     <form class="newuser" @submit.prevent="submit">
@@ -102,10 +164,18 @@ Register = {
         <span class="red">* entry is requred</span>
       </div>
       <div class="entry">
+        <p>Select your experiment: <span class="red">*</span></p>
+        <select v-model="experiment">
+          <option disabled value="">Please select one</option>
+          <option v-for="exp in experiments">{{ exp }}</option>
+        </select>
+        <span class="red" v-if="!valid && !validExperiment">invalid entry</span>
+      </div>
+      <div class="entry">
         <p>Select your institution: <span class="red">*</span></p>
         <select v-model="institution">
           <option disabled value="">Please select one</option>
-          <option v-for="inst in institution_list">{{ inst }}</option>
+          <option v-for="inst in institutions">{{ inst }}</option>
         </select>
         <span class="red" v-if="!valid && !validInstitution">invalid entry</span>
       </div>
@@ -115,6 +185,8 @@ Register = {
        required=true :valid="validLastName" :allValid="valid"></textinput>
       <textinput name="Author List Name (usually abbreviated)" inputName="authorname"
        v-model.trim="authorListName" :valid="validAuthorListName" :allValid="valid"></textinput>
+      <textinput name="Email Address" inputName="email" v-model.trim="email"
+       required=true :valid="validEmail" :allValid="valid"></textinput>
       <div v-if="errMessage" class="error_box" v-html="errMessage"></div>
       <div class="entry" v-if="!submitted">
         <input type="submit" value="Submit Registration">
@@ -123,30 +195,7 @@ Register = {
 </article>`
 }
 
-Login = {
-    data: function(){
-        return {
-            title: ''
-        }
-    },
-    asyncComputed: {
-        userinfo: async function() {
-            try {
-                var ret = await keycloak.loadUserInfo();
-                return ret
-            } catch (error) {
-                return {"error": JSON.stringify(error)}
-            }
-        }
-    },
-    template: `
-<article class="login">
-    <h2>User details:</h2>
-    <div v-for="(value, name) in userinfo">{{ name }}: {{ value }}</div>
-</article>`
-}
-
-UserApproval = {
+InstApproval = {
     data: function(){
         return {
             users: {}
@@ -296,9 +345,15 @@ const scrollBehavior = function (to, from, savedPosition) {
 
 var routes = [
   { path: '/', name: 'home', component: Home },
-  { path: '/register/:institution', name: 'register', component: Register, props: true },
   { path: '/login', name: 'login', component: Login },
-  { path: '/userApproval', name: 'user_approval', component: UserApproval, meta: { requiresAuth: true } },
+  { path: '/register', name: 'register', component: Register,
+    props: (route) => ({
+      experiment: route.query.experiment,
+      institution: route.query.institution
+    })
+  },
+  { path: '/instApproval', name: 'inst_approval', component: InstApproval,
+    meta: { requiresAuth: true } },
   { path: '*', name: '404', component: Error404, props: true }
 ];
 

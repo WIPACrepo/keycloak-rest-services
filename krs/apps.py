@@ -21,28 +21,23 @@ App structure:
 Also available: a generic "public" app for public access to scopes,
 if the application scope is allowed to be public.
 """
+import os
 import asyncio
 
 import requests
-from rest_tools.client import RestClient
 
 from .util import config, ConfigRequired
 from .groups import list_groups, group_info
 
-async def list_apps(token=None):
+async def list_apps(rest_client=None):
     """
     List applications ("clients") in Keycloak.
 
     Returns:
         dict: app name: app info
     """
-    cfg = config({
-        'realm': ConfigRequired,
-        'keycloak_url': ConfigRequired,
-    })
-    url = f'/auth/admin/realms/{cfg["realm"]}/clients'
-    r = RestClient(cfg["keycloak_url"], token=token)
-    clients = await r.request('GET', url)
+    url = '/clients'
+    clients = await rest_client.request('GET', url)
     ret = {}
     for c in clients:
         if 'app' not in c['attributes'] or not c['attributes']['app']:
@@ -50,7 +45,7 @@ async def list_apps(token=None):
         ret[c['clientId']] = {k:c[k] for k in c if k in ('clientId','defaultClientScopes','id','optionalClientScopes','rootUrl','serviceAccountsEnabled')}
     return ret
 
-async def app_info(appname, token=None):
+async def app_info(appname, rest_client=None):
     """
     Get application ("client") information.
 
@@ -60,30 +55,24 @@ async def app_info(appname, token=None):
     Returns:
         dict: app info
     """
-    cfg = config({
-        'realm': ConfigRequired,
-        'keycloak_url': ConfigRequired,
-    })
-
-    url = f'/auth/admin/realms/{cfg["realm"]}/clients?clientId={appname}'
-    r = RestClient(cfg["keycloak_url"], token=token)
-    ret = await r.request('GET', url)
+    url = f'/clients?clientId={appname}'
+    ret = await rest_client.request('GET', url)
 
     if not ret:
         raise Exception(f'app "{appname}" does not exist')
     data = ret[0]
 
-    url = f'/auth/admin/realms/{cfg["realm"]}/clients/{data["id"]}/client-secret'
-    ret = await r.request('GET', url)
+    url = f'/clients/{data["id"]}/client-secret'
+    ret = await rest_client.request('GET', url)
     data['clientSecret'] = ret['value']
 
-    url = f'/auth/admin/realms/{cfg["realm"]}/clients/{data["id"]}/roles'
-    ret = await r.request('GET', url)
+    url = f'/clients/{data["id"]}/roles'
+    ret = await rest_client.request('GET', url)
     data['roles'] = [r['name'] for r in ret]
 
     return data
 
-async def list_scopes(only_apps=True, mappers=False, token=None):
+async def list_scopes(only_apps=True, mappers=False, rest_client=None):
     """
     List scopes in Keycloak.
 
@@ -94,14 +83,8 @@ async def list_scopes(only_apps=True, mappers=False, token=None):
     Returns:
         dict: scope name: info
     """
-    cfg = config({
-        'realm': ConfigRequired,
-        'keycloak_url': ConfigRequired,
-    })
-
-    url = f'/auth/admin/realms/{cfg["realm"]}/client-scopes'
-    r = RestClient(cfg["keycloak_url"], token=token)
-    scopes = await r.request('GET', url)
+    url = f'/client-scopes'
+    scopes = await rest_client.request('GET', url)
     ret = {}
     for s in scopes:
         if s['protocol'] != 'openid-connect':
@@ -113,7 +96,7 @@ async def list_scopes(only_apps=True, mappers=False, token=None):
             ret[s['name']]['protocolMappers'] = s['protocolMappers']
     return ret
 
-async def create_app(appname, appurl, roles=['read','write'], builtin_scopes=[], access='public', service_account=False, token=None):
+async def create_app(appname, appurl, roles=['read','write'], builtin_scopes=[], access='public', service_account=False, rest_client=None):
     """
     Create an application ("client") in Keycloak.
 
@@ -132,17 +115,11 @@ async def create_app(appname, appurl, roles=['read','write'], builtin_scopes=[],
     if not appurl.startswith('http'):
         raise Exception('bad appurl')
 
-    cfg = config({
-        'realm': ConfigRequired,
-        'keycloak_url': ConfigRequired,
-    })
-
     # create app
     try:
-        await app_info(appname, token=token)
+        await app_info(appname, rest_client=rest_client)
     except Exception:
         print(f'creating app "{appname}"')
-        url = f'/auth/admin/realms/{cfg["realm"]}/clients'
         args = {
             'access': {'configure': True, 'manage': True, 'view': True},
             'adminUrl': appurl,
@@ -185,22 +162,20 @@ async def create_app(appname, appurl, roles=['read','write'], builtin_scopes=[],
             'surrogateAuthRequired': False,
             'webOrigins': [appurl],
         }
-        r = RestClient(cfg["keycloak_url"], token=token)
-        await r.request('POST', url, args)
+        await rest_client.request('POST', '/clients', args)
         
-        ret = await app_info(appname, token=token)
+        ret = await app_info(appname, rest_client=rest_client)
         client_id = ret['id']
 
         # create roles
-        url = f'/auth/admin/realms/{cfg["realm"]}/clients/{client_id}/roles'
+        url = f'/clients/{client_id}/roles'
         for name in roles:
             args = {'name': name}
-            await r.request('POST', url, args)
+            await rest_client.request('POST', url, args)
 
         # create scope
-        all_scopes = await list_scopes(token=token)
+        all_scopes = await list_scopes(rest_client=rest_client)
         if appname not in all_scopes:
-            url = f'/auth/admin/realms/{cfg["realm"]}/client-scopes'
             args = {
                 'attributes': {
                     'app': 'app',
@@ -211,11 +186,11 @@ async def create_app(appname, appurl, roles=['read','write'], builtin_scopes=[],
                 'name': appname,
                 'protocol': 'openid-connect',
             }
-            await r.request('POST', url, args)
-            all_scopes = await list_scopes(token=token)
+            await rest_client.request('POST', '/client-scopes', args)
+            all_scopes = await list_scopes(rest_client=rest_client)
             scope_id = all_scopes[appname]['id']
 
-            url = f'/auth/admin/realms/{cfg["realm"]}/client-scopes/{scope_id}/protocol-mappers/models'
+            url = f'/client-scopes/{scope_id}/protocol-mappers/models'
             args = {
                 'config': {
                     'access.token.claim': 'true',
@@ -230,86 +205,80 @@ async def create_app(appname, appurl, roles=['read','write'], builtin_scopes=[],
                 'protocol': 'openid-connect',
                 'protocolMapper': 'oidc-usermodel-client-role-mapper'
             }
-            await r.request('POST', url, args)
+            await rest_client.request('POST', url, args)
 
         # apply scope to client
         scope_id = all_scopes[appname]['id']
-        url = f'/auth/admin/realms/{cfg["realm"]}/clients/{client_id}/optional-client-scopes/{scope_id}'
-        await r.request('PUT', url)
+        url = f'/clients/{client_id}/optional-client-scopes/{scope_id}'
+        await rest_client.request('PUT', url)
 
         if access == 'public':
             # apply scope to "public" app
-            ret = await app_info("public", token=token)
-            url = f'/auth/admin/realms/{cfg["realm"]}/clients/{ret["id"]}/optional-client-scopes/{scope_id}'
-            await r.request('PUT', url)
+            ret = await app_info("public", rest_client=rest_client)
+            url = f'/clients/{ret["id"]}/optional-client-scopes/{scope_id}'
+            await rest_client.request('PUT', url)
         if access in ('public', 'apps'):
             # apply scope to all "apps"
-            ret = await list_apps(token=token)
+            ret = await list_apps(rest_client=rest_client)
             for app in ret.values():
                 if appname not in app['optionalClientScopes']:
-                    url = f'/auth/admin/realms/{cfg["realm"]}/clients/{app["id"]}/optional-client-scopes/{scope_id}'
-                    await r.request('PUT', url)
+                    url = f'/clients/{app["id"]}/optional-client-scopes/{scope_id}'
+                    await rest_client.request('PUT', url)
 
         if service_account:
             # get service account
-            url = f'/auth/admin/realms/master/clients/{client_id}/service-account-user'
-            svc_user = await r.request('GET', url)
+            url = f'/clients/{client_id}/service-account-user'
+            svc_user = await rest_client.request('GET', url)
 
             # get service roles
-            url = f'/auth/admin/realms/master/users/{svc_user["id"]}/role-mappings/clients/{realm_client}'
-            svc_roles = await r.request('GET', url)
+            url = f'/users/{svc_user["id"]}/role-mappings/clients/{realm_client}'
+            svc_roles = await rest_client.request('GET', url)
 
             for role in svc_roles:
                 if role['name'] == 'uma_authorization': # delete this to prevent self-administration
-                    url = f'/auth/admin/realms/master/users/{svc_user["id"]}/role-mappings/clients/{realm_client}'
-                    await r.request('DELETE', url)
+                    url = f'/users/{svc_user["id"]}/role-mappings/clients/{realm_client}'
+                    await rest_client.request('DELETE', url)
 
         print(f'app "{appname}" created')
     else:
         print(f'app "{appname}" already exists')
 
-async def delete_app(appname, token=None):
+async def delete_app(appname, rest_client=None):
     """
     Delete an application ("client") in Keycloak.
 
     Args:
         appname (str): appname ("clientId') of application to delete
     """
-    cfg = config({
-        'realm': ConfigRequired,
-        'keycloak_url': ConfigRequired,
-    })
-    r = RestClient(cfg["keycloak_url"], token=token)
-
-    ret = await list_scopes(token=token)
+    ret = await list_scopes(rest_client=rest_client)
     if appname in ret:
         scope_id = ret[appname]['id']
         # delete scope usage in apps
-        apps = await list_apps(token=token)
+        apps = await list_apps(rest_client=rest_client)
         for app in apps.values():
             if appname in app['optionalClientScopes']:
-                url = f'/auth/admin/realms/{cfg["realm"]}/clients/{app["id"]}/optional-client-scopes/{scope_id}'
-                await r.request('DELETE', url)
-        ret = await app_info('public', token=token)
+                url = f'/clients/{app["id"]}/optional-client-scopes/{scope_id}'
+                await rest_client.request('DELETE', url)
+        ret = await app_info('public', rest_client=rest_client)
         if appname in ret['optionalClientScopes']:
-            url = f'/auth/admin/realms/{cfg["realm"]}/clients/{ret["id"]}/optional-client-scopes/{scope_id}'
-            await r.request('DELETE', url)
+            url = f'/clients/{ret["id"]}/optional-client-scopes/{scope_id}'
+            await rest_client.request('DELETE', url)
 
         # delete scope
-        url = f'/auth/admin/realms/{cfg["realm"]}/client-scopes/{scope_id}'
-        await r.request('DELETE', url)
+        url = f'/client-scopes/{scope_id}'
+        await rest_client.request('DELETE', url)
 
     try:
-        ret = await app_info(appname, token=token)
+        ret = await app_info(appname, rest_client=rest_client)
     except Exception:
         print(f'app "{appname}" does not exist')
     else:
         client_id = ret['id']
-        url = f'/auth/admin/realms/{cfg["realm"]}/clients/{client_id}'
-        r.request('DELETE', url)
+        url = f'/clients/{client_id}'
+        await rest_client.request('DELETE', url)
         print(f'app "{appname}" deleted')
 
-async def get_app_role_mappings(appname, role=None, token=None):
+async def get_app_role_mappings(appname, role=None, rest_client=None):
     """
     Get an application's role-group mappings.
 
@@ -320,14 +289,8 @@ async def get_app_role_mappings(appname, role=None, token=None):
     Returns:
         dict: role: list of groups
     """
-    cfg = config({
-        'realm': ConfigRequired,
-        'keycloak_url': ConfigRequired,
-    })
-    r = RestClient(cfg["keycloak_url"], token=token)
-
     try:
-        app_data = await app_info(appname, token=token)
+        app_data = await app_info(appname, rest_client=rest_client)
     except Exception:
         raise Exception(f'app "{appname}" does not exist')
 
@@ -337,12 +300,12 @@ async def get_app_role_mappings(appname, role=None, token=None):
     client_id = app_data['id']
 
     groups_with_role = {}
-    groups = await list_groups(token=token)
+    groups = await list_groups(rest_client=rest_client)
     for g in groups:
         gid = groups[g]['id']
     
-        url = f'/auth/admin/realms/{cfg["realm"]}/groups/{gid}/role-mappings/clients/{client_id}'
-        ret = await r.request('GET', url)
+        url = f'/groups/{gid}/role-mappings/clients/{client_id}'
+        ret = await rest_client.request('GET', url)
         for mapping in ret:
             role_name = mapping['name']
             if (not role) or role == role_name:
@@ -352,7 +315,7 @@ async def get_app_role_mappings(appname, role=None, token=None):
                     groups_with_role[role_name] = [g]
     return groups_with_role
 
-async def add_app_role_mapping(appname, role, group, token=None):
+async def add_app_role_mapping(appname, role, group, rest_client=None):
     """
     Add a role-group mapping to an application.
 
@@ -361,31 +324,25 @@ async def add_app_role_mapping(appname, role, group, token=None):
         role (str): application role name
         group (str): group name
     """
-    cfg = config({
-        'realm': ConfigRequired,
-        'keycloak_url': ConfigRequired,
-    })
-
     try:
-        app_data = await app_info(appname, token=token)
+        app_data = await app_info(appname, rest_client=rest_client)
     except Exception:
         raise Exception(f'app "{appname}" does not exist')
 
     if role not in app_data['roles']:
         raise Exception(f'role "{role}" does not exist in app "{appname}"')
 
-    gid = (await group_info(group, token=token))['id']
+    gid = (await group_info(group, rest_client=rest_client))['id']
     client_id = app_data['id']
 
-    r = RestClient(cfg["keycloak_url"], token=token)
-    url = f'/auth/admin/realms/{cfg["realm"]}/groups/{gid}/role-mappings/clients/{client_id}'
-    mappings = await r.request('GET', url)
+    url = f'/groups/{gid}/role-mappings/clients/{client_id}'
+    mappings = await rest_client.request('GET', url)
     if any(role == mapping['name'] for mapping in mappings):
         print(f'app "{appname}" role mapping {role}-{group} already exists')
     else:
         # get full role info
-        url = f'/auth/admin/realms/{cfg["realm"]}/clients/{client_id}/roles'
-        roles = await r.request('GET', url)
+        url = f'/clients/{client_id}/roles'
+        roles = await rest_client.request('GET', url)
         for entry in roles:
             if entry['name'] == role:
                 role_info = entry
@@ -393,12 +350,12 @@ async def add_app_role_mapping(appname, role, group, token=None):
         else:
             raise Exception('could not get role representation')
         
-        url = f'/auth/admin/realms/{cfg["realm"]}/groups/{gid}/role-mappings/clients/{client_id}'
+        url = f'/groups/{gid}/role-mappings/clients/{client_id}'
         args = [role_info]
-        await r.request('POST', url, args)
+        await rest_client.request('POST', url, args)
         print(f'app "{appname}" role mapping {role}-{group} created')
 
-async def delete_app_role_mapping(appname, role, group, token=None):
+async def delete_app_role_mapping(appname, role, group, rest_client=None):
     """
     Delete a role-group mapping to an application.
 
@@ -407,31 +364,25 @@ async def delete_app_role_mapping(appname, role, group, token=None):
         role (str): application role name
         group (str): group path
     """
-    cfg = config({
-        'realm': ConfigRequired,
-        'keycloak_url': ConfigRequired,
-    })
-
     try:
-        app_data = await app_info(appname, token=token)
+        app_data = await app_info(appname, rest_client=rest_client)
     except Exception:
         raise Exception(f'app "{appname}" does not exist')
 
     if role not in app_data['roles']:
         raise Exception(f'role "{role}" does not exist in app "{appname}"')
 
-    gid = (await group_info(group, token=token))['id']
+    gid = (await group_info(group, rest_client=rest_client))['id']
     client_id = app_data['id']
 
-    r = RestClient(cfg["keycloak_url"], token=token)
-    url = f'/auth/admin/realms/{cfg["realm"]}/groups/{gid}/role-mappings/clients/{client_id}'
-    mappings = await r.request('GET', url)
+    url = f'/groups/{gid}/role-mappings/clients/{client_id}'
+    mappings = await rest_client.request('GET', url)
     if not any(role == mapping['name'] for mapping in mappings):
         print(f'app "{appname}" role mapping {role}-{group} does not exist')
     else:
         # get full role info
-        url = f'/auth/admin/realms/{cfg["realm"]}/clients/{client_id}/roles'
-        roles = await r.request('GET', url)
+        url = f'/clients/{client_id}/roles'
+        roles = await rest_client.request('GET', url)
         for entry in roles:
             if entry['name'] == role:
                 role_info = entry
@@ -439,18 +390,14 @@ async def delete_app_role_mapping(appname, role, group, token=None):
         else:
             raise Exception('could not get role representation')
 
-        url = f'/auth/admin/realms/{cfg["realm"]}/groups/{gid}/role-mappings/clients/{client_id}'
+        url = f'/groups/{gid}/role-mappings/clients/{client_id}'
         args = [role_info]
-        await r.request('DELETE', url, args)
+        await rest_client.request('DELETE', url, args)
         print(f'app "{appname}" role mapping {role}-{group} deleted')
 
-def get_public_token(username, password, scopes=None, client='public', secret=None, raw=False, **kwargs):
+def get_public_token(username, password, scopes=None, openid_url=None, client='public', secret=None, raw=False, **kwargs):
     import jwt
     import json
-    cfg = config({
-        'realm': ConfigRequired,
-        'keycloak_url': ConfigRequired,
-    })
 
     if not scopes:
         scopes = []
@@ -460,10 +407,8 @@ def get_public_token(username, password, scopes=None, client='public', secret=No
         import getpass
         password = getpass.getpass()
 
-    base_url = f'{cfg["keycloak_url"]}/auth/realms/{cfg["realm"]}/'
-
     # discovery
-    r = requests.get(base_url+'.well-known/openid-configuration')
+    r = requests.get(os.path.join(openid_url, '.well-known/openid-configuration'))
     r.raise_for_status()
     provider_info = r.json()
 
@@ -513,6 +458,7 @@ def get_public_token(username, password, scopes=None, client='public', secret=No
 def main():
     import argparse
     from pprint import pprint
+    from rest_tools.client import OpenIDRestClient
     from .token import get_token
 
     parser = argparse.ArgumentParser(description='Keycloak application management')
@@ -557,14 +503,33 @@ def main():
     parser_get_public_token.set_defaults(func=get_public_token)
     args = parser.parse_args()
 
-    token = get_token()
+    cfg = config({
+        'KEYCLOAK_REALM': ConfigRequired,
+        'KEYCLOAK_URL': ConfigRequired,
+        'KEYCLOAK_CLIENT_ID': 'rest-access',
+        'KEYCLOAK_CLIENT_SECRET': ConfigRequired,
+    })
+
+    token = get_token(cfg['KEYCLOAK_URL'],
+            client_id=config['KEYCLOAK_CLIENT_ID'],
+            client_secret=config['KEYCLOAK_CLIENT_SECRET'],
+            refresh=True,
+    )
+    rest_client = OpenIDRestClient(
+            f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/{cfg["KEYCLOAK_REALM"]}',
+            f'{cfg["KEYCLOAK_URL"]}/auth/realms/master',
+            refresh_rest_client=rest_client,
+            client_id=config['KEYCLOAK_CLIENT_ID'],
+            client_secret=config['KEYCLOAK_CLIENT_SECRET'],
+    )
 
     args = vars(args)
     func = args.pop('func')
     if func == get_public_token:
+        args['openid_url'] = f'{cfg["KEYCLOAK_URL"]}/auth/realms/{cfg["KEYCLOAK_REALM"]}'
         ret = func(**args)
     else:
-        ret = asyncio.run(func(token=token, **args))
+        ret = asyncio.run(func(rest_client=rest_client, **args))
     if ret is not None:
         pprint(ret)
 

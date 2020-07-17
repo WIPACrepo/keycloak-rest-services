@@ -6,6 +6,7 @@ import os
 import logging
 
 from tornado.web import RequestHandler, StaticFileHandler, HTTPError
+from rest_tools.client import OpenIDRestClient
 from rest_tools.server import RestServer, RestHandlerSetup, from_environment
 import motor.motor_asyncio
 
@@ -31,29 +32,45 @@ def create_server():
 
 
     default_config = {
-       'HOST': 'localhost',
-       'PORT': 8080,
-       'DEBUG': False,
-       'AUTH_OPENID_URL': None,
-       'DB_URL': 'mongodb://localhost/keycloak_user_mgmt',
+        'HOST': 'localhost',
+        'PORT': 8080,
+        'DEBUG': False,
+        'KEYCLOAK_URL': None,
+        'KEYCLOAK_REALM': 'IceCube',
+        'KEYCLOAK_CLIENT_ID': 'rest-access',
+        'KEYCLOAK_CLIENT_SECRET': None,
+        'DB_URL': 'mongodb://localhost/keycloak_user_mgmt',
     }
     config = from_environment(default_config)
 
     rest_config = {
         'debug': config['DEBUG'],
         'auth': {
-            'openid_url': config['AUTH_OPENID_URL']
+            'openid_url': f'{config["KEYCLOAK_URL"]}/auth/realms/{config["KEYCLOAK_REALM"]}'
         }
     }
 
     kwargs = RestHandlerSetup(rest_config)
+
     logging.info(f'DB: {config["DB_URL"]}')
     db = motor.motor_asyncio.AsyncIOMotorClient(config['DB_URL'])
     db_name = config['DB_URL'].split('/')[-1]
     logging.info(f'DB name: {db_name}')
     kwargs['db'] = db[db_name]
 
-    kwargs['token'] = krs.token.get_token()
+    logging.info(f'Keycloak client: {config["KEYCLOAK_CLIENT_ID"]}')
+    refresh_token = krs.token.get_token(config["KEYCLOAK_URL"],
+            client_id=config['KEYCLOAK_CLIENT_ID'],
+            client_secret=config['KEYCLOAK_CLIENT_SECRET'],
+            refresh=True,
+    )
+    kwargs['krs_client'] = OpenIDRestClient(
+            f'{config["KEYCLOAK_URL"]}/auth/admin/realms/{config["KEYCLOAK_REALM"]}',
+            f'{config["KEYCLOAK_URL"]}/auth/realms/master',
+            refresh_token=refresh_token,
+            client_id=config['KEYCLOAK_CLIENT_ID'],
+            client_secret=config['KEYCLOAK_CLIENT_SECRET'],
+    )
 
     server = RestServer(static_path=static_path, debug=config['DEBUG'])
 
