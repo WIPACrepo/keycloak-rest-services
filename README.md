@@ -37,23 +37,23 @@ Once approval has been granted, the action will then be applied to Keycloak.
 
 The user-facing service has a REST API with the following routes:
 
-           GET  /experiments
-           GET  /experiments/<experiment>/institutions
+           GET  /api/experiments
+           GET  /api/experiments/<experiment>/institutions
 
-           POST /inst_approvals   - new user
-    (auth) POST /inst_approvals   - second/moving institution
-    (auth) GET  /inst_approvals
-    (auth) POST /inst_approvals/<approval_id>/actions/<approve/deny>
+           POST /api/inst_approvals   - new user
+    (auth) POST /api/inst_approvals   - second/moving institution
+    (auth) GET  /api/inst_approvals
+    (auth) POST /api/inst_approvals/<approval_id>/actions/<approve/deny>
 
 
-    (auth) GET  /groups
-    (auth) GET  /groups/<group_id>
-    (auth) PUT  /groups/<group_id>/<user>  - add member manually
-    (auth) DEL  /groups/<group_id>/<user>  - remove member
+    (auth) GET  /api/groups
+    (auth) GET  /api/groups/<group_id>
+    (auth) PUT  /api/groups/<group_id>/<user>  - add member manually
+    (auth) DEL  /api/groups/<group_id>/<user>  - remove member
 
-    (auth) POST /group_approvals  - request membership
-    (auth) GET  /group_approvals
-    (auth) POST /group_approvals/<approval_id>/actions/<approve/deny>
+    (auth) POST /api/group_approvals  - request membership
+    (auth) GET  /api/group_approvals
+    (auth) POST /api/group_approvals/<approval_id>/actions/<approve/deny>
 
 ## Web App
 
