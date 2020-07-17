@@ -4,9 +4,9 @@ jobs:
         docker:
             - image: circleci/python:3.8
               environment:
-                keycloak_url: http://localhost:8080
-                username: admin
-                password: admin
+                KEYCLOAK_URL: http://localhost:8080
+                USERNAME: admin
+                PASSWORD: admin
             - image: quay.io/keycloak/keycloak:10.0.2
               environment:
                 KEYCLOAK_USER: admin
@@ -21,9 +21,9 @@ jobs:
         docker:
             - image: circleci/python:3.8
               environment:
-                keycloak_url: http://localhost:8080
-                username: admin
-                password: admin
+                KEYCLOAK_URL: http://localhost:8080
+                USERNAME: admin
+                PASSWORD: admin
             - image: circleci/mongo:3.7.9-ram
             - image: quay.io/keycloak/keycloak:10.0.2
               environment:
