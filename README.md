@@ -6,6 +6,8 @@ Services surrounding Keycloak, that use the REST API to read/update state.
 * [Basic Design](#basic-design)
   + [Direct Actions](#direct-actions)
   + [Approval Actions](#approval-actions)
+* [REST API](#rest-api)
+* [Web App](#web-app)
 * [Running Tests](#running-tests)
   + [Getting Test Coverage](#getting-test-coverage)
 * [Manually Running Scripts](#manually-running-scripts)
@@ -22,7 +24,7 @@ Examples include modifying users, groups, and applications.
 ### Approval Actions
 
 Approval actions require temporary storage to hold the action until approval
-has been granted.  Any database would do, but we have chosen MongoDB for
+has been granted. Any database would do, but we have chosen MongoDB for
 several reasons:
 
 1. We are already familiar with it and use it in several other projects.
@@ -30,6 +32,35 @@ several reasons:
 3. Tailable cursors allow "watching" changes in real time.
 
 Once approval has been granted, the action will then be applied to Keycloak.
+
+## REST API
+
+The user-facing service has a REST API with the following routes:
+
+           GET  /experiments
+           GET  /experiments/<experiment>/institutions
+
+           POST /inst_approvals   - new user
+    (auth) POST /inst_approvals   - second/moving institution
+    (auth) GET  /inst_approvals
+    (auth) POST /inst_approvals/<approval_id>/actions/<approve/deny>
+
+
+    (auth) GET  /groups
+    (auth) GET  /groups/<group_id>
+    (auth) PUT  /groups/<group_id>/<user>  - add member manually
+    (auth) DEL  /groups/<group_id>/<user>  - remove member
+
+    (auth) POST /group_approvals  - request membership
+    (auth) GET  /group_approvals
+    (auth) POST /group_approvals/<approval_id>/actions/<approve/deny>
+
+## Web App
+
+Primary access to the user-facing service is via a web application.
+This is purely browser-based (JavaScript), and connects to the
+[REST API](#rest-api) for actions. Authentication comes from connecting
+to a Keycloak client specifically created for this and the REST API.
 
 ## Running Tests
 
@@ -43,9 +74,9 @@ First, build and load the local python environment:
 
 Then, start an instance of Keycloak in another terminal:
 
-    docker run --rm -it -e KEYCLOAK_USER=admin -e KEYCLOAK_PASSWORD=admin --network host jboss/keycloak:8.0.2 -Djboss.bind.address.private=127.0.0.1 -Djboss.bind.address=127.0.0.1
+    docker run --rm -it -p 8080:8080 -e KEYCLOAK_USER=admin -e KEYCLOAK_PASSWORD=admin quay.io/keycloak/keycloak:latest -Djboss.bind.address.private=127.0.0.1 -Djboss.bind.address=0.0.0.0
 
-Keycloak may take a minute to start.  If it does not, check your network settings,
+Keycloak may take a minute to start. If it does not, check your network settings,
 as it does not play well with VPNs and other more exotic network situations.
 
 Finally, run the tests:
