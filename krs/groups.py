@@ -3,10 +3,8 @@ Group actions against Keycloak.
 """
 import asyncio
 
-from rest_tools.client import RestClient
-
 from .users import user_info
-from .util import config, ConfigRequired
+from .token import get_rest_client
 
 async def list_groups(max_groups=10000, rest_client=None):
     """
@@ -234,29 +232,9 @@ def main():
     parser_remove_user_group.add_argument('username', help='username of user')
     parser_remove_user_group.add_argument('group_path', help='group path (/parentA/parentB/name)')
     parser_remove_user_group.set_defaults(func=remove_user_group)
-    args = parser.parse_args()
+    args = vars(parser.parse_args())
 
-    cfg = config({
-        'KEYCLOAK_REALM': ConfigRequired,
-        'KEYCLOAK_URL': ConfigRequired,
-        'KEYCLOAK_CLIENT_ID': 'rest-access',
-        'KEYCLOAK_CLIENT_SECRET': ConfigRequired,
-    })
-
-    token = get_token(cfg['KEYCLOAK_URL'],
-            client_id=config['KEYCLOAK_CLIENT_ID'],
-            client_secret=config['KEYCLOAK_CLIENT_SECRET'],
-            refresh=True,
-    )
-    rest_client = OpenIDRestClient(
-            f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/{cfg["KEYCLOAK_REALM"]}',
-            f'{cfg["KEYCLOAK_URL"]}/auth/realms/master',
-            refresh_rest_client=rest_client,
-            client_id=config['KEYCLOAK_CLIENT_ID'],
-            client_secret=config['KEYCLOAK_CLIENT_SECRET'],
-    )
-
-    args = vars(args)
+    rest_client = get_rest_client()
     func = args.pop('func')
     ret = asyncio.run(func(rest_client=rest_client, **args))
     if ret is not None:

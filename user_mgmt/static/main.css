@@ -1,4 +1,4 @@
-header, header h1, nav, nav ol, footer {
+header, header h1, header .account, nav, nav ol, footer {
     display: inline-flex;
     margin: 0;
     padding: 0;
@@ -20,6 +20,12 @@ header h1 a img {
     align-items: center;
     justify-content: center;
     line-height: 60px;
+    text-align: center;
+}
+header .account {
+    margin-left: auto;
+    margin-right: 1em;
+    align-items: center;
     text-align: center;
 }
 nav ol {
@@ -83,6 +89,11 @@ span.code {
 span.red {
     color: red;
 }
+span.login-link {
+    cursor: pointer;
+    text-decoration: underline;
+    color: blue;
+}
 
 form.newuser div.entry {
     padding: 1em;
@@ -99,4 +110,12 @@ div.error_box {
     font-size: 16pt;
     border: 1px solid #666;
     border-radius: .2em;
+}
+
+article.inst-approvals .inst {
+    margin: 1em 0.5em;
+}
+
+article.inst-approvals .inst .user {
+    margin: .2em 1em;
 }

@@ -23,6 +23,7 @@
       <li is="navpage" v-for="page in visibleRoutes" :key="page.path" :path="page.path" :name="page.name" :current="current"></li>
     </ol>
   </nav>
+  <account></account>
 </header>
 <!-- <main id="main"><component :is="currentPage">Enable JavaScript to use this site</component></main> -->
 <main><router-view></router-view></main>

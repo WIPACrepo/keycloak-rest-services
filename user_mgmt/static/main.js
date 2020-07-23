@@ -3,6 +3,7 @@ var keycloak = new Keycloak({
   realm: 'IceCube',
   clientId: 'user_mgmt'
 });
+var isAuthenticated = false;
 
 var list_to_obj = function(inputlist){
   var ret = {}
@@ -21,12 +22,12 @@ Home = {
   template: `
 <article class="home">
   <h4>Welcome to the IceCube Neutrino Observatory identity management console.</h4>
-  <p>Existing users should <router-link to="/login">Login</router-link></p>
+  <p>Existing users should <login></login></p>
   <p>New users should ask their PI for a registration link.</p>
 </article>`
 }
 
-Login = {
+UserInfo = {
   data: function(){
     return {
       title: ''
@@ -34,6 +35,8 @@ Login = {
   },
   asyncComputed: {
     userinfo: async function() {
+      if (!isAuthenticated)
+        return {}
       try {
         var ret = await keycloak.loadUserInfo();
         return ret
@@ -43,7 +46,7 @@ Login = {
     }
   },
   template: `
-<article class="login">
+<article class="user-info">
   <h2>User details:</h2>
   <div v-for="(value, name) in userinfo">{{ name }}: {{ value }}</div>
 </article>`
@@ -196,41 +199,103 @@ Register = {
 }
 
 InstApproval = {
-    data: function(){
-        return {
-            users: {}
+  data: function(){
+    return {
+      approval_data: null,
+      error: ''
+    }
+  },
+  asyncComputed: {
+    approvals: async function() {
+      try {
+        if (this.approval_data===null) {
+          await this.get_approval_data()
         }
-    },
-    asyncComputed: {
-        userinfo: async function() {
-            try {
-                var ret = await keycloak.loadUserInfo();
-                return ret
-            } catch (error) {
-                return {"error": JSON.stringify(error)}
+        var institutions = {};
+        for (const approval_id in this.approval_data) {
+          let entry = this.approval_data[approval_id];
+          let inst = entry['experiment']+entry['institution']
+          if (!(inst in institutions)) {
+            institutions[inst] = {
+              experiment: entry['experiment'],
+              institution: entry['institution'],
+              users: []
             }
+          }
+          institutions[inst]['users'].push(entry)
         }
-    },
-    methods: {
-        userlist: async function() {
-            try {
-                await keycloak.updateToken(60);
-                var token = keycloak.token;
-                var ret = axios.post('/api/users', {
-                        first_name: this.firstName,
-                        last_name: this.lastName,
-                        author_name: this.authorListName,
-                        institution: this.institution
-                    });
-            } catch (error) {
-                return {"error": JSON.stringify(error)}
-            }
+        return Object.values(institutions)
+      } catch (error) {
+        this.error = "Error getting approvals: "+error['message']
+        return []
+      }
+    }
+  },
+  methods: {
+    get_approval_data: async function() {
+      try {
+        await keycloak.updateToken(60);
+        var token = keycloak.token;
+        var ret = await axios.get('/api/inst_approvals', {
+          headers: {'Authorization': 'bearer '+token}
+        });
+        this.approval_data = {}
+        for (let i=0;i<ret['data'].length;i++){
+          let entry = ret['data'][i];
+          this.approval_data[entry['approval_id']] = entry
         }
+      } catch (error) {
+        this.error = "Error getting approvals: "+error['message']
+      }
     },
-    template: `
-<article class="user_approval">
-    <h2>Users needing approval:</h2>
-    <div v-for="(value, name) in userlist">{{ name }}: {{ value }}</div>
+    approve: async function(approval_id) {
+      try {
+        await keycloak.updateToken(60);
+        var token = keycloak.token;
+        await axios.post('/api/inst_approvals/'+approval_id+'/actions/approve', {}, {
+          headers: {'Authorization': 'bearer '+token}
+        });
+        this.remove(approval_id)
+        this.error = ""
+      } catch (error) {
+        this.error = "Error approving: "+error['message']
+      }
+    },
+    deny: async function(approval_id) {
+      try {
+        await keycloak.updateToken(60);
+        var token = keycloak.token;
+        await axios.post('/api/inst_approvals/'+approval_id+'/actions/deny', {}, {
+          headers: {'Authorization': 'bearer '+token}
+        });
+        this.remove(approval_id)
+        this.error = ""
+      } catch (error) {
+        this.error = "Error denying: "+error['message']
+      }
+    },
+    remove: function(approval_id) {
+      let new_approval_data = {}
+      let old_approval_data = Object.values(this.approval_data);
+      for (const entry of old_approval_data) {
+        if (entry['id'] != approval_id)
+          new_approval_data[entry['id']] = entry
+      }
+      this.approval_data = new_approval_data
+    }
+  },
+  template: `
+<article class="inst-approvals">
+  <h2>Users needing approval:</h2>
+  <div class="error_box red" v-if="error">{{ error }}</div>
+  <div class="inst" v-for="inst in approvals">
+    <h4>{{ inst["experiment"] }} - {{ inst["institution"] }}</h4>
+    <div class="user" v-for="approval in inst['users']">
+      <span class="username">{{ approval['username'] }}</span>
+      <button @click="approve(approval['id'])">Approve</button>
+      <button @click="deny(approval['id'])">Deny</button>
+    </div>
+  </div>
 </article>`
 }
 
@@ -270,27 +335,102 @@ Vue.component('textinput', {
 })
 
 Vue.component('navpage', {
-    data: function(){
-        return {
-            path: '',
-            name: '',
-            current: ''
-        }
+  data: function(){
+    return {
+      path: '',
+      name: '',
+      current: ''
+    }
+  },
+  props: ['path', 'name', 'current'],
+  computed: {
+    classObj: function() {
+      console.log('name:'+this.name+'   current:'+this.current)
+      return {
+        active: this.name == this.current
+      }
     },
-    props: ['path', 'name', 'current'],
-    computed: {
-        classObj: function() {
-            console.log('name:'+this.name+'   current:'+this.current)
-            return {
-                active: this.name == this.current
-            }
-        },
-    },
-    beforeRouteEnter(to, from, next) {
-        this.current = to.params.route
-        next()
-    },
-    template: '<li :class="classObj"><router-link :to="path">{{ name }}</router-link></li>'
+  },
+  beforeRouteEnter(to, from, next) {
+    this.current = to.params.route
+    next()
+  },
+  template: '<li :class="classObj"><router-link :to="path">{{ name }}</router-link></li>'
+});
+
+Vue.component('account', {
+  data: function(){
+    return {
+    }
+  },
+  asyncComputed: {
+    name: async function() {
+      if (!isAuthenticated)
+        return ""
+      try {
+        var ret = await keycloak.loadUserInfo();
+        return ret['given_name']
+      } catch (error) {
+        return ""
+      }
+    }
+  },
+  methods: {
+    logout: async function() {
+      await keycloak.logout({redirectUri:window.location.origin})
+    }
+  },
+  template: `
+<div class="account">
+  <login v-if="!isAuthenticated" caps="true"></login>
+  <div v-else>Signed in as <span class="username">{{ name }}</span><br><logout caps="true"></logout></div>
+</div>`
+});
+
+Vue.component('login', {
+  data: function(){
+    return {
+      caps: "true",
+    }
+  },
+  props: ['caps'],
+  computed: {
+    name: function() {
+      if (this.caps == "true")
+        return 'Sign in'
+      else
+        return 'sign in'
+    }
+  },
+  methods: {
+    login: async function() {
+      await keycloak.login({redirectUri:window.location})
+    }
+  },
+  template: `<span class="login-link" @click="login">{{ name }}</span>`
+});
+
+Vue.component('logout', {
+  data: function(){
+    return {
+      caps: false,
+    }
+  },
+  props: ['caps'],
+  computed: {
+    name: function() {
+      if (this.caps)
+        return 'Sign out'
+      else
+        return 'sign out'
+    }
+  },
+  methods: {
+    logout: async function() {
+      await keycloak.logout({redirectUri:window.location.origin})
+    }
+  },
+  template: `<span class="login-link" @click="logout">{{ name }}</span>`
 });
 
 // scrollBehavior:
@@ -345,20 +485,22 @@ const scrollBehavior = function (to, from, savedPosition) {
 
 var routes = [
   { path: '/', name: 'home', component: Home },
-  { path: '/login', name: 'login', component: Login },
+  { path: '/userinfo', name: 'userinfo', component: UserInfo,
+    meta: { requiresAuth: true }
+  },
   { path: '/register', name: 'register', component: Register,
     props: (route) => ({
       experiment: route.query.experiment,
       institution: route.query.institution
     })
   },
-  { path: '/instApproval', name: 'inst_approval', component: InstApproval,
-    meta: { requiresAuth: true } },
+  { path: '/instApproval', name: 'institutions', component: InstApproval,
+    meta: { requiresAuth: true }
+  },
   { path: '*', name: '404', component: Error404, props: true }
 ];
 
 (async function(){ // startup
-    var isAuthenticated = false;
     try {
         isAuthenticated = await keycloak.init();
     } catch (error) {
@@ -380,7 +522,7 @@ var routes = [
       }
       console.log('baseurl: '+window.location.origin)
 
-      if (to.name !== 'register' && to.name !== 'home' && !isAuthenticated) {
+      if ('requiresAuth' in to.meta && to.meta['requiresAuth'] && !isAuthenticated) {
         // do login process
         console.log("keycloak needs login")
         await keycloak.login({redirectUri:window.location.origin+to.path})
@@ -400,9 +542,8 @@ var routes = [
             visibleRoutes: function() {
                 var current = this.current;
                 return this.routes.filter(function (r) {
-                    if (r.path[0] == '*') // filter 404 page
+                    if (r.path[0] == '*')
                         return false
-                    console.log('filter route '+r.path+'. current='+current)
                     if (r.path.startsWith('/register') && current != 'register')
                         return false
                     return true

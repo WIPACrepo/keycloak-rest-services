@@ -4,9 +4,10 @@ Server for user management
 
 import os
 import logging
+from functools import partial
 
 from tornado.web import RequestHandler, StaticFileHandler, HTTPError
-from rest_tools.client import OpenIDRestClient
+from rest_tools.client import RestClient
 from rest_tools.server import RestServer, RestHandlerSetup, from_environment
 import motor.motor_asyncio
 
@@ -59,17 +60,14 @@ def create_server():
     kwargs['db'] = db[db_name]
 
     logging.info(f'Keycloak client: {config["KEYCLOAK_CLIENT_ID"]}')
-    refresh_token = krs.token.get_token(config["KEYCLOAK_URL"],
-            client_id=config['KEYCLOAK_CLIENT_ID'],
-            client_secret=config['KEYCLOAK_CLIENT_SECRET'],
-            refresh=True,
+    token_func = partial(krs.token.get_token, config["KEYCLOAK_URL"],
+        client_id=config['KEYCLOAK_CLIENT_ID'],
+        client_secret=config['KEYCLOAK_CLIENT_SECRET'],
     )
-    kwargs['krs_client'] = OpenIDRestClient(
-            f'{config["KEYCLOAK_URL"]}/auth/admin/realms/{config["KEYCLOAK_REALM"]}',
-            f'{config["KEYCLOAK_URL"]}/auth/realms/master',
-            refresh_token=refresh_token,
-            client_id=config['KEYCLOAK_CLIENT_ID'],
-            client_secret=config['KEYCLOAK_CLIENT_SECRET'],
+    kwargs['krs_client'] = RestClient(
+        f'{config["KEYCLOAK_URL"]}/auth/admin/realms/{config["KEYCLOAK_REALM"]}',
+        token=token_func,
+        timeout=10,
     )
 
     server = RestServer(static_path=static_path, debug=config['DEBUG'])

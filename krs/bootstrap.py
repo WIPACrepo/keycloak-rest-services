@@ -4,12 +4,12 @@ Bootstrap a Keycloak instance with an admin role account for REST access.
 import time
 import requests
 
-from .util import config, ConfigRequired
+from rest_tools.server import from_environment
 
 
 def wait_for_keycloak(timeout=300):
-    cfg = config({
-        'KEYCLOAK_URL': ConfigRequired,
+    cfg = from_environment({
+        'KEYCLOAK_URL': None,
     })
 
     url = f'{cfg["KEYCLOAK_URL"]}/auth/'
@@ -24,10 +24,10 @@ def wait_for_keycloak(timeout=300):
         raise Exception('Keycloak did not start')
 
 def get_token():
-    cfg = config({
-        'KEYCLOAK_URL': ConfigRequired,
-        'USERNAME': ConfigRequired,
-        'PASSWORD': ConfigRequired,
+    cfg = from_environment({
+        'KEYCLOAK_URL': None,
+        'USERNAME': None,
+        'PASSWORD': None,
     })
     url = f'{cfg["KEYCLOAK_URL"]}/auth/realms/master/protocol/openid-connect/token'
     args = {
@@ -43,8 +43,8 @@ def get_token():
     return req['access_token']
 
 def create_realm(realm, token=None):
-    cfg = config({
-        'KEYCLOAK_URL': ConfigRequired,
+    cfg = from_environment({
+        'KEYCLOAK_URL': None,
     })
 
     try:
@@ -62,8 +62,8 @@ def create_realm(realm, token=None):
         print(f'realm "{realm}" already exists')
 
 def delete_realm(realm, token=None):
-    cfg = config({
-        'KEYCLOAK_URL': ConfigRequired,
+    cfg = from_environment({
+        'KEYCLOAK_URL': None,
     })
 
     try:
@@ -80,8 +80,8 @@ def delete_realm(realm, token=None):
         print(f'realm "{realm}" deleted')
 
 def create_service_role(client_id, realm=None, token=None):
-    cfg = config({
-        'KEYCLOAK_URL': ConfigRequired,
+    cfg = from_environment({
+        'KEYCLOAK_URL': None,
     })
 
     url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/master/clients'
@@ -168,8 +168,8 @@ def create_service_role(client_id, realm=None, token=None):
     return r.json()['value']
 
 def delete_service_role(client_id, token=None):
-    cfg = config({
-        'KEYCLOAK_URL': ConfigRequired,
+    cfg = from_environment({
+        'KEYCLOAK_URL': None,
     })
 
     url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/master/clients'
@@ -197,8 +197,8 @@ def delete_service_role(client_id, token=None):
             raise
 
 def create_public_app(realm=None, token=None):
-    cfg = config({
-        'KEYCLOAK_URL': ConfigRequired,
+    cfg = from_environment({
+        'KEYCLOAK_URL': None,
     })
 
     appname = 'public'
@@ -266,9 +266,9 @@ def user_mgmt_app(appurl, passwordGrant=False, token=None):
         passwordGrant (bool): (optional) whether to allow password grands (default: False)
         token (str): admin rest api token
     """
-    cfg = config({
-        'KEYCLOAK_URL': ConfigRequired,
-        'KEYCLOAK_REALM': ConfigRequired,
+    cfg = from_environment({
+        'KEYCLOAK_URL': None,
+        'KEYCLOAK_REALM': None,
     })
 
     appname = 'user_mgmt'
@@ -358,8 +358,8 @@ def user_mgmt_app(appurl, passwordGrant=False, token=None):
 
 
 def bootstrap():
-    cfg = config({
-        'KEYCLOAK_REALM': ConfigRequired,
+    cfg = from_environment({
+        'KEYCLOAK_REALM': None,
         'KEYCLOAK_CLIENT_ID': 'rest-access',
     })
 

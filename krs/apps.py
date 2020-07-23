@@ -26,7 +26,7 @@ import asyncio
 
 import requests
 
-from .util import config, ConfigRequired
+from .token import get_rest_client
 from .groups import list_groups, group_info
 
 async def list_apps(rest_client=None):
@@ -501,29 +501,9 @@ def main():
     parser_get_public_token.add_argument('--secret', help='app (client) secret (if necessary)')
     parser_get_public_token.add_argument('--raw', action='store_true', help='output raw token')
     parser_get_public_token.set_defaults(func=get_public_token)
-    args = parser.parse_args()
+    args = vars(parser.parse_args())
 
-    cfg = config({
-        'KEYCLOAK_REALM': ConfigRequired,
-        'KEYCLOAK_URL': ConfigRequired,
-        'KEYCLOAK_CLIENT_ID': 'rest-access',
-        'KEYCLOAK_CLIENT_SECRET': ConfigRequired,
-    })
-
-    token = get_token(cfg['KEYCLOAK_URL'],
-            client_id=config['KEYCLOAK_CLIENT_ID'],
-            client_secret=config['KEYCLOAK_CLIENT_SECRET'],
-            refresh=True,
-    )
-    rest_client = OpenIDRestClient(
-            f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/{cfg["KEYCLOAK_REALM"]}',
-            f'{cfg["KEYCLOAK_URL"]}/auth/realms/master',
-            refresh_rest_client=rest_client,
-            client_id=config['KEYCLOAK_CLIENT_ID'],
-            client_secret=config['KEYCLOAK_CLIENT_SECRET'],
-    )
-
-    args = vars(args)
+    rest_client = get_rest_client()
     func = args.pop('func')
     if func == get_public_token:
         args['openid_url'] = f'{cfg["KEYCLOAK_URL"]}/auth/realms/{cfg["KEYCLOAK_REALM"]}'

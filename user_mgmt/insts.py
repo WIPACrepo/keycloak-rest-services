@@ -78,8 +78,12 @@ class InstApprovals(MyHandler):
             }
             data = self.json_filter(req_fields, opt_fields)
 
+            # make ascii username
+            username = unidecode.unidecode(data['first_name'][0]+data['last_name']).replace("'",'')
+
             user_data = {
                 'id': uuid.uuid1().hex,
+                'username': username,
                 'first_name': data['first_name'],
                 'last_name': data['last_name'],
                 'external_email': data['email'],
@@ -91,6 +95,7 @@ class InstApprovals(MyHandler):
                 'experiment': data['experiment'],
                 'institution': data['institution'],
                 'newuser': user_data['id'],
+                'username': username,
             }
             if 'authorlist' in data:
                 approval_data['authorlist'] = data['authorlist']
@@ -137,22 +142,18 @@ class InstApprovalsActionApprove(MyHandler):
             user_data = await self.db.user_registrations.find_one({'id': ret['newuser']})
             if not user_data:
                 raise HTTPError(400, 'invalid new user')
-            # make ascii username
-            username = unidecode.unidecode(user_data['first'][0]+user_data['last']).replace("'",'')
             args = {
-                "username": username,
-                "first_name": user_data['first'],
-                "last_name": user_data['last'],
+                "username": user_data['username'],
+                "first_name": user_data['first_name'],
+                "last_name": user_data['last_name'],
                 "email": user_data['external_email'],
                 "attribs": {
                     "author_name": user_data['author_name'],
                     "homeDirectory": "",
                 },
-                "token": self.token,
             }
-            await krs.users.create_user(**args)
+            await krs.users.create_user(rest_client=self.krs_client, **args)
             await self.db.user_registrations.delete_one({'id': ret['newuser']})
-            ret['username'] = username
 
         # add user to institution
         inst_group = f'/institutions/{ret["experiment"]}/{ret["institution"]}'
@@ -187,6 +188,8 @@ class InstApprovalsActionDeny(MyHandler):
             raise HTTPError(403, 'invalid authorization')
 
         audit_logger.info(f'{self.auth_data["username"]} is denying request {approval_id}')
+        if 'newuser' in ret and ret['newuser']:
+            await self.db.user_registrations.delete_one({'id': ret['newuser']})
         await self.db.inst_approvals.delete_one({'id': approval_id})
 
         # TODO: send email
