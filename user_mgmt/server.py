@@ -23,13 +23,18 @@ class Error(RequestHandler):
     def prepare(self):
         raise HTTPError(404, 'invalid api route')
 
+class Main(RequestHandler):
+    def initialize(self, keycloak_url='', keycloak_realm=''):
+        self.keycloak_url = keycloak_url
+        self.keycloak_realm = keycloak_realm
+
+    def get(self, *args):
+        self.render('index.html', keycloak_url=self.keycloak_url,
+                    keycloak_realm=self.keycloak_realm)
+
 def create_server():
     static_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),'static')
 
-    class Main(StaticFileHandler):
-        @classmethod
-        def get_absolute_path(cls, root: str, path: str) -> str:
-            return os.path.join(static_path, 'index.html')
 
 
     default_config = {
@@ -70,7 +75,12 @@ def create_server():
         timeout=10,
     )
 
-    server = RestServer(static_path=static_path, debug=config['DEBUG'])
+    main_args = {
+        'keycloak_url': config['KEYCLOAK_URL'],
+        'keycloak_realm': config['KEYCLOAK_REALM'],
+    }
+
+    server = RestServer(static_path=static_path, template_path=static_path, debug=config['DEBUG'])
 
     server.add_route('/api/experiments', Experiments, kwargs)
     server.add_route('/api/experiments/(?P<experiment>\w+)/institutions', Institutions, kwargs)
@@ -88,7 +98,7 @@ def create_server():
     server.add_route(r'/api/group_approvals/(?P<approval_id>\w+)/actions/deny', GroupApprovalsActionDeny, kwargs)
 
     server.add_route(r'/api/(.*)', Error)
-    server.add_route(r'/(.*)', Main, {'path': ''})
+    server.add_route(r'/(.*)', Main, main_args)
 
     server.startup(address=config['HOST'], port=config['PORT'])
 

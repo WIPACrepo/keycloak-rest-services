@@ -94,6 +94,12 @@ span.login-link {
     text-decoration: underline;
     color: blue;
 }
+div.indent {
+    margin-left: 1em;
+}
+div.double_indent {
+    margin-left: 2em;
+}
 
 form.newuser div.entry {
     padding: 1em;
@@ -110,6 +116,10 @@ div.error_box {
     font-size: 16pt;
     border: 1px solid #666;
     border-radius: .2em;
+}
+
+article.home .experiment, article.home .institution, article.home .group {
+    font-style: italic;
 }
 
 article.inst-approvals .inst {

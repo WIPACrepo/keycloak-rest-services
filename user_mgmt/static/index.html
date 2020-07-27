@@ -39,5 +39,8 @@
 <script src="http://127.0.0.1:8080/auth/js/keycloak.js"></script>
 <script src="/static/boilerplate.js"></script>
 <script src="/static/main.js"></script>
+<script type="text/javascript">
+vue_startup("{{ keycloak_url }}", "{{ keycloak_realm }}")
+</script>
 </body>
 </html>

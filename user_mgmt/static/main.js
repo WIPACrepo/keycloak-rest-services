@@ -1,29 +1,157 @@
-var keycloak = new Keycloak({
-  url: 'http://127.0.0.1:8080/auth',
-  realm: 'IceCube',
-  clientId: 'user_mgmt'
-});
-var isAuthenticated = false;
+// debug flag
+var krs_debug = true;
 
-var list_to_obj = function(inputlist){
-  var ret = {}
-  for(let i=0;i<inputlist.length;i++){
-    ret[inputlist[i]] = inputlist[i]
+// global Keycloak object
+var keycloak;
+
+
+/** helper functions **/
+
+var get_my_experiments = async function() {
+  if (!keycloak.authenticated)
+    return []
+  try {
+    if (keycloak.isTokenExpired(5))
+      await keycloak.updateToken(60)
+    let experiments = []
+    console.log(keycloak.tokenParsed)
+    for (const group of keycloak.tokenParsed.groups) {
+      if (group.startsWith('/institutions')) {
+        const parts = group.split('/')
+        if (parts.length != 4)
+          continue
+        const exp = parts[2]
+        if (!experiments.includes(exp))
+          experiments.push(exp)
+      }
+    }
+    console.log("get_my_experiments() - "+JSON.stringify(experiments))
+    return experiments
+  } catch (error) {
+    console.log("error getting experiments from token")
+    return []
   }
-  return ret
 };
+
+var get_my_institutions = async function(experiment) {
+  if (!keycloak.authenticated)
+    return []
+  try {
+    if (keycloak.isTokenExpired(5))
+      await keycloak.updateToken(60)
+    let institutions = []
+    for (const group of keycloak.tokenParsed.groups) {
+      if (group.startsWith('/institutions')) {
+        const parts = group.split('/')
+        if (parts.length == 4 && parts[2] == experiment) {
+          const inst = parts[3]
+          if (!institutions.includes(inst))
+            institutions.push(inst)
+        }
+      }
+    }
+    console.log("get_my_institutions() - "+JSON.stringify(institutions))
+    return institutions
+  } catch (error) {
+    console.log("error getting institutions from token")
+    return []
+  }
+};
+
+var get_my_inst_admins = async function() {
+  if (!keycloak.authenticated)
+    return []
+  try {
+    if (keycloak.isTokenExpired(5))
+      await keycloak.updateToken(60)
+    let institutions = []
+    for (const group of keycloak.tokenParsed.groups) {
+      if (group.startsWith('/institutions')) {
+        const parts = group.split('/')
+        if (parts.length == 5 && parts[4] == '_admin') {
+          let inst = parts.slice(0,4).join('/')
+          if (!institutions.includes(inst))
+            institutions.push(inst)
+        }
+      }
+    }
+    return institutions
+  } catch (error) {
+    console.log("error getting admin institutions from token")
+    return []
+  }
+};
+
+var get_my_group_admins = async function() {
+  if (!keycloak.authenticated)
+    return []
+  try {
+    if (keycloak.isTokenExpired(5))
+      await keycloak.updateToken(60)
+    let groups = [];
+    for (const group of keycloak.tokenParsed.groups) {
+      if (!group.startsWith('/institutions')) {
+        const parts = group.split('/')
+        if (parts.length > 2 && parts[parts.length-1] == '_admin') {
+          let grp = parts.slice(0,parts.length-1).join('/')
+          if (!groups.includes(grp))
+            groups.push(grp)
+        }
+      }
+    }
+    return groups
+  } catch (error) {
+    console.log("error getting admin groups from token")
+    return []
+  }
+};
+
+
+/** Routes **/
 
 Home = {
   data: function(){
     return {
-      title: ''
+      error: ''
+    }
+  },
+  asyncComputed: {
+    experiments: async function(){
+      let exps = await get_my_experiments()
+      let ret = {};
+      for (const exp of exps) {
+        ret[exp] = await get_my_institutions(exp)
+      }
+      return ret
+    },
+    groups: async function(){
+      return []
     }
   },
   template: `
 <article class="home">
-  <h4>Welcome to the IceCube Neutrino Observatory identity management console.</h4>
-  <p>Existing users should <login></login></p>
-  <p>New users should ask their PI for a registration link.</p>
+  <div v-if="keycloak.authenticated">
+    <h2 style="margin-bottom: 1em">My profile:</h2>
+    <div class="error_box" v-if="error">{{ error }}</div>
+    <h3>Experiments / Institutions</h3>
+    <div class="indent" v-for="(institutions, exp) in experiments">
+      <p class="experiment">{{ exp }}<p>
+      <div class="double_indent" v-for="inst in institutions">
+        <span class="institution">{{ inst }}</span>
+      </div>
+    </div>
+    <div class="indent" v-if="experiments.length <= 0">You do not belong to any institutions</div>
+    <h3>Groups</h3>
+    <div class="indent" v-for="group in groups">
+      <span class="group">{{ group }}</span>
+    </div>
+    <div class="indent" v-if="groups.length <= 0">You do not belong to any groups</div>
+  </div>
+  <div v-else>
+    <h3>Welcome to the IceCube Neutrino Observatory identity management console.</h3>
+    <p>Existing users should <span style="font-size: 150%"><login></login></span></p>
+    <p>New users should ask their PI for a registration link.</p>
+  </div>
 </article>`
 }
 
@@ -35,7 +163,7 @@ UserInfo = {
   },
   asyncComputed: {
     userinfo: async function() {
-      if (!isAuthenticated)
+      if (!keycloak.authenticated)
         return {}
       try {
         var ret = await keycloak.loadUserInfo();
@@ -83,17 +211,25 @@ Register = {
   },
   asyncComputed: {
     validExperiment: function() {
-      return this.experiment != '' && this.experiments !== null && this.experiment in this.experiments
+      try {
+        return this.experiment != '' && this.experiments !== null && this.experiments.includes(this.experiment)
+      } catch(error) {
+        return false
+      }
     },
     validInstitution: function() {
-      return this.institution != '' && this.institutions !== null && this.institution in this.institutions
+      try {
+        return this.institution != '' && this.institutions !== null && this.institutions.includes(this.institution)
+      } catch(error) {
+        return false
+      }
     },
     experiments: async function() {
       try {
         const resp = await axios.get('/api/experiments');
         console.log('Response:')
         console.log(resp)
-        return list_to_obj(resp.data)
+        return resp.data
       } catch (error) {
         console.log('error')
         console.log(error)
@@ -106,14 +242,13 @@ Register = {
           const resp = await axios.get('/api/experiments/'+this.experiment+'/institutions');
           console.log('Response:')
           console.log(resp)
-          return list_to_obj(resp.data)
+          return resp.data
         } catch (error) {
           console.log('error')
           console.log(error)
         }
       }
       return {}
-      
     }
   },
   methods: {
@@ -176,6 +311,133 @@ Register = {
       </div>
       <div class="entry">
         <p>Select your institution: <span class="red">*</span></p>
+        <select v-model="institution">
+          <option disabled value="">Please select one</option>
+          <option v-for="inst in institutions">{{ inst }}</option>
+        </select>
+        <span class="red" v-if="!valid && !validInstitution">invalid entry</span>
+      </div>
+      <textinput name="First Name" inputName="first_name" v-model.trim="firstName"
+       required=true :valid="validFirstName" :allValid="valid"></textinput>
+      <textinput name="Last Name" inputName="last_name" v-model.trim="lastName"
+       required=true :valid="validLastName" :allValid="valid"></textinput>
+      <textinput name="Author List Name (usually abbreviated)" inputName="authorname"
+       v-model.trim="authorListName" :valid="validAuthorListName" :allValid="valid"></textinput>
+      <textinput name="Email Address" inputName="email" v-model.trim="email"
+       required=true :valid="validEmail" :allValid="valid"></textinput>
+      <div v-if="errMessage" class="error_box" v-html="errMessage"></div>
+      <div class="entry" v-if="!submitted">
+        <input type="submit" value="Submit Registration">
+      </div>
+    </form>
+</article>`
+}
+
+InstMove = {
+  data: function(){
+    return {
+      experiment: '',
+      remove_institution: '',
+      institution: '',
+      valid: true,
+      errMessage: '',
+      submitted: false
+    }
+  },
+  asyncComputed: {
+    validExperiment: function() {
+      try {
+        return this.experiment != '' && this.experiments !== null && this.experiments.includes(this.experiment)
+      } catch(error) {
+        return false
+      }
+    },
+    validInstitution: function() {
+      try {
+        return this.institution != '' && this.institutions !== null && this.institutions.includes(this.institution)
+      } catch(error) {
+        return false
+      }
+    },
+    experiments: async function() {
+      return await get_my_experiments()
+    },
+    institutions: async function() {
+      if (this.validExperiment) {
+        try {
+          const resp = await axios.get('/api/experiments/'+this.experiment+'/institutions');
+          console.log('Response:')
+          console.log(resp)
+          return resp.data
+        } catch (error) {
+          console.log('error')
+          console.log(error)
+        }
+      }
+      return {}
+    }
+  },
+  methods: {
+      submit: async function(e) {
+          // validate
+          this.valid = (this.validExperiment && this.validInstitution)
+
+          // now submit
+          if (this.valid) {
+              this.errMessage = 'Submission processing';
+              try {
+                  if (!keycloak.authenticated)
+                    throw "not authenticated"
+                  if (keycloak.isTokenExpired(5))
+                    await keycloak.updateToken(60)
+                  const resp = await axios.post('/api/inst_approvals', {
+                      experiment: this.experiment,
+                      institution: this.institution,
+                      remove_institution: this.remove_institution
+                  }, {
+                    headers: {'Authorization': 'bearer '+keycloak.token}
+                  });
+                  console.log('Response:')
+                  console.log(resp)
+                  this.errMessage = 'Submission successful'
+                  this.submitted = true
+              } catch (error) {
+                  console.log('error')
+                  console.log(error)
+                  let error_message = 'undefined error';
+                  if (error.response) {
+                      if ('code' in error.response.data) {
+                          error_message = 'Code: '+error.response.data['code']+'<br>Message: '+error.response.data['error'];
+                      } else {
+                          error_message = JSON.stringify(error.response.data)
+                      }
+                  } else if (error.request) {
+                      error_message = 'server did not respond';
+                  }
+                  this.errMessage = '<span class="red">Error in submission<br>'+error_message+'</span>'
+              }
+          } else {
+              this.errMessage = '<span class="red">Please fix invalid entries</span>'
+          }
+      }
+  },
+  template: `
+<article class="register">
+    <h2>Move institution</h2>
+    <form class="newuser" @submit.prevent="submit">
+      <div class="entry">
+        <span class="red">* entry is requred</span>
+      </div>
+      <div class="entry">
+        <p>Select your experiment: <span class="red">*</span></p>
+        <select v-model="experiment">
+          <option disabled value="">Please select one</option>
+          <option v-for="exp in experiments">{{ exp }}</option>
+        </select>
+        <span class="red" v-if="!valid && !validExperiment">invalid entry</span>
+      </div>
+      <div class="entry">
+        <p>Select new institution: <span class="red">*</span></p>
         <select v-model="institution">
           <option disabled value="">Please select one</option>
           <option v-for="inst in institutions">{{ inst }}</option>
@@ -317,6 +579,9 @@ Error404 = {
 </article>`
 }
 
+
+/** Vue components **/
+
 Vue.component('textinput', {
     data: function(){
         return {
@@ -345,7 +610,6 @@ Vue.component('navpage', {
   props: ['path', 'name', 'current'],
   computed: {
     classObj: function() {
-      console.log('name:'+this.name+'   current:'+this.current)
       return {
         active: this.name == this.current
       }
@@ -365,7 +629,7 @@ Vue.component('account', {
   },
   asyncComputed: {
     name: async function() {
-      if (!isAuthenticated)
+      if (!keycloak.authenticated)
         return ""
       try {
         var ret = await keycloak.loadUserInfo();
@@ -382,7 +646,7 @@ Vue.component('account', {
   },
   template: `
 <div class="account">
-  <login v-if="!isAuthenticated" caps="true"></login>
+  <login v-if="!keycloak.authenticated" caps="true"></login>
   <div v-else>Signed in as <span class="username">{{ name }}</span><br><logout caps="true"></logout></div>
 </div>`
 });
@@ -432,6 +696,7 @@ Vue.component('logout', {
   },
   template: `<span class="login-link" @click="logout">{{ name }}</span>`
 });
+
 
 // scrollBehavior:
 // - only available in html5 history mode
@@ -486,7 +751,7 @@ const scrollBehavior = function (to, from, savedPosition) {
 var routes = [
   { path: '/', name: 'home', component: Home },
   { path: '/userinfo', name: 'userinfo', component: UserInfo,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, testing: true }
   },
   { path: '/register', name: 'register', component: Register,
     props: (route) => ({
@@ -494,71 +759,76 @@ var routes = [
       institution: route.query.institution
     })
   },
-  { path: '/instApproval', name: 'institutions', component: InstApproval,
-    meta: { requiresAuth: true }
+  { path: '/instApproval', name: 'Inst Approvals', component: InstApproval,
+    meta: { requiresAuth: true, requiresInstAdmin: true }
   },
   { path: '*', name: '404', component: Error404, props: true }
 ];
 
-(async function(){ // startup
-    try {
-        isAuthenticated = await keycloak.init();
-    } catch (error) {
-        console.log("error initializing keycloak")
+async function vue_startup(keycloak_url, keycloak_realm){
+  keycloak = new Keycloak({
+    url: keycloak_url+'/auth',
+    realm: keycloak_realm,
+    clientId: 'user_mgmt'
+  });
+  try {
+    await keycloak.init();
+  } catch (error) {
+    console.log("error initializing keycloak")
+  }
+
+  var router = new VueRouter({
+    mode: 'history',
+    routes: routes,
+    scrollBehavior: scrollBehavior
+  })
+  router.beforeEach(async function(to, from, next){
+    console.log('baseurl: '+window.location.origin)
+
+    if ('requiresAuth' in to.meta && to.meta['requiresAuth'] && !keycloak.authenticated) {
+      // do login process
+      console.log("keycloak needs login")
+      await keycloak.login({redirectUri:window.location.origin+to.path})
     }
+    else next()
+  })
 
-    var router = new VueRouter({
-        mode: 'history',
-        routes: routes,
-        scrollBehavior: scrollBehavior
-    })
-    router.beforeEach(async function(to, from, next){
-      try {
-        await keycloak.updateToken(60);
-        isAuthenticated = true;
-      } catch (error) {
-        console.log(error);
-        isAuthenticated = false;
+  var app = new Vue({
+    el: '#page-container',
+    data: {
+      routes: routes,
+      current: 'home'
+    },
+    router: router,
+    computed: {
+      visibleRoutes: function() {
+        var current = this.current;
+        return this.routes.filter(function (r) {
+          if (r.path[0] == '*')
+            return false
+          if (r.path.startsWith('/register') && current != 'register')
+            return false
+          if ((!krs_debug) && r.meta.testing)
+            return false
+          if (r.meta && r.meta.requiresAuth && !keycloak.authenticated)
+            return false
+          if (r.meta && r.meta.requiresInstAdmin && get_my_inst_admins().length <= 0)
+            return false
+          if (r.meta && r.meta.requiresGroupAdmin && get_my_group_admins().length <= 0)
+            return false
+          return true
+        })
       }
-      console.log('baseurl: '+window.location.origin)
-
-      if ('requiresAuth' in to.meta && to.meta['requiresAuth'] && !isAuthenticated) {
-        // do login process
-        console.log("keycloak needs login")
-        await keycloak.login({redirectUri:window.location.origin+to.path})
-        // next({ name: 'login' })
+    },
+    watch: {
+      '$route.currentRoute.path': {
+        handler: function() {
+          console.log('currentPath update:'+router.currentRoute.path)
+          this.current = router.currentRoute.name
+        },
+        deep: true,
+        immediate: true,
       }
-      else next()
-    })
-
-    var app = new Vue({
-        el: '#page-container',
-        data: {
-            routes: routes,
-            current: 'home'
-        },
-        router: router,
-        computed: {
-            visibleRoutes: function() {
-                var current = this.current;
-                return this.routes.filter(function (r) {
-                    if (r.path[0] == '*')
-                        return false
-                    if (r.path.startsWith('/register') && current != 'register')
-                        return false
-                    return true
-                })
-            }
-        },
-        watch: {
-            '$route.currentRoute.path': {
-                handler: function() {
-                    console.log('currentPath update:'+router.currentRoute.path)
-                    this.current = router.currentRoute.name
-                },
-                deep: true,
-                immediate: true,
-            }
-        }
-    })
-})()
+    }
+  })
+}
