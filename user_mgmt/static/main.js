@@ -7,12 +7,24 @@ var keycloak;
 
 /** helper functions **/
 
+var get_username = async function() {
+  if (!keycloak.authenticated)
+    return ''
+  try {
+    await keycloak.updateToken(5)
+    console.log(keycloak.tokenParsed)
+    return keycloak.tokenParsed['username']
+  } catch (error) {
+    console.log("error getting username from token")
+    return ''
+  }
+};
+
 var get_my_experiments = async function() {
   if (!keycloak.authenticated)
     return []
   try {
-    if (keycloak.isTokenExpired(5))
-      await keycloak.updateToken(60)
+    await keycloak.updateToken(5)
     let experiments = []
     console.log(keycloak.tokenParsed)
     for (const group of keycloak.tokenParsed.groups) {
@@ -37,8 +49,7 @@ var get_my_institutions = async function(experiment) {
   if (!keycloak.authenticated)
     return []
   try {
-    if (keycloak.isTokenExpired(5))
-      await keycloak.updateToken(60)
+    await keycloak.updateToken(5)
     let institutions = []
     for (const group of keycloak.tokenParsed.groups) {
       if (group.startsWith('/institutions')) {
@@ -62,8 +73,7 @@ var get_my_inst_admins = async function() {
   if (!keycloak.authenticated)
     return []
   try {
-    if (keycloak.isTokenExpired(5))
-      await keycloak.updateToken(60)
+    await keycloak.updateToken(5)
     let institutions = []
     for (const group of keycloak.tokenParsed.groups) {
       if (group.startsWith('/institutions')) {
@@ -86,8 +96,7 @@ var get_my_group_admins = async function() {
   if (!keycloak.authenticated)
     return []
   try {
-    if (keycloak.isTokenExpired(5))
-      await keycloak.updateToken(60)
+    await keycloak.updateToken(5)
     let groups = [];
     for (const group of keycloak.tokenParsed.groups) {
       if (!group.startsWith('/institutions')) {
@@ -112,40 +121,312 @@ var get_my_group_admins = async function() {
 Home = {
   data: function(){
     return {
-      error: ''
+      join_inst: false,
+      join_group: false,
+      experiment: '',
+      institution: '',
+      remove_institution: '',
+      group: '',
+      error: '',
+      form_error: '',
+      valid: true,
+      submitted: false,
+      refresh: 0
     }
   },
   asyncComputed: {
-    experiments: async function(){
-      let exps = await get_my_experiments()
-      let ret = {};
-      for (const exp of exps) {
-        ret[exp] = await get_my_institutions(exp)
-      }
-      return ret
+    my_experiments: {
+      get: async function(){
+        if (this.refresh > 0) {
+          // refresh token
+          await keycloak.updateToken(-1)
+        }
+        let exps = await get_my_experiments()
+        let ret = {}
+        for (const exp of exps) {
+          ret[exp] = await get_my_institutions(exp)
+        }
+        return ret
+      },
+      watch: ['refresh']
     },
-    groups: async function(){
+    my_groups: async function(){
+      const _ = this.refresh
       return []
+    },
+    validExperiment: function() {
+      try {
+        return this.experiment != '' && this.experiments !== null && this.experiments.includes(this.experiment)
+      } catch(error) {
+        return false
+      }
+    },
+    validInstitution: function() {
+      try {
+        return this.institution != '' && this.institutions !== null && this.institutions.includes(this.institution)
+      } catch(error) {
+        return false
+      }
+    },
+    experiments: async function() {
+      try {
+        const resp = await axios.get('/api/experiments');
+        console.log('Response:')
+        console.log(resp)
+        let exps = [];
+        return resp.data
+      } catch (error) {
+        console.log('error')
+        console.log(error)
+      }
+      return {}
+    },
+    institutions: async function() {
+      if (this.validExperiment) {
+        try {
+          const resp = await axios.get('/api/experiments/'+this.experiment+'/institutions');
+          console.log('Response:')
+          console.log(resp)
+          let insts = []
+          for (const inst of resp.data) {
+            if (!(this.experiment in this.my_experiments && this.my_experiments[this.experiment].includes(inst)))
+              insts.push(inst)
+          }
+          return insts
+        } catch (error) {
+          console.log('error')
+          console.log(error)
+        }
+      }
+      return {}
+    },
+    groups: async function() {
+      if (!keycloak.authenticated)
+        return []
+      try {
+        await keycloak.updateToken(5);
+        const resp = await axios.get('/api/groups', {
+          headers: {'Authorization': 'bearer '+keycloak.token}
+        })
+        return resp.data
+      } catch(error) {
+        console.log(error)
+        return []
+      }
+    },
+    validGroup: function() {
+      try {
+        return this.group != '' && this.groups !== null && this.groups.includes(this.group)
+      } catch(error) {
+        return false
+      }
+    }
+  },
+  methods: {
+    submit: async function(e) {
+      // validate
+      this.valid = (this.validExperiment && this.validInstitution)
+
+      // now submit
+      if (this.valid) {
+        this.errMessage = 'Submission processing';
+        try {
+          await keycloak.updateToken(5);
+          let data = {
+            experiment: this.experiment,
+            institution: this.institution,
+          }
+          if (this.remove_institution != '')
+            data.remove_institution = this.remove_institution
+          const resp = await axios.post('/api/inst_approvals', data, {
+            headers: {'Authorization': 'bearer '+keycloak.token}
+          });
+          console.log('Response:')
+          console.log(resp)
+          this.form_error = 'Submission successful'
+          this.submitted = true
+        } catch (error) {
+          console.log('error')
+          console.log(error)
+          let error_message = 'undefined error';
+          if (error.response) {
+            if ('code' in error.response.data) {
+              error_message = 'Code: '+error.response.data['code']+'<br>Message: '+error.response.data['error'];
+            } else {
+              error_message = JSON.stringify(error.response.data)
+            }
+          } else if (error.request) {
+            error_message = 'server did not respond';
+          }
+          this.form_error = '<span class="red">Error in submission<br>'+error_message+'</span>'
+        }
+      } else {
+        this.form_error = '<span class="red">Please fix invalid entries</span>'
+      }
+    },
+    submit_group: async function(e) {
+      if (this.validGroup) {
+        this.errMessage = 'Submission processing';
+        try {
+          await keycloak.updateToken(5);
+          let data = {
+            experiment: this.experiment,
+            institution: this.institution,
+          }
+          if (this.remove_institutuion != '')
+            data.remove_institution = this.remove_institution
+          const resp = await axios.post('/api/inst_approvals', data, {
+            headers: {'Authorization': 'bearer '+keycloak.token}
+          });
+          console.log('Response:')
+          console.log(resp)
+          this.form_error = 'Submission successful'
+          this.submitted = true
+        } catch (error) {
+          console.log('error')
+          console.log(error)
+          let error_message = 'undefined error';
+          if (error.response) {
+            if ('code' in error.response.data) {
+              error_message = 'Code: '+error.response.data['code']+'<br>Message: '+error.response.data['error'];
+            } else {
+              error_message = JSON.stringify(error.response.data)
+            }
+          } else if (error.request) {
+            error_message = 'server did not respond';
+          }
+          this.form_error = '<span class="red">Error in submission<br>'+error_message+'</span>'
+        }
+      } else {
+        this.form_error = '<span class="red">Please fix invalid entries</span>'
+      }
+    },
+    leave_inst_action: async function(exp, inst) {
+      try {
+        await keycloak.updateToken(5);
+        const username = await get_username();
+        const resp = await axios.delete('/api/experiments/'+exp+'/institutions/'+inst+'/'+username, {
+          headers: {'Authorization': 'bearer '+keycloak.token}
+        });
+        console.log('Response:')
+        console.log(resp)
+        this.refresh = this.refresh+1
+      } catch (error) {
+        console.log('error')
+        console.log(error)
+        let error_message = 'undefined error';
+        if (error.response && 'data' in error.response) {
+          if ('code' in error.response.data) {
+            error_message = 'Code: '+error.response.data['code']+'<br>Message: '+error.response.data['error'];
+          } else {
+            error_message = JSON.stringify(error.response.data)
+          }
+        } else if (error.request) {
+          error_message = 'server did not respond';
+        }
+        this.error = '<span class="red">Error removing institution<br>'+error_message+'</span>'
+      }
+    },
+    move_inst_action: function(exp, inst) {
+      if (this.remove_institution != '') {
+        this.experiment = ''
+        this.instutition = ''
+        this.remove_institution = ''
+      } else {
+        this.experiment = exp
+        this.instutition = ''
+        this.remove_institution = inst
+      }
     }
   },
   template: `
 <article class="home">
   <div v-if="keycloak.authenticated">
     <h2 style="margin-bottom: 1em">My profile:</h2>
-    <div class="error_box" v-if="error">{{ error }}</div>
+    <div class="error_box" v-if="error" v-html="error"></div>
     <h3>Experiments / Institutions</h3>
-    <div class="indent" v-for="(institutions, exp) in experiments">
-      <p class="experiment">{{ exp }}<p>
-      <div class="double_indent" v-for="inst in institutions">
-        <span class="institution">{{ inst }}</span>
+    <div v-if="$asyncComputed.my_experiments.success">
+      <div class="indent" v-for="(insts, exp) in my_experiments">
+        <p class="italics">{{ exp }}<p>
+        <div class="double_indent institution" v-for="inst in insts">
+          <span class="italics">{{ inst }}</span>
+          <button @click="move_inst_action(exp, inst)">Move institutions</button>
+          <button @click="leave_inst_action(exp, inst)">Leave institution</button>
+          <div class="double_indent" v-if="remove_institution != ''" >
+            <form class="newuser" @submit.prevent="submit">
+              <div class="entry">
+                <p>Select institution:</p>
+                <select v-model="institution">
+                  <option disabled value="">Please select one</option>
+                  <option v-for="inst2 in institutions">{{ inst2 }}</option>
+                </select>
+                <span class="red" v-if="!validInstitution">invalid entry</span>
+              </div>
+              <div class="error_box" v-if="form_error" v-html="form_error"></div>
+              <div class="entry">
+                <input type="submit" value="Submit Move Request">
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+      <div class="indent" v-if="my_experiments.length <= 0">You do not belong to any institutions</div>
+      <div class="join">
+        <button @click="join_inst = !join_inst">Join an institution</button>
+        <div class="double_indent" v-if="join_inst" >
+          <form class="newuser" @submit.prevent="submit">
+            <div class="entry">
+              <p>Select experiment:</p>
+              <select v-model="experiment">
+                <option disabled value="">Please select one</option>
+                <option v-for="exp in experiments">{{ exp }}</option>
+              </select>
+              <span class="red" v-if="!valid && !validExperiment">invalid entry</span>
+            </div>
+            <div class="entry">
+              <p>Select institution:</p>
+              <select v-model="institution">
+                <option disabled value="">Please select one</option>
+                <option v-for="inst in institutions">{{ inst }}</option>
+              </select>
+              <span class="red" v-if="!valid && !validInstitution">invalid entry</span>
+            </div>
+            <div class="error_box" v-if="form_error" v-html="form_error"></div>
+            <div class="entry" v-if="!submitted">
+              <input type="submit" value="Submit Join Request">
+            </div>
+          </form>
+        </div>
       </div>
     </div>
-    <div class="indent" v-if="experiments.length <= 0">You do not belong to any institutions</div>
+    <div class="indent" v-else>Loading institution information...</div>
     <h3>Groups</h3>
-    <div class="indent" v-for="group in groups">
-      <span class="group">{{ group }}</span>
+    <div v-if="$asyncComputed.my_groups.success">
+      <div class="indent group" v-for="group in my_groups">
+        <span class="italics">{{ group }}</span>
+      </div>
+      <div class="indent" v-if="my_groups.length <= 0">You do not belong to any groups</div>
     </div>
-    <div class="indent" v-if="groups.length <= 0">You do not belong to any groups</div>
+    <div class="indent" v-else>Loading group information...</div>
+    <div class="join">
+      <button @click="join_group = !join_group">Join a group</button>
+      <div class="double_indent" v-if="join_group" >
+        <form class="newuser" @submit.prevent="submit_group">
+          <div class="entry">
+            <p>Select group:</p>
+            <select v-model="group">
+              <option disabled value="">Please select one</option>
+              <option v-for="grp in groups">{{ grp }}</option>
+            </select>
+            <span class="red" v-if="!validGroup">invalid entry</span>
+          </div>
+          <div class="error_box" v-if="form_error" v-html="form_error"></div>
+          <div class="entry">
+            <input type="submit" value="Submit Join Request">
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
   <div v-else>
     <h3>Welcome to the IceCube Neutrino Observatory identity management console.</h3>
@@ -333,133 +614,6 @@ Register = {
 </article>`
 }
 
-InstMove = {
-  data: function(){
-    return {
-      experiment: '',
-      remove_institution: '',
-      institution: '',
-      valid: true,
-      errMessage: '',
-      submitted: false
-    }
-  },
-  asyncComputed: {
-    validExperiment: function() {
-      try {
-        return this.experiment != '' && this.experiments !== null && this.experiments.includes(this.experiment)
-      } catch(error) {
-        return false
-      }
-    },
-    validInstitution: function() {
-      try {
-        return this.institution != '' && this.institutions !== null && this.institutions.includes(this.institution)
-      } catch(error) {
-        return false
-      }
-    },
-    experiments: async function() {
-      return await get_my_experiments()
-    },
-    institutions: async function() {
-      if (this.validExperiment) {
-        try {
-          const resp = await axios.get('/api/experiments/'+this.experiment+'/institutions');
-          console.log('Response:')
-          console.log(resp)
-          return resp.data
-        } catch (error) {
-          console.log('error')
-          console.log(error)
-        }
-      }
-      return {}
-    }
-  },
-  methods: {
-      submit: async function(e) {
-          // validate
-          this.valid = (this.validExperiment && this.validInstitution)
-
-          // now submit
-          if (this.valid) {
-              this.errMessage = 'Submission processing';
-              try {
-                  if (!keycloak.authenticated)
-                    throw "not authenticated"
-                  if (keycloak.isTokenExpired(5))
-                    await keycloak.updateToken(60)
-                  const resp = await axios.post('/api/inst_approvals', {
-                      experiment: this.experiment,
-                      institution: this.institution,
-                      remove_institution: this.remove_institution
-                  }, {
-                    headers: {'Authorization': 'bearer '+keycloak.token}
-                  });
-                  console.log('Response:')
-                  console.log(resp)
-                  this.errMessage = 'Submission successful'
-                  this.submitted = true
-              } catch (error) {
-                  console.log('error')
-                  console.log(error)
-                  let error_message = 'undefined error';
-                  if (error.response) {
-                      if ('code' in error.response.data) {
-                          error_message = 'Code: '+error.response.data['code']+'<br>Message: '+error.response.data['error'];
-                      } else {
-                          error_message = JSON.stringify(error.response.data)
-                      }
-                  } else if (error.request) {
-                      error_message = 'server did not respond';
-                  }
-                  this.errMessage = '<span class="red">Error in submission<br>'+error_message+'</span>'
-              }
-          } else {
-              this.errMessage = '<span class="red">Please fix invalid entries</span>'
-          }
-      }
-  },
-  template: `
-<article class="register">
-    <h2>Move institution</h2>
-    <form class="newuser" @submit.prevent="submit">
-      <div class="entry">
-        <span class="red">* entry is requred</span>
-      </div>
-      <div class="entry">
-        <p>Select your experiment: <span class="red">*</span></p>
-        <select v-model="experiment">
-          <option disabled value="">Please select one</option>
-          <option v-for="exp in experiments">{{ exp }}</option>
-        </select>
-        <span class="red" v-if="!valid && !validExperiment">invalid entry</span>
-      </div>
-      <div class="entry">
-        <p>Select new institution: <span class="red">*</span></p>
-        <select v-model="institution">
-          <option disabled value="">Please select one</option>
-          <option v-for="inst in institutions">{{ inst }}</option>
-        </select>
-        <span class="red" v-if="!valid && !validInstitution">invalid entry</span>
-      </div>
-      <textinput name="First Name" inputName="first_name" v-model.trim="firstName"
-       required=true :valid="validFirstName" :allValid="valid"></textinput>
-      <textinput name="Last Name" inputName="last_name" v-model.trim="lastName"
-       required=true :valid="validLastName" :allValid="valid"></textinput>
-      <textinput name="Author List Name (usually abbreviated)" inputName="authorname"
-       v-model.trim="authorListName" :valid="validAuthorListName" :allValid="valid"></textinput>
-      <textinput name="Email Address" inputName="email" v-model.trim="email"
-       required=true :valid="validEmail" :allValid="valid"></textinput>
-      <div v-if="errMessage" class="error_box" v-html="errMessage"></div>
-      <div class="entry" v-if="!submitted">
-        <input type="submit" value="Submit Registration">
-      </div>
-    </form>
-</article>`
-}
-
 InstApproval = {
   data: function(){
     return {
@@ -496,7 +650,7 @@ InstApproval = {
   methods: {
     get_approval_data: async function() {
       try {
-        await keycloak.updateToken(60);
+        await keycloak.updateToken(5);
         var token = keycloak.token;
         var ret = await axios.get('/api/inst_approvals', {
           headers: {'Authorization': 'bearer '+token}
@@ -512,7 +666,7 @@ InstApproval = {
     },
     approve: async function(approval_id) {
       try {
-        await keycloak.updateToken(60);
+        await keycloak.updateToken(5);
         var token = keycloak.token;
         await axios.post('/api/inst_approvals/'+approval_id+'/actions/approve', {}, {
           headers: {'Authorization': 'bearer '+token}
@@ -525,7 +679,7 @@ InstApproval = {
     },
     deny: async function(approval_id) {
       try {
-        await keycloak.updateToken(60);
+        await keycloak.updateToken(5);
         var token = keycloak.token;
         await axios.post('/api/inst_approvals/'+approval_id+'/actions/deny', {}, {
           headers: {'Authorization': 'bearer '+token}
@@ -785,7 +939,7 @@ async function vue_startup(keycloak_url, keycloak_realm){
   router.beforeEach(async function(to, from, next){
     console.log('baseurl: '+window.location.origin)
 
-    if ('requiresAuth' in to.meta && to.meta['requiresAuth'] && !keycloak.authenticated) {
+    if (to.meta && to.meta.requiresAuth && !keycloak.authenticated) {
       // do login process
       console.log("keycloak needs login")
       await keycloak.login({redirectUri:window.location.origin+to.path})

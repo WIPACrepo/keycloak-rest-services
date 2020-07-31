@@ -34,7 +34,12 @@ class Experiments(MyHandler):
 class Institutions(MyHandler):
     @catch_error
     async def get(self, experiment):
-        """Get a list of institutions in the experiment"""
+        """
+        Get a list of institutions in the experiment.
+
+        Args:
+            experiment (str): experiment name
+        """
         ret = await krs.groups.list_groups(rest_client=self.krs_client)
         insts = set()
         for group in ret:
@@ -42,6 +47,72 @@ class Institutions(MyHandler):
             if len(val) == 3 and val[0] == 'institutions' and val[1] == experiment:
                 insts.add(val[2])
         self.write(sorted(insts))
+
+
+class InstitutionUser(MyHandler):
+    @authenticated
+    @catch_error
+    async def put(self, experiment, institution, username):
+        """
+        Add user to institution.
+
+        Must be admin.
+
+        Body json:
+            authorlist (bool): add user to author list
+
+        Args:
+            experiment (str): experiment name
+            institution (str): institution name
+            username (str): username
+        """
+        insts = await self.get_admin_institutions()
+        if experiment not in insts or institution not in insts[experiment]:
+            raise HTTPError(403, 'invalid authorization')
+
+        try:
+            await krs.users.user_info(username, rest_client=self.krs_client)
+        except Exception:
+            raise HTTPError(400, 'invalid username')
+
+        opt_fields = {
+            'authorlist': bool,
+        }
+        data = self.json_filter({}, opt_fields)
+
+        inst_group = f'/institutions/{experiment}/{institution}'
+        await krs.groups.add_user_group(inst_group, username, rest_client=self.krs_client)
+        if 'authorlist' in data and data['authorlist']:
+            await krs.groups.add_user_group(inst_group+'/authorlist', username, rest_client=self.krs_client)
+        self.write({})
+
+    @authenticated
+    @catch_error
+    async def delete(self, experiment, institution, username):
+        """
+        Delete user from institution.
+
+        Must be admin or the user in question.
+
+        Args:
+            experiment (str): experiment name
+            institution (str): institution name
+            username (str): username
+        """
+        inst_group = f'/institutions/{experiment}/{institution}'
+        insts = await self.get_admin_institutions()
+        if (experiment not in insts or institution not in insts[experiment]) and inst_group not in self.auth_data['groups']:
+            raise HTTPError(403, 'invalid authorization')
+
+        try:
+            await krs.users.user_info(username, rest_client=self.krs_client)
+        except Exception:
+            raise HTTPError(400, 'invalid username')
+
+        await krs.groups.remove_user_group(inst_group, username, rest_client=self.krs_client)
+        if inst_group+'/authorlist' in self.auth_data['groups']:
+            await krs.groups.remove_user_group(inst_group+'/authorlist', username, rest_client=self.krs_client)
+        self.write({})
 
 
 class InstApprovals(MyHandler):
@@ -179,6 +250,9 @@ class InstApprovalsActionDeny(MyHandler):
     async def post(self, approval_id):
         """
         Approve a institution approval.
+
+        Args:
+            approval_id (str): id of inst approval request
         """
         insts = await self.get_admin_institutions()
         ret = await self.db.inst_approvals.find_one({'id': approval_id})

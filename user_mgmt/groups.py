@@ -70,7 +70,9 @@ class GroupUser(MyHandler):
     @catch_error
     async def put(self, group_id, username):
         """
-        Add a user to a group.  Must be admin.
+        Add a user to a group.
+
+        Must be admin.
 
         Args:
             group_id (str): group id
@@ -99,7 +101,9 @@ class GroupUser(MyHandler):
     @catch_error
     async def delete(self, group_id, username):
         """
-        Remove a user from a group.  Must be admin or the user in question.
+        Remove a user from a group.
+
+        Must be admin or the user in question.
 
         Args:
             group_id (str): group id

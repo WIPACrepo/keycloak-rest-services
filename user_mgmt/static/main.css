@@ -89,6 +89,9 @@ span.code {
 span.red {
     color: red;
 }
+.italics {
+    font-style: italic;
+}
 span.login-link {
     cursor: pointer;
     text-decoration: underline;
@@ -118,8 +121,20 @@ div.error_box {
     border-radius: .2em;
 }
 
-article.home .experiment, article.home .institution, article.home .group {
-    font-style: italic;
+article {
+    margin: 1em 0 2em;
+}
+
+article.home div.join {
+    margin: 1em 0;
+}
+article.home button {
+    margin: 0.2em 1em;
+    padding: 0.2em;
+}
+article.home div.institution, article.home div.group {
+    padding: 0.5em 0;
+    border-bottom: 1px dotted black;
 }
 
 article.inst-approvals .inst {
