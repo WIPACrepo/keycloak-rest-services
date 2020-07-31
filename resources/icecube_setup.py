@@ -7,9 +7,9 @@ import requests
 
 sys.path.append(os.getcwd())
 
-from krs.bootstrap import bootstrap, user_mgmt_app
+from krs.bootstrap import bootstrap, user_mgmt_app, get_token
 from krs.groups import create_group
-from krs.token import get_token
+from krs.token import get_rest_client
 from krs.util import config, ConfigRequired
 
 
@@ -40,27 +40,28 @@ def main():
 
     args = parser.parse_args()
 
-    os.environ['realm'] = 'IceCube'
-    os.environ['keycloak_url'] = args.keycloak_url
-    os.environ['username'] = args.username
-    os.environ['password'] = args.password
+    os.environ['KEYCLOAK_REALM'] = 'IceCube'
+    os.environ['KEYCLOAK_URL'] = args.keycloak_url
+    os.environ['USERNAME'] = args.username
+    os.environ['PASSWORD'] = args.password
 
     # set up realm and REST API
     secret = bootstrap()
-    os.environ['client_id'] = 'rest-access'
-    os.environ['client_secret'] = secret
-    token = get_token()
+    os.environ['KEYCLOAK_CLIENT_ID'] = 'rest-access'
+    os.environ['KEYCLOAK_CLIENT_SECRET'] = secret
+    rest_client = get_rest_client()
 
     # set up basic group structure
     async def create_subgroups(root, values):
         for name in values:
             groupname = root+'/'+name
-            await create_group(groupname, token=token)
+            await create_group(groupname, rest_client=rest_client)
             if values[name]:
                 await create_subgroups(groupname, values[name])
     asyncio.run(create_subgroups('', GROUPS))
 
     # set up user_mgmt app
+    token = get_token()
     user_mgmt_app(args.user_mgmt_url, token=token)
 
 
