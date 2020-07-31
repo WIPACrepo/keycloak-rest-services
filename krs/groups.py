@@ -174,8 +174,21 @@ async def add_user_group(group_path, username, rest_client=None):
     if group_path in membership:
         print(f'user "{username}" already a member of group "{group_path}"')
     else:
+        # need to temp-remove child groups
+        # https://issues.redhat.com/browse/KEYCLOAK-11298
+        for group in membership:
+            if group.startswith(group_path):
+                url = f'/users/{info["id"]}/groups/{groups[group]["id"]}'
+                await rest_client.request('DELETE', url)
+
         url = f'/users/{info["id"]}/groups/{groups[group_path]["id"]}'
         await rest_client.request('PUT', url)
+
+        for group in membership:
+            if group.startswith(group_path):
+                url = f'/users/{info["id"]}/groups/{groups[group]["id"]}'
+                await rest_client.request('PUT', url)
+        
         print(f'user "{username}" added to group "{group_path}"')
 
 async def remove_user_group(group_path, username, rest_client=None):

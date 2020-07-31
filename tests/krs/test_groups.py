@@ -125,3 +125,31 @@ async def test_get_group_membership(keycloak_bootstrap):
 
     ret = await groups.get_group_membership('/testgroup', rest_client=keycloak_bootstrap)
     assert ret == ['testuser']
+
+@pytest.mark.asyncio
+async def test_parent_child_group_membership(keycloak_bootstrap):
+    await users.create_user('testuser', 'first', 'last', 'email', rest_client=keycloak_bootstrap)
+    await groups.create_group('/parent', rest_client=keycloak_bootstrap)
+    await groups.create_group('/parent/child', rest_client=keycloak_bootstrap)
+    
+    await groups.add_user_group('/parent', 'testuser', rest_client=keycloak_bootstrap)
+    await groups.add_user_group('/parent/child', 'testuser', rest_client=keycloak_bootstrap)
+
+    ret = await groups.get_group_membership('/parent', rest_client=keycloak_bootstrap)
+    assert ret == ['testuser']
+    ret = await groups.get_group_membership('/parent/child', rest_client=keycloak_bootstrap)
+    assert ret == ['testuser']
+
+@pytest.mark.asyncio
+async def test_child_parent_group_membership(keycloak_bootstrap):
+    await users.create_user('testuser', 'first', 'last', 'email', rest_client=keycloak_bootstrap)
+    await groups.create_group('/parent', rest_client=keycloak_bootstrap)
+    await groups.create_group('/parent/child', rest_client=keycloak_bootstrap)
+    
+    await groups.add_user_group('/parent/child', 'testuser', rest_client=keycloak_bootstrap)
+    await groups.add_user_group('/parent', 'testuser', rest_client=keycloak_bootstrap)
+
+    ret = await groups.get_group_membership('/parent', rest_client=keycloak_bootstrap)
+    assert ret == ['testuser']
+    ret = await groups.get_group_membership('/parent/child', rest_client=keycloak_bootstrap)
+    assert ret == ['testuser']
