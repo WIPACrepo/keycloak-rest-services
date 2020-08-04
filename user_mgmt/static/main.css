@@ -140,11 +140,20 @@ article.home div.institution, article.home div.group {
 article.institutions .inst {
     margin-top: .5em;
 }
+article.institutions .inst .user {
+    margin-top: .5em;
+}
+article.institutions .inst .user button {
+    margin: .5em inherit inherit .5em;
+}
 
 article.institutions .inst .username {
     margin-right: .5em;
 }
-
-article.institutions .inst .user button {
-    margin-left: .5em;
+article.institutions .add {
+    margin-top: .5em;
 }
+article.institutions .add input {
+    width: 8em
+}
+

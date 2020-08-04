@@ -48,7 +48,32 @@ class MultiInstitutions(MyHandler):
                 insts.add(val[2])
         self.write(sorted(insts))
 
+
 class Institution(MyHandler):
+    @catch_error
+    async def get(self, experiment, institution):
+        """
+        Get information about an institution.
+
+        Args:
+            experiment (str): experiment name
+            institution (str): institution name
+        """
+        inst_group = f'/institutions/{experiment}/{institution}'
+
+        # get child groups
+        try:
+            group_info = await krs.groups.group_info(inst_group, rest_client=self.krs_client)
+        except Exception:
+            raise HTTPError(404, 'institution does not exist')
+
+        ret = {
+            'subgroups': [child['name'] for child in group_info['subGroups'] if not child['name'].startswith('_')]
+        }
+        return ret
+
+
+class InstitutionMultiUsers(MyHandler):
     @authenticated
     @catch_error
     async def get(self, experiment, institution):
@@ -108,15 +133,25 @@ class InstitutionUser(MyHandler):
         except Exception:
             raise HTTPError(400, 'invalid username')
 
-        opt_fields = {
-            'authorlist': bool,
-        }
+        inst_group = f'/institutions/{experiment}/{institution}'
+
+        # get child groups
+        try:
+            group_info = await krs.groups.group_info(inst_group, rest_client=self.krs_client)
+        except Exception:
+            raise HTTPError(404, 'institution does not exist')
+        child_groups = [child['name'] for child in group_info['subGroups'] if not child['name'].startswith('_')]
+
+        opt_fields = {key: bool for key in child_groups}
         data = self.json_filter({}, opt_fields)
 
-        inst_group = f'/institutions/{experiment}/{institution}'
         await krs.groups.add_user_group(inst_group, username, rest_client=self.krs_client)
-        if 'authorlist' in data and data['authorlist']:
-            await krs.groups.add_user_group(inst_group+'/authorlist', username, rest_client=self.krs_client)
+        for name in child_groups:
+            if name in data and data[name]:
+                await krs.groups.add_user_group(f'{inst_group}/{name}', username, rest_client=self.krs_client)
+            else:
+                await krs.groups.remove_user_group(f'{inst_group}/{name}', username, rest_client=self.krs_client)
+
         self.write({})
 
     @authenticated

@@ -115,6 +115,27 @@ var get_my_group_admins = async function() {
   }
 };
 
+var get_all_inst_subgroups = async function() {
+  try {
+    const resp = await axios.get('/api/experiments');
+    let experiments = {}
+    for (const exp of resp.data) {
+      const resp2 = await axios.get('/api/experiments/'+exp+'/institutions');
+      let institutions = {}
+      for (const inst of resp2.data) {
+        const resp3 = await axios.get('/api/experiments/'+exp+'/institutions/'+inst)
+        institutions[inst] = resp3.data
+      }
+      experiments[exp] = institutions
+    }
+    return experiments
+  } catch (error) {
+    console.log("error getting inst_subgroups")
+    console.log(error)
+    return {}
+  }
+};
+
 
 /** Routes **/
 
@@ -156,7 +177,7 @@ Home = {
     },
     validExperiment: function() {
       try {
-        return this.experiment != '' && this.experiments !== null && this.experiments.includes(this.experiment)
+        return this.experiment != '' && this.experiments !== null && this.experiment in this.experiments
       } catch(error) {
         return false
       }
@@ -168,29 +189,20 @@ Home = {
         return false
       }
     },
-    experiments: async function() {
-      try {
-        const resp = await axios.get('/api/experiments');
-        console.log('Response:')
-        console.log(resp)
-        let exps = [];
-        return resp.data
-      } catch (error) {
-        console.log('error')
-        console.log(error)
-      }
-      return {}
-    },
+    experiments: get_all_inst_subgroups,
     institutions: async function() {
       if (this.validExperiment) {
         try {
-          const resp = await axios.get('/api/experiments/'+this.experiment+'/institutions');
-          console.log('Response:')
-          console.log(resp)
           let insts = []
-          for (const inst of resp.data) {
-            if (!(this.experiment in this.my_experiments && this.my_experiments[this.experiment].includes(inst)))
-              insts.push(inst)
+          if (this.experiment in this.experiments) {
+            if (!(this.experiment in this.my_experiments)) {
+              insts = Object.keys(this.experiments[this.experiment])
+            } else {
+              for (const inst in this.experiments[this.experiment]) {
+                if (!(this.my_experiments[this.experiment].includes(inst)))
+                  insts.push(inst)
+              }
+            }
           }
           return insts
         } catch (error) {
@@ -379,7 +391,7 @@ Home = {
               <p>Select experiment:</p>
               <select v-model="experiment">
                 <option disabled value="">Please select one</option>
-                <option v-for="exp in experiments">{{ exp }}</option>
+                <option v-for="(insts, exp) in experiments">{{ exp }}</option>
               </select>
               <span class="red" v-if="!valid && !validExperiment">invalid entry</span>
             </div>
@@ -493,44 +505,19 @@ Register = {
   asyncComputed: {
     validExperiment: function() {
       try {
-        return this.experiment != '' && this.experiments !== null && this.experiments.includes(this.experiment)
+        return this.experiment != '' && this.experiments !== null && this.experiment in this.experiments
       } catch(error) {
         return false
       }
     },
     validInstitution: function() {
       try {
-        return this.institution != '' && this.institutions !== null && this.institutions.includes(this.institution)
+        return this.institution != '' && this.experiments !== null && this.experiment in this.experiments && this.institution in this.experiments[this.experiment]
       } catch(error) {
         return false
       }
     },
-    experiments: async function() {
-      try {
-        const resp = await axios.get('/api/experiments');
-        console.log('Response:')
-        console.log(resp)
-        return resp.data
-      } catch (error) {
-        console.log('error')
-        console.log(error)
-      }
-      return {}
-    },
-    institutions: async function() {
-      if (this.validExperiment) {
-        try {
-          const resp = await axios.get('/api/experiments/'+this.experiment+'/institutions');
-          console.log('Response:')
-          console.log(resp)
-          return resp.data
-        } catch (error) {
-          console.log('error')
-          console.log(error)
-        }
-      }
-      return {}
-    }
+    experiments: get_all_inst_subgroups
   },
   methods: {
       submit: async function(e) {
@@ -578,7 +565,7 @@ Register = {
   template: `
 <article class="register">
     <h2>Register a new account</h2>
-    <form class="newuser" @submit.prevent="submit">
+    <form class="newuser" @submit.prevent="submit" v-if="$asyncComputed.experiments.success">
       <div class="entry">
         <span class="red">* entry is requred</span>
       </div>
@@ -586,7 +573,7 @@ Register = {
         <p>Select your experiment: <span class="red">*</span></p>
         <select v-model="experiment">
           <option disabled value="">Please select one</option>
-          <option v-for="exp in experiments">{{ exp }}</option>
+          <option v-for="(insts, exp) in experiments">{{ exp }}</option>
         </select>
         <span class="red" v-if="!valid && !validExperiment">invalid entry</span>
       </div>
@@ -594,7 +581,7 @@ Register = {
         <p>Select your institution: <span class="red">*</span></p>
         <select v-model="institution">
           <option disabled value="">Please select one</option>
-          <option v-for="inst in institutions">{{ inst }}</option>
+          <option v-for="(vals, inst) in experiments[experiment]">{{ inst }}</option>
         </select>
         <span class="red" v-if="!valid && !validInstitution">invalid entry</span>
       </div>
@@ -657,7 +644,7 @@ Insts = {
           for (const inst of inst_admins) {
             let parts = inst.split('/')
             await keycloak.updateToken(5);
-            var ret = await axios.get('/api/experiments/'+parts[2]+'/institutions/'+parts[3], {
+            var ret = await axios.get('/api/experiments/'+parts[2]+'/institutions/'+parts[3]+'/users', {
               headers: {'Authorization': 'bearer '+keycloak.token}
             })
             let entry = {
@@ -706,13 +693,56 @@ Insts = {
         this.error = "Error denying: "+error['message']
       }
     },
-    remove: async function(experiment, institution, username) {
+    add: async function(inst, name, username) {
+      try {
+        if (username == '') {
+          this.error = "Error adding user: did not enter user name"
+          return
+        }
+        await keycloak.updateToken(5);
+        var token = keycloak.token;
+        let data = {}
+        for (const key in inst.members) {
+          if (key == 'users')
+            continue
+          if (name == key) {
+            data[key] = true
+          } else if (inst.members[key].includes(username)) {
+            data[key] = true
+          }
+        }
+        await axios.put('/api/experiments/'+inst.experiment+'/institutions/'+inst.institution+'/users/'+username, data, {
+          headers: {'Authorization': 'bearer '+keycloak.token}
+        })
+        this.error = ""
+        this.refresh = this.refresh+1
+      } catch (error) {
+        this.error = "Error adding user: "+error['message']
+      }
+    },
+    remove: async function(inst, name, username) {
       try {
         await keycloak.updateToken(5);
         var token = keycloak.token;
-        await axios.delete('/api/experiments/'+experiment+'/institutions/'+institution+'/'+username, {
-          headers: {'Authorization': 'bearer '+keycloak.token}
-        })
+        if (name == 'users') {
+          await axios.delete('/api/experiments/'+inst.experiment+'/institutions/'+inst.institution+'/users/'+username, {
+            headers: {'Authorization': 'bearer '+keycloak.token}
+          })
+        } else {
+          let data = {}
+          for (const key in inst.members) {
+            if (key == 'users')
+              continue
+            if (name == key) {
+              data[key] = false
+            } else if (inst.members[key].includes(username)) {
+              data[key] = true
+            }
+          }
+          await axios.put('/api/experiments/'+inst.experiment+'/institutions/'+inst.institution+'/users/'+username, data, {
+            headers: {'Authorization': 'bearer '+keycloak.token}
+          })
+        }
         this.error = ""
         this.refresh = this.refresh+1
       } catch (error) {
@@ -746,10 +776,13 @@ Insts = {
         <div class="double_indent" v-if="members.length > 0">
           <div class="user" v-for="user in members">
             <span class="username">{{ user }}</span>
-            <button @click="remove(inst.experiment, inst.institution, user)">Remove</button>
+            <button @click="remove(inst, name, user)">Remove</button>
           </div>
         </div>
         <div class="double_indent" v-else>No members</div>
+        <div class="double_indent add">
+          <addinstuser :addFunc="add" :inst="inst" :name="name"></addinstuser>
+        </div>
       </div>
     </div>
   </div>
@@ -778,19 +811,41 @@ Error404 = {
 /** Vue components **/
 
 Vue.component('textinput', {
-    data: function(){
-        return {
-            required: false,
-            valid: true,
-            allValid: true
-        }
-    },
-    props: ['name', 'inputName', 'value', 'required', 'valid', 'allValid'],
-    template: `
+  data: function(){
+    return {
+      required: false,
+      valid: true,
+      allValid: true
+    }
+  },
+  props: ['name', 'inputName', 'value', 'required', 'valid', 'allValid'],
+  template: `
 <div class="entry">
   <p>{{ name }}: <span v-if="required" class="red">*</span></p>
   <input :name="inputName" :value="value" @input="$emit('input', $event.target.value)">
   <span class="red" v-if="!allValid && !valid && (required || value)">invalid entry</span>
+</div>`
+})
+
+Vue.component('addinstuser', {
+  data: function(){
+    return {
+      addFunc: null,
+      inst: null,
+      name: '',
+      username: ''
+    }
+  },
+  props: ['addFunc', 'inst', 'name'],
+  methods: {
+    submit: function() {
+      this.addFunc(this.inst, this.name, this.username)
+    }
+  },
+  template: `
+<div>
+  Add user: <input v-model.trim="username" placeholder="username" @input="$emit('input', $event.target.value)" @keyup.enter="submit">
+  <button @click="submit">Add</button>
 </div>`
 })
 
