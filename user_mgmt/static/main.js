@@ -614,56 +614,72 @@ Register = {
 </article>`
 }
 
-InstApproval = {
+Insts = {
   data: function(){
     return {
-      approval_data: null,
+      refresh: 0,
       error: ''
     }
   },
   asyncComputed: {
-    approvals: async function() {
-      try {
-        if (this.approval_data===null) {
-          await this.get_approval_data()
-        }
-        var institutions = {};
-        for (const approval_id in this.approval_data) {
-          let entry = this.approval_data[approval_id];
-          let inst = entry['experiment']+entry['institution']
-          if (!(inst in institutions)) {
-            institutions[inst] = {
-              experiment: entry['experiment'],
-              institution: entry['institution'],
-              users: []
+    approvals: {
+      get: async function() {
+        try {
+          await keycloak.updateToken(5);
+          var ret = await axios.get('/api/inst_approvals', {
+            headers: {'Authorization': 'bearer '+keycloak.token}
+          })
+          let institutions = {}
+          for (const entry of ret['data']) {
+            let inst = entry['experiment']+entry['institution']
+            if (!(inst in institutions)) {
+              institutions[inst] = {
+                experiment: entry['experiment'],
+                institution: entry['institution'],
+                users: []
+              }
             }
+            institutions[inst]['users'].push(entry)
           }
-          institutions[inst]['users'].push(entry)
+          return Object.values(institutions)
+        } catch (error) {
+          this.error = "Error getting approvals: "+error['message']
+          return []
         }
-        return Object.values(institutions)
-      } catch (error) {
-        this.error = "Error getting approvals: "+error['message']
-        return []
-      }
+      },
+      watch: ['refresh']
+    },
+    institutions: {
+      get: async function() {
+        try {
+          const inst_admins = await get_my_inst_admins();
+          let institutions = []
+          for (const inst of inst_admins) {
+            let parts = inst.split('/')
+            await keycloak.updateToken(5);
+            var ret = await axios.get('/api/experiments/'+parts[2]+'/institutions/'+parts[3], {
+              headers: {'Authorization': 'bearer '+keycloak.token}
+            })
+            let entry = {
+              experiment: parts[2],
+              institution: parts[3],
+              members: {}
+            }
+            for (const key in ret.data) {
+              entry.members[key] = ret.data[key]
+            } 
+            institutions.push(entry)
+          }
+          return institutions
+        } catch (error) {
+          this.error = "Error getting institutions: "+error['message']
+          return []
+        }
+      },
+      watch: ['refresh']
     }
   },
   methods: {
-    get_approval_data: async function() {
-      try {
-        await keycloak.updateToken(5);
-        var token = keycloak.token;
-        var ret = await axios.get('/api/inst_approvals', {
-          headers: {'Authorization': 'bearer '+token}
-        });
-        this.approval_data = {}
-        for (let i=0;i<ret['data'].length;i++){
-          let entry = ret['data'][i];
-          this.approval_data[entry['approval_id']] = entry
-        }
-      } catch (error) {
-        this.error = "Error getting approvals: "+error['message']
-      }
-    },
     approve: async function(approval_id) {
       try {
         await keycloak.updateToken(5);
@@ -671,8 +687,8 @@ InstApproval = {
         await axios.post('/api/inst_approvals/'+approval_id+'/actions/approve', {}, {
           headers: {'Authorization': 'bearer '+token}
         });
-        this.remove(approval_id)
         this.error = ""
+        this.refresh = this.refresh+1
       } catch (error) {
         this.error = "Error approving: "+error['message']
       }
@@ -684,32 +700,57 @@ InstApproval = {
         await axios.post('/api/inst_approvals/'+approval_id+'/actions/deny', {}, {
           headers: {'Authorization': 'bearer '+token}
         });
-        this.remove(approval_id)
         this.error = ""
+        this.refresh = this.refresh+1
       } catch (error) {
         this.error = "Error denying: "+error['message']
       }
     },
-    remove: function(approval_id) {
-      let new_approval_data = {}
-      let old_approval_data = Object.values(this.approval_data);
-      for (const entry of old_approval_data) {
-        if (entry['id'] != approval_id)
-          new_approval_data[entry['id']] = entry
+    remove: async function(experiment, institution, username) {
+      try {
+        await keycloak.updateToken(5);
+        var token = keycloak.token;
+        await axios.delete('/api/experiments/'+experiment+'/institutions/'+institution+'/'+username, {
+          headers: {'Authorization': 'bearer '+keycloak.token}
+        })
+        this.error = ""
+        this.refresh = this.refresh+1
+      } catch (error) {
+        this.error = "Error removing user: "+error['message']
       }
-      this.approval_data = new_approval_data
     }
   },
   template: `
-<article class="inst-approvals">
-  <h2>Users needing approval:</h2>
+<article class="institutions">
   <div class="error_box red" v-if="error">{{ error }}</div>
-  <div class="inst" v-for="inst in approvals">
-    <h4>{{ inst["experiment"] }} - {{ inst["institution"] }}</h4>
-    <div class="user" v-for="approval in inst['users']">
-      <span class="username">{{ approval['username'] }}</span>
-      <button @click="approve(approval['id'])">Approve</button>
-      <button @click="deny(approval['id'])">Deny</button>
+  <div v-if="$asyncComputed.approvals.success">
+    <h3>Users needing approval:</h3>
+    <div v-if="approvals.length > 0" class="indent">
+      <div class="inst" v-for="inst in approvals">
+        <h4>{{ inst["experiment"] }} - {{ inst["institution"] }}</h4>
+        <div class="user indent" v-for="approval in inst['users']">
+          <span class="username">{{ approval['username'] }}</span>
+          <button @click="approve(approval['id'])">Approve</button>
+          <button @click="deny(approval['id'])">Deny</button>
+        </div>
+      </div>
+    </div>
+    <div v-else class="indent">No approvals waiting</div>
+  </div>
+  <div v-if="$asyncComputed.institutions.success">
+    <h3>Administered institutions:</h3>
+    <div class="inst" v-for="inst in institutions">
+      <h4>{{ inst.experiment }} - {{ inst.institution }}</h4>
+      <div class="indent" v-for="(members, name) in inst.members">
+        <p>{{ name }}</p>
+        <div class="double_indent" v-if="members.length > 0">
+          <div class="user" v-for="user in members">
+            <span class="username">{{ user }}</span>
+            <button @click="remove(inst.experiment, inst.institution, user)">Remove</button>
+          </div>
+        </div>
+        <div class="double_indent" v-else>No members</div>
+      </div>
     </div>
   </div>
 </article>`
@@ -913,7 +954,7 @@ var routes = [
       institution: route.query.institution
     })
   },
-  { path: '/instApproval', name: 'Inst Approvals', component: InstApproval,
+  { path: '/institutions', name: 'Institutions', component: Insts,
     meta: { requiresAuth: true, requiresInstAdmin: true }
   },
   { path: '*', name: '404', component: Error404, props: true }

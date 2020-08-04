@@ -137,10 +137,14 @@ article.home div.institution, article.home div.group {
     border-bottom: 1px dotted black;
 }
 
-article.inst-approvals .inst {
-    margin: 1em 0.5em;
+article.institutions .inst {
+    margin-top: .5em;
 }
 
-article.inst-approvals .inst .user {
-    margin: .2em 1em;
+article.institutions .inst .username {
+    margin-right: .5em;
+}
+
+article.institutions .inst .user button {
+    margin-left: .5em;
 }

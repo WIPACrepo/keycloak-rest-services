@@ -31,7 +31,7 @@ class Experiments(MyHandler):
         self.write(sorted(exps))
 
 
-class Institutions(MyHandler):
+class MultiInstitutions(MyHandler):
     @catch_error
     async def get(self, experiment):
         """
@@ -48,6 +48,39 @@ class Institutions(MyHandler):
                 insts.add(val[2])
         self.write(sorted(insts))
 
+class Institution(MyHandler):
+    @authenticated
+    @catch_error
+    async def get(self, experiment, institution):
+        """
+        Get users in institution.
+
+        Args:
+            experiment (str): experiment name
+            institution (str): institution name
+        """
+        insts = await self.get_admin_institutions()
+        if experiment not in insts or institution not in insts[experiment]:
+            raise HTTPError(403, 'invalid authorization')
+
+        inst_group = f'/institutions/{experiment}/{institution}'
+
+        # get child groups
+        try:
+            group_info = await krs.groups.group_info(inst_group, rest_client=self.krs_client)
+        except Exception:
+            raise HTTPError(404, 'institution does not exist')
+
+        # get main membership
+        ret = {}
+        ret['users'] = await krs.groups.get_group_membership(inst_group, rest_client=self.krs_client)
+
+        # get child groups, like the author list
+        for child in group_info['subGroups']:
+            if not child['name'].startswith('_'):
+                ret[child['name']] = await krs.groups.get_group_membership(child['path'], rest_client=self.krs_client)
+
+        self.write(ret)
 
 class InstitutionUser(MyHandler):
     @authenticated
