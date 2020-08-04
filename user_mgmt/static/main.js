@@ -50,14 +50,18 @@ var get_my_institutions = async function(experiment) {
     return []
   try {
     await keycloak.updateToken(5)
-    let institutions = []
+    let institutions = {}
     for (const group of keycloak.tokenParsed.groups) {
       if (group.startsWith('/institutions')) {
         const parts = group.split('/')
-        if (parts.length == 4 && parts[2] == experiment) {
+        if (parts.length >= 4 && parts[2] == experiment) {
           const inst = parts[3]
-          if (!institutions.includes(inst))
-            institutions.push(inst)
+          if (parts.length == 4 || (parts.length == 5 && !parts[4].startsWith('_'))) {
+            if (!(inst in institutions))
+              institutions[inst] = {subgroups: []}
+            if (parts.length == 5)
+              institutions[inst].subgroups.push(parts[4])
+          }
         }
       }
     }
@@ -65,6 +69,7 @@ var get_my_institutions = async function(experiment) {
     return institutions
   } catch (error) {
     console.log("error getting institutions from token")
+    console.log(error)
     return []
   }
 };
@@ -199,7 +204,7 @@ Home = {
               insts = Object.keys(this.experiments[this.experiment])
             } else {
               for (const inst in this.experiments[this.experiment]) {
-                if (!(this.my_experiments[this.experiment].includes(inst)))
+                if (!(inst in this.my_experiments[this.experiment]))
                   insts.push(inst)
               }
             }
@@ -317,7 +322,7 @@ Home = {
       try {
         await keycloak.updateToken(5);
         const username = await get_username();
-        const resp = await axios.delete('/api/experiments/'+exp+'/institutions/'+inst+'/'+username, {
+        const resp = await axios.delete('/api/experiments/'+exp+'/institutions/'+inst+'/users/'+username, {
           headers: {'Authorization': 'bearer '+keycloak.token}
         });
         console.log('Response:')
@@ -349,6 +354,38 @@ Home = {
         this.instutition = ''
         this.remove_institution = inst
       }
+    },
+    leave_subgroup_action: async function(exp, inst, sub) {
+      try {
+        await keycloak.updateToken(5);
+        const username = await get_username();
+        let data = {}
+        data[sub] = false
+        for (const subgroup of this.experiments[exp][inst].subgroups) {
+          if (sub != subgroup)
+            data[subgroup] = true
+        }
+        const resp = await axios.put('/api/experiments/'+exp+'/institutions/'+inst+'/users/'+username, data, {
+          headers: {'Authorization': 'bearer '+keycloak.token}
+        });
+        console.log('Response:')
+        console.log(resp)
+        this.refresh = this.refresh+1
+      } catch (error) {
+        console.log('error')
+        console.log(error)
+        let error_message = 'undefined error';
+        if (error.response && 'data' in error.response) {
+          if ('code' in error.response.data) {
+            error_message = 'Code: '+error.response.data['code']+'<br>Message: '+error.response.data['error'];
+          } else {
+            error_message = JSON.stringify(error.response.data)
+          }
+        } else if (error.request) {
+          error_message = 'server did not respond';
+        }
+        this.error = '<span class="red">Error leaving subgroup<br>'+error_message+'</span>'
+      }
     }
   },
   template: `
@@ -360,7 +397,7 @@ Home = {
     <div v-if="$asyncComputed.my_experiments.success">
       <div class="indent" v-for="(insts, exp) in my_experiments">
         <p class="italics">{{ exp }}<p>
-        <div class="double_indent institution" v-for="inst in insts">
+        <div class="double_indent institution" v-for="(inst_data, inst) in insts">
           <span class="italics">{{ inst }}</span>
           <button @click="move_inst_action(exp, inst)">Move institutions</button>
           <button @click="leave_inst_action(exp, inst)">Leave institution</button>
@@ -379,6 +416,10 @@ Home = {
                 <input type="submit" value="Submit Move Request">
               </div>
             </form>
+          </div>
+          <div class="double_indent subgroup" v-for="sub in inst_data.subgroups">
+            <span class="italics">{{ sub }}</span>
+            <button @click="leave_subgroup_action(exp, inst, sub)">Leave sub-group</button>
           </div>
         </div>
       </div>

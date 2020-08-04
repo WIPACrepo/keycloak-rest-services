@@ -70,7 +70,7 @@ class Institution(MyHandler):
         ret = {
             'subgroups': [child['name'] for child in group_info['subGroups'] if not child['name'].startswith('_')]
         }
-        return ret
+        self.write(ret)
 
 
 class InstitutionMultiUsers(MyHandler):
