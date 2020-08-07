@@ -156,8 +156,8 @@ async def test_inst_approvals_get(server, mongo_client):
     approval_id = ret['id']
 
     # no auth
-    ret = await client.request('GET', '/api/inst_approvals')
-    assert ret == []
+    with pytest.raises(Exception):
+        await client.request('GET', '/api/inst_approvals')
 
     # success
     ret = await client2.request('GET', '/api/inst_approvals')
