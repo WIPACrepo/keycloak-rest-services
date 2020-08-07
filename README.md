@@ -39,8 +39,10 @@ The user-facing service has a REST API with the following routes:
 
            GET  /api/experiments
            GET  /api/experiments/<experiment>/institutions
-    (auth) PUT  /api/experiments/<experiment>/institutions/<institution>/<user>
-    (auth) DEL  /api/experiments/<experiment>/institutions/<institution>/<user>
+           GET  /api/experiments/<experiment>/institutions/<institution>
+    (auth) GET  /api/experiments/<experiment>/institutions/<institution>/users
+    (auth) PUT  /api/experiments/<experiment>/institutions/<institution>/users/<user>
+    (auth) DEL  /api/experiments/<experiment>/institutions/<institution>/users/<user>
 
            POST /api/inst_approvals   - new user
     (auth) POST /api/inst_approvals   - second/moving institution

@@ -24,7 +24,7 @@ def get_administered_groups(ret):
             groups[group[:-7]] = ret[group[:-7]]['id']
     # get sub-groups of administered groups
     for group in ret:
-        if (not group.rsplit('/')[-1].startswith('_')) and any(g.startswith(group) for g in groups):
+        if (not group.rsplit('/')[-1].startswith('_')) and any(group.startswith(g) for g in groups):
             groups[group] = ret[group]['id']
     return groups
 
@@ -146,10 +146,13 @@ class GroupApprovals(MyHandler):
 
         if approval_data['group'].rsplit('/')[-1].startswith('_'):
             raise HTTPError(400, 'bad group request')
-            
+
         ret = await krs.groups.list_groups(rest_client=self.krs_client)
-        if approval_data['group'] not in get_administered_groups(ret):
+        groups = get_administered_groups(ret)
+        if approval_data['group'] not in groups:
+            logging.info(f'{approval_data}\n{groups}')
             raise HTTPError(400, 'bad group request')
+        approval_data['group_id'] = groups[approval_data['group']]
 
         await self.db.group_approvals.insert_one(approval_data)
 

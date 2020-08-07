@@ -250,11 +250,18 @@ class InstApprovals(MyHandler):
     async def get(self):
         """Get list of requests a user can approve"""
         insts = await self.get_admin_institutions()
+        if not insts:
+            raise HTTPError(403, 'invalid authorization')
+
+        search = {'$or': [{'experiment': exp, 'institution': insts[exp]} for exp in insts]}
         ret = []
-        if insts:
-            search = {'$or': [{'experiment': exp, 'institution': insts[exp]} for exp in insts]}
-            async for row in self.db.inst_approvals.find(search, projection={'_id': False}):
-                ret.append(row)
+        async for row in self.db.inst_approvals.find(search, projection={'_id': False}):
+            if 'newuser' in row:
+                ret2 = await self.db.user_registrations.find_one({'id': row['newuser']}, projection={'_id': False})
+                for key in ret2:
+                    if key not in row:
+                        row[key] = ret2[key]
+            ret.append(row)
         self.write(ret)
 
 

@@ -10,7 +10,6 @@ sys.path.append(os.getcwd())
 from krs.bootstrap import bootstrap, user_mgmt_app, get_token
 from krs.groups import create_group
 from krs.token import get_rest_client
-from krs.util import config, ConfigRequired
 
 
 GROUPS = {

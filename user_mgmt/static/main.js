@@ -1,5 +1,5 @@
 // debug flag
-var krs_debug = true;
+var krs_debug = false;
 
 // global Keycloak object
 var keycloak;
@@ -74,6 +74,30 @@ var get_my_institutions = async function(experiment) {
   }
 };
 
+var get_my_groups = async function() {
+  if (!keycloak.authenticated)
+    return []
+  try {
+    await keycloak.updateToken(5)
+    let groups = []
+    console.log(keycloak.tokenParsed)
+    for (const group of keycloak.tokenParsed.groups) {
+      if (!group.startsWith('/institutions')) {
+        const parts = group.split('/')
+        if (parts[parts.length-1].startsWith('_'))
+          continue
+        groups.push(group)
+      }
+    }
+    console.log("get_my_groups() - "+JSON.stringify(groups))
+    return groups
+  } catch (error) {
+    console.log("error getting groups from token")
+    console.log(error)
+    return []
+  }
+};
+
 var get_my_inst_admins = async function() {
   if (!keycloak.authenticated)
     return []
@@ -113,6 +137,7 @@ var get_my_group_admins = async function() {
         }
       }
     }
+    console.log("get_my_group_admins() - "+JSON.stringify(groups))
     return groups
   } catch (error) {
     console.log("error getting admin groups from token")
@@ -176,9 +201,23 @@ Home = {
       },
       watch: ['refresh']
     },
-    my_groups: async function(){
-      const _ = this.refresh
-      return []
+    my_groups: {
+      get: async function(){
+        if (this.refresh > 0) {
+          // refresh token
+          await keycloak.updateToken(-1)
+        }
+        let groups = await get_my_groups()
+        let ret = {}
+        if (this.groups !== null) {
+          for (const name in this.groups) {
+            if (groups.includes(name))
+              ret[name] = this.groups[name]
+          }
+        }
+        return ret
+      },
+      watch: ['groups','refresh']
     },
     validExperiment: function() {
       try {
@@ -219,7 +258,7 @@ Home = {
     },
     groups: async function() {
       if (!keycloak.authenticated)
-        return []
+        return {}
       try {
         await keycloak.updateToken(5);
         const resp = await axios.get('/api/groups', {
@@ -228,12 +267,12 @@ Home = {
         return resp.data
       } catch(error) {
         console.log(error)
-        return []
+        return {}
       }
     },
     validGroup: function() {
       try {
-        return this.group != '' && this.groups !== null && this.groups.includes(this.group)
+        return this.group != '' && this.groups !== null && this.group in this.groups
       } catch(error) {
         return false
       }
@@ -287,12 +326,9 @@ Home = {
         try {
           await keycloak.updateToken(5);
           let data = {
-            experiment: this.experiment,
-            institution: this.institution,
+            group: this.group
           }
-          if (this.remove_institutuion != '')
-            data.remove_institution = this.remove_institution
-          const resp = await axios.post('/api/inst_approvals', data, {
+          const resp = await axios.post('/api/group_approvals', data, {
             headers: {'Authorization': 'bearer '+keycloak.token}
           });
           console.log('Response:')
@@ -386,6 +422,32 @@ Home = {
         }
         this.error = '<span class="red">Error leaving subgroup<br>'+error_message+'</span>'
       }
+    },
+    leave_group_action: async function(group_id) {
+      try {
+        await keycloak.updateToken(5);
+        const username = await get_username();
+        const resp = await axios.delete('/api/groups/'+group_id+'/'+username, {
+          headers: {'Authorization': 'bearer '+keycloak.token}
+        });
+        console.log('Response:')
+        console.log(resp)
+        this.refresh = this.refresh+1
+      } catch (error) {
+        console.log('error')
+        console.log(error)
+        let error_message = 'undefined error';
+        if (error.response && 'data' in error.response) {
+          if ('code' in error.response.data) {
+            error_message = 'Code: '+error.response.data['code']+'<br>Message: '+error.response.data['error'];
+          } else {
+            error_message = JSON.stringify(error.response.data)
+          }
+        } else if (error.request) {
+          error_message = 'server did not respond';
+        }
+        this.error = '<span class="red">Error leaving group<br>'+error_message+'</span>'
+      }
     }
   },
   template: `
@@ -455,8 +517,9 @@ Home = {
     <div class="indent" v-else>Loading institution information...</div>
     <h3>Groups</h3>
     <div v-if="$asyncComputed.my_groups.success">
-      <div class="indent group" v-for="group in my_groups">
-        <span class="italics">{{ group }}</span>
+      <div class="indent group" v-for="(grp_id,grp) in my_groups">
+        <span class="italics">{{ grp }}</span>
+        <button @click="leave_group_action(grp_id)">Leave group</button>
       </div>
       <div class="indent" v-if="my_groups.length <= 0">You do not belong to any groups</div>
     </div>
@@ -469,7 +532,7 @@ Home = {
             <p>Select group:</p>
             <select v-model="group">
               <option disabled value="">Please select one</option>
-              <option v-for="grp in groups">{{ grp }}</option>
+              <option v-for="(grp_id,grp) in groups">{{ grp }}</option>
             </select>
             <span class="red" v-if="!validGroup">invalid entry</span>
           </div>
@@ -800,7 +863,10 @@ Insts = {
       <div class="inst" v-for="inst in approvals">
         <h4>{{ inst["experiment"] }} - {{ inst["institution"] }}</h4>
         <div class="user indent" v-for="approval in inst['users']">
+          <span class="newuser" v-if="'newuser' in approval">New</span> 
           <span class="username">{{ approval['username'] }}</span>
+          <span class="name" v-if="'first_name' in approval">{{ approval['first_name'] }} {{ approval['last_name'] }}</span>
+          <span class="author" v-if="'authorlist' in approval">Author</span>
           <button @click="approve(approval['id'])">Approve</button>
           <button @click="deny(approval['id'])">Deny</button>
         </div>
@@ -824,6 +890,168 @@ Insts = {
         <div class="double_indent add">
           <addinstuser :addFunc="add" :inst="inst" :name="name"></addinstuser>
         </div>
+      </div>
+    </div>
+  </div>
+</article>`
+}
+
+Groups = {
+  data: function(){
+    return {
+      refresh: 0,
+      error: ''
+    }
+  },
+  asyncComputed: {
+    approvals: {
+      get: async function() {
+        try {
+          await keycloak.updateToken(5);
+          var ret = await axios.get('/api/group_approvals', {
+            headers: {'Authorization': 'bearer '+keycloak.token}
+          })
+          let groups = {}
+          for (const entry of ret['data']) {
+            let group = entry['group']
+            if (!(group in groups)) {
+              groups[group] = {
+                id: entry['group_id'],
+                name: group,
+                members: []
+              }
+            }
+            groups[group]['members'].push(entry)
+          }
+          return Object.values(groups)
+        } catch (error) {
+          this.error = "Error getting approvals: "+error['message']
+          return []
+        }
+      },
+      watch: ['refresh']
+    },
+    groups: {
+      get: async function() {
+        try {
+          const group_admins = await get_my_group_admins();
+          let ret = await axios.get('/api/groups', {
+            headers: {'Authorization': 'bearer '+keycloak.token}
+          })
+          const all_groups = ret.data;
+          let groups = []
+          for (const group of group_admins) {
+            if (group in all_groups) {
+              await keycloak.updateToken(5);
+              let ret = await axios.get('/api/groups/'+all_groups[group], {
+                headers: {'Authorization': 'bearer '+keycloak.token}
+              })
+              let entry = {
+                id: all_groups[group],
+                name: group,
+                members: ret.data
+              }
+              groups.push(entry)
+            }
+          }
+          return groups
+        } catch (error) {
+          this.error = "Error getting groups: "+error['message']
+          return []
+        }
+      },
+      watch: ['refresh']
+    }
+  },
+  methods: {
+    approve: async function(approval_id) {
+      try {
+        await keycloak.updateToken(5);
+        var token = keycloak.token;
+        await axios.post('/api/group_approvals/'+approval_id+'/actions/approve', {}, {
+          headers: {'Authorization': 'bearer '+token}
+        });
+        this.error = ""
+        this.refresh = this.refresh+1
+      } catch (error) {
+        this.error = "Error approving: "+error['message']
+      }
+    },
+    deny: async function(approval_id) {
+      try {
+        await keycloak.updateToken(5);
+        var token = keycloak.token;
+        await axios.post('/api/group_approvals/'+approval_id+'/actions/deny', {}, {
+          headers: {'Authorization': 'bearer '+token}
+        });
+        this.error = ""
+        this.refresh = this.refresh+1
+      } catch (error) {
+        this.error = "Error denying: "+error['message']
+      }
+    },
+    add: async function(group_id, username) {
+      try {
+        if (username == '') {
+          this.error = "Error adding user: did not enter user name"
+          return
+        }
+        await keycloak.updateToken(5);
+        var token = keycloak.token;
+        await axios.put('/api/groups/'+group_id+'/'+username, {}, {
+          headers: {'Authorization': 'bearer '+keycloak.token}
+        })
+        this.error = ""
+        this.refresh = this.refresh+1
+      } catch (error) {
+        this.error = "Error adding user: "+error['message']
+      }
+    },
+    remove: async function(group_id, username) {
+      try {
+        await keycloak.updateToken(5);
+        var token = keycloak.token;
+        await axios.delete('/api/groups/'+group_id+'/'+username, {
+          headers: {'Authorization': 'bearer '+keycloak.token}
+        })
+        this.error = ""
+        this.refresh = this.refresh+1
+      } catch (error) {
+        this.error = "Error removing user: "+error['message']
+      }
+    }
+  },
+  template: `
+<article class="groups">
+  <div class="error_box red" v-if="error">{{ error }}</div>
+  <div v-if="$asyncComputed.approvals.success">
+    <h3>Users needing approval:</h3>
+    <div v-if="approvals.length > 0" class="indent">
+      <div class="group" v-for="group in approvals">
+        <h4>{{ group["name"] }}</h4>
+        <div class="user indent" v-for="approval in group['members']">
+          <span class="username">{{ approval['username'] }}</span>
+          <span class="name" v-if="'first_name' in approval">{{ approval['first_name'] }} {{ approval['last_name'] }}</span>
+          <button @click="approve(approval['id'])">Approve</button>
+          <button @click="deny(approval['id'])">Deny</button>
+        </div>
+      </div>
+    </div>
+    <div v-else class="indent">No approvals waiting</div>
+  </div>
+  <div v-if="$asyncComputed.groups.success">
+    <h3>Administered groups:</h3>
+    <div class="group" v-for="group in groups">
+      <p>{{ group["name"] }}</p>
+      <div class="double_indent" v-if="group['members'].length > 0">
+        <div class="user" v-for="user in group['members']">
+          <span class="username">{{ user }}</span>
+          <button @click="remove(group['id'], user)">Remove</button>
+        </div>
+      </div>
+      <div class="double_indent" v-else>No members</div>
+      <div class="double_indent add">
+        <addgroupuser :addFunc="add" :group="group['id']"></addgroupuser>
       </div>
     </div>
   </div>
@@ -881,6 +1109,27 @@ Vue.component('addinstuser', {
   methods: {
     submit: function() {
       this.addFunc(this.inst, this.name, this.username)
+    }
+  },
+  template: `
+<div>
+  Add user: <input v-model.trim="username" placeholder="username" @input="$emit('input', $event.target.value)" @keyup.enter="submit">
+  <button @click="submit">Add</button>
+</div>`
+})
+
+Vue.component('addgroupuser', {
+  data: function(){
+    return {
+      addFunc: null,
+      group: '',
+      username: ''
+    }
+  },
+  props: ['addFunc', 'group'],
+  methods: {
+    submit: function() {
+      this.addFunc(this.group, this.username)
     }
   },
   template: `
@@ -1053,6 +1302,9 @@ var routes = [
   { path: '/institutions', name: 'Institutions', component: Insts,
     meta: { requiresAuth: true, requiresInstAdmin: true }
   },
+  { path: '/groups', name: 'Groups', component: Groups,
+    meta: { requiresAuth: true, requiresGroupAdmin: true }
+  },
   { path: '*', name: '404', component: Error404, props: true }
 ];
 
@@ -1091,24 +1343,26 @@ async function vue_startup(keycloak_url, keycloak_realm){
       current: 'home'
     },
     router: router,
-    computed: {
-      visibleRoutes: function() {
+    asyncComputed: {
+      visibleRoutes: async function() {
         var current = this.current;
-        return this.routes.filter(function (r) {
+        var ret = []
+        for (const r of this.routes) {
           if (r.path[0] == '*')
-            return false
+            continue
           if (r.path.startsWith('/register') && current != 'register')
-            return false
-          if ((!krs_debug) && r.meta.testing)
-            return false
+            continue
+          if (krs_debug !== true && r.meta && r.meta.testing)
+            continue
           if (r.meta && r.meta.requiresAuth && !keycloak.authenticated)
-            return false
-          if (r.meta && r.meta.requiresInstAdmin && get_my_inst_admins().length <= 0)
-            return false
-          if (r.meta && r.meta.requiresGroupAdmin && get_my_group_admins().length <= 0)
-            return false
-          return true
-        })
+            continue
+          if (r.meta && r.meta.requiresInstAdmin && (await get_my_inst_admins()).length <= 0)
+            continue
+          if (r.meta && r.meta.requiresGroupAdmin && (await get_my_group_admins()).length <= 0)
+            continue
+          ret.push(r)
+        }
+        return ret
       }
     },
     watch: {
