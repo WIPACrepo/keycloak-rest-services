@@ -40,6 +40,90 @@ async def test_institutions(server):
     assert ret == ['UW-Madison']
 
 @pytest.mark.asyncio
+async def test_institution_subgroups(server):
+    rest, krs_client, *_ = server
+    client = await rest('test')
+
+    await krs.groups.create_group('/institutions', rest_client=krs_client)
+    await krs.groups.create_group('/institutions/IceCube', rest_client=krs_client)
+    await krs.groups.create_group('/institutions/IceCube/UW-Madison', rest_client=krs_client)
+
+    ret = await client.request('GET', '/api/experiments/IceCube/institutions/UW-Madison')
+    assert ret == {'subgroups':[]}
+
+    await krs.groups.create_group('/institutions/IceCube/UW-Madison/authorlist', rest_client=krs_client)
+
+    ret = await client.request('GET', '/api/experiments/IceCube/institutions/UW-Madison')
+    assert ret == {'subgroups':['authorlist']}
+
+@pytest.mark.asyncio
+async def test_institution_users(server):
+    rest, krs_client, *_ = server
+    client = await rest('test')
+
+    await krs.groups.create_group('/institutions', rest_client=krs_client)
+    await krs.groups.create_group('/institutions/IceCube', rest_client=krs_client)
+    await krs.groups.create_group('/institutions/IceCube/UW-Madison', rest_client=krs_client)
+    await krs.groups.create_group('/institutions/IceCube/UW-Madison/authorlist', rest_client=krs_client)
+
+    with pytest.raises(Exception):
+        await client.request('GET', '/api/experiments/IceCube/institutions/UW-Madison/users')
+    
+    client2 = await rest('test2', groups=['/institutions/IceCube/UW-Madison/_admin'])
+
+    ret = await client2.request('GET', '/api/experiments/IceCube/institutions/UW-Madison/users')
+    assert ret == {'users': [], 'authorlist': []}
+
+@pytest.mark.asyncio
+async def test_institution_adduser(server):
+    rest, krs_client, *_ = server
+    client = await rest('test')
+
+    await krs.groups.create_group('/institutions', rest_client=krs_client)
+    await krs.groups.create_group('/institutions/IceCube', rest_client=krs_client)
+    await krs.groups.create_group('/institutions/IceCube/UW-Madison', rest_client=krs_client)
+    await krs.groups.create_group('/institutions/IceCube/UW-Madison/authorlist', rest_client=krs_client)
+    
+    client2 = await rest('test2', groups=['/institutions/IceCube/UW-Madison/_admin'])
+
+    ret = await client2.request('GET', '/api/experiments/IceCube/institutions/UW-Madison/users')
+    assert ret == {'users': [], 'authorlist': []}
+
+    await client2.request('PUT', '/api/experiments/IceCube/institutions/UW-Madison/users/test')
+    ret = await client2.request('GET', '/api/experiments/IceCube/institutions/UW-Madison/users')
+    assert ret == {'users': ['test'], 'authorlist': []}
+
+    await client2.request('PUT', '/api/experiments/IceCube/institutions/UW-Madison/users/test', {'authorlist': True})
+    ret = await client2.request('GET', '/api/experiments/IceCube/institutions/UW-Madison/users')
+    assert ret == {'users': ['test'], 'authorlist': ['test']}
+
+@pytest.mark.asyncio
+async def test_institution_removeuser(server):
+    rest, krs_client, *_ = server
+    client = await rest('test')
+
+    await krs.groups.create_group('/institutions', rest_client=krs_client)
+    await krs.groups.create_group('/institutions/IceCube', rest_client=krs_client)
+    await krs.groups.create_group('/institutions/IceCube/UW-Madison', rest_client=krs_client)
+    await krs.groups.create_group('/institutions/IceCube/UW-Madison/authorlist', rest_client=krs_client)
+
+    await krs.groups.add_user_group('/institutions/IceCube/UW-Madison', 'test', rest_client=krs_client)
+    await krs.groups.add_user_group('/institutions/IceCube/UW-Madison/authorlist', 'test', rest_client=krs_client)
+
+    client2 = await rest('test2', groups=['/institutions/IceCube/UW-Madison/_admin'])
+
+    ret = await client2.request('GET', '/api/experiments/IceCube/institutions/UW-Madison/users')
+    assert ret == {'users': ['test'], 'authorlist': ['test']}
+
+    await client2.request('PUT', '/api/experiments/IceCube/institutions/UW-Madison/users/test', {'authorlist': False})
+    ret = await client2.request('GET', '/api/experiments/IceCube/institutions/UW-Madison/users')
+    assert ret == {'users': ['test'], 'authorlist': []}
+
+    await client2.request('DELETE', '/api/experiments/IceCube/institutions/UW-Madison/users/test')
+    ret = await client2.request('GET', '/api/experiments/IceCube/institutions/UW-Madison/users')
+    assert ret == {'users': [], 'authorlist': []}
+
+@pytest.mark.asyncio
 async def test_inst_approvals_register(server, mongo_client):
     _, krs_client, address, *_ = server
     session = AsyncSession(retries=0)
@@ -243,4 +327,3 @@ async def test_inst_approvals_actions_deny(server, mongo_client):
 
     ret = await krs.groups.get_group_membership('/institutions/IceCube/UW-Madison', rest_client=krs_client)
     assert 'test' not in ret
-
