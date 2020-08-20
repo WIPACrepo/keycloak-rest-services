@@ -34,12 +34,13 @@ def main():
     parser = argparse.ArgumentParser(description='IceCube Keycloak setup')
     parser.add_argument('keycloak_url', help='Keycloak url')
     parser.add_argument('user_mgmt_url', help='User Management url')
+    parser.add_argument('--keycloak_realm', default='IceCube', help='Keycloak realm')
     parser.add_argument('-u','--username', default='admin', help='admin username')
     parser.add_argument('-p','--password', default='admin', help='admin password')
 
     args = parser.parse_args()
 
-    os.environ['KEYCLOAK_REALM'] = 'IceCube'
+    os.environ['KEYCLOAK_REALM'] = args.keycloak_realm
     os.environ['KEYCLOAK_URL'] = args.keycloak_url
     os.environ['USERNAME'] = args.username
     os.environ['PASSWORD'] = args.password
