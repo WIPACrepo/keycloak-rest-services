@@ -83,7 +83,7 @@ class AllExperiments(MyHandler):
             dict: {experiment: {institution: dict}
         """
         ret = await krs.groups.list_groups(rest_client=self.krs_client)
-        futures = {}
+        futures = set()
         for group in ret:
             val = group.strip('/').split('/')
             if len(val) == 3 and val[0] == 'institutions':
