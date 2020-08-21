@@ -31,6 +31,14 @@ async def test_group_info(keycloak_bootstrap):
     assert [g['name'] for g in ret['subGroups']] == ['testgroup2']
 
 @pytest.mark.asyncio
+async def test_group_attrs(keycloak_bootstrap):
+    await groups.create_group('/testgroup', attrs={'foo':'bar'}, rest_client=keycloak_bootstrap)
+    ret = await groups.group_info('/testgroup', rest_client=keycloak_bootstrap)
+    assert ret['name'] == 'testgroup'
+    assert ret['path'] == '/testgroup'
+    assert ret['attributes'] == {'foo': ['bar']}
+
+@pytest.mark.asyncio
 async def test_group_info_by_id(keycloak_bootstrap):
     with pytest.raises(Exception):
         await groups.group_info('/testgroup', rest_client=keycloak_bootstrap)

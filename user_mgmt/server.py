@@ -13,7 +13,8 @@ import motor.motor_asyncio
 
 import krs.token
 
-from .insts import (Experiments, MultiInstitutions, Institution, InstitutionMultiUsers, InstitutionUser,
+from .insts import (AllExperiments, Experiments, MultiInstitutions, Institution,
+                    InstitutionMultiUsers, InstitutionUser,
                     InstApprovals, InstApprovalsActionApprove, InstApprovalsActionDeny)
 from .groups import (MultiGroups, Group, GroupUser, GroupApprovals,
                      GroupApprovalsActionApprove, GroupApprovalsActionDeny)
@@ -82,6 +83,7 @@ def create_server():
 
     server = RestServer(static_path=static_path, template_path=static_path, debug=config['DEBUG'])
 
+    server.add_route('/api/all-experiments', AllExperiments, kwargs)
     server.add_route('/api/experiments', Experiments, kwargs)
     server.add_route('/api/experiments/(?P<experiment>[\w\-]+)/institutions', MultiInstitutions, kwargs)
     server.add_route('/api/experiments/(?P<experiment>[\w\-]+)/institutions/(?P<institution>[\w\-]+)', Institution, kwargs)

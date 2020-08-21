@@ -57,6 +57,32 @@ async def test_institution_subgroups(server):
     assert ret == {'subgroups':['authorlist']}
 
 @pytest.mark.asyncio
+async def test_all_experiments(server):
+    rest, krs_client, *_ = server
+    client = await rest('test')
+
+    await krs.groups.create_group('/institutions', rest_client=krs_client)
+    await krs.groups.create_group('/institutions/IceCube', rest_client=krs_client)
+    await krs.groups.create_group('/institutions/IceCube/UW-Madison', rest_client=krs_client)
+    await krs.groups.create_group('/institutions/IceCube/UW-Madison/authorlist', rest_client=krs_client)
+    await krs.groups.create_group('/institutions/IceCube/UW-RF', rest_client=krs_client)
+    await krs.groups.create_group('/institutions/Gen2', rest_client=krs_client)
+    await krs.groups.create_group('/institutions/Gen2/UW-RF', rest_client=krs_client)
+    await krs.groups.create_group('/institutions/Gen2/UW-RF/authorlist', rest_client=krs_client)
+
+    ret = await client.request('GET', '/api/all-experiments')
+    expected = {
+        'IceCube': {
+            'UW-Madison': {'subgroups':['authorlist']},
+            'UW-RF': {'subgroups':[]},
+        },
+        'Gen2': {
+            'UW-RF': {'subgroups':['authorlist']},
+        },
+    }
+    assert ret == expected
+
+@pytest.mark.asyncio
 async def test_institution_users(server):
     rest, krs_client, *_ = server
     client = await rest('test')
