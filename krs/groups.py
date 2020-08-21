@@ -97,7 +97,7 @@ async def create_group(group_path, attrs=None, rest_client=None):
             'name': groupname,
         }
         if attrs:
-            group['attributes'] = {k:[v] for k in attrs}
+            group['attributes'] = {k:[attrs[k]] for k in attrs}
         await rest_client.request('POST', url, group)
         print(f'group "{group_path}" created')
 
