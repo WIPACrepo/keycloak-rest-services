@@ -87,7 +87,7 @@ class AllExperiments(MyHandler):
         for group in sorted(ret):
             val = group.strip('/').split('/')
             if len(val) == 3 and val[0] == 'institutions':
-                group_info = await krs.groups.group_info(inst_group, rest_client=self.krs_client)
+                group_info = await krs.groups.group_info(group, rest_client=self.krs_client)
                 info = {
                     'subgroups': [child['name'] for child in group_info['subGroups'] if not child['name'].startswith('_')]
                 }
