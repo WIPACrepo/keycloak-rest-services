@@ -73,6 +73,28 @@ class Institution(MyHandler):
         self.write(ret)
 
 
+class AllExperiments(MyHandler):
+    @catch_error
+    async def get(self):
+        """
+        Get all institution information in all experiments.
+
+        Returns:
+            dict: {experiment: {institution: dict}
+        """
+        ret = await krs.groups.list_groups(rest_client=self.krs_client)
+        exps = {}
+        for group in sorted(ret):
+            val = group.strip('/').split('/')
+            if len(val) == 3 and val[0] == 'institutions':
+                group_info = await krs.groups.group_info(inst_group, rest_client=self.krs_client)
+                info = {
+                    'subgroups': [child['name'] for child in group_info['subGroups'] if not child['name'].startswith('_')]
+                }
+                exps[val[1]] = {val[2]: info}
+        self.write(exps)
+
+
 class InstitutionMultiUsers(MyHandler):
     @authenticated
     @catch_error
