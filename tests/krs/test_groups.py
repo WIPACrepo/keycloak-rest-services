@@ -36,7 +36,7 @@ async def test_group_attrs(keycloak_bootstrap):
     ret = await groups.group_info('/testgroup', rest_client=keycloak_bootstrap)
     assert ret['name'] == 'testgroup'
     assert ret['path'] == '/testgroup'
-    assert ret['attributes'] == {'foo': 'bar'}
+    assert ret['attributes'] == {'foo': ['bar']}
 
 @pytest.mark.asyncio
 async def test_group_info_by_id(keycloak_bootstrap):
