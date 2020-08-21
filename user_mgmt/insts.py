@@ -83,15 +83,26 @@ class AllExperiments(MyHandler):
             dict: {experiment: {institution: dict}
         """
         ret = await krs.groups.list_groups(rest_client=self.krs_client)
-        exps = {}
-        for group in sorted(ret):
+        futures = {}
+        for group in ret:
             val = group.strip('/').split('/')
             if len(val) == 3 and val[0] == 'institutions':
-                group_info = await krs.groups.group_info(group, rest_client=self.krs_client)
-                info = {
-                    'subgroups': [child['name'] for child in group_info['subGroups'] if not child['name'].startswith('_')]
-                }
-                exps[val[1]] = {val[2]: info}
+                futures.add(asyncio.create_task(krs.groups.group_info(group, rest_client=self.krs_client)))
+
+        done, pending = await asyncio.wait(futures, timeout=30)
+        if pending:
+            raise HTTPError(503, 'Keycloak request(s) still pending')
+
+        exps = {}
+        for task in done:
+            group_info = await task
+            val = group_info['path'].strip('/').split('/')
+            if val[1] not in exps:
+                exps[val[1]] = {}
+            info = {
+                'subgroups': [child['name'] for child in group_info['subGroups'] if not child['name'].startswith('_')]
+            }
+            exps[val[1]][val[2]] = info
         self.write(exps)
 
 
