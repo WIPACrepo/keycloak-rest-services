@@ -69,12 +69,13 @@ async def group_info_by_id(group_id, rest_client=None):
         raise Exception(f'group "{group_id}" does not exist')
     return ret
 
-async def create_group(group_path, rest_client=None):
+async def create_group(group_path, attrs=None, rest_client=None):
     """
     Create a group in Keycloak.
 
     Args:
         group_path (str): group path (/parent/parent/name)
+        attrs (dict): attributes
     """
     groups = await list_groups(rest_client=rest_client)
     if group_path in groups:
@@ -95,6 +96,8 @@ async def create_group(group_path, rest_client=None):
         group = {
             'name': groupname,
         }
+        if attrs:
+            group['attributes'] = attrs
         await rest_client.request('POST', url, group)
         print(f'group "{group_path}" created')
 
