@@ -147,20 +147,10 @@ var get_my_group_admins = async function() {
 
 var get_all_inst_subgroups = async function() {
   try {
-    const resp = await axios.get('/api/experiments');
-    let experiments = {}
-    for (const exp of resp.data) {
-      const resp2 = await axios.get('/api/experiments/'+exp+'/institutions');
-      let institutions = {}
-      for (const inst of resp2.data) {
-        const resp3 = await axios.get('/api/experiments/'+exp+'/institutions/'+inst)
-        institutions[inst] = resp3.data
-      }
-      experiments[exp] = institutions
-    }
-    return experiments
+    const resp = await axios.get('/api/all-experiments');
+    return resp.data
   } catch (error) {
-    console.log("error getting inst_subgroups")
+    console.log("error getting all inst_subgroups")
     console.log(error)
     return {}
   }
