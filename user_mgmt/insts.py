@@ -78,32 +78,24 @@ class AllExperiments(MyHandler):
     @catch_error
     async def get(self):
         """
-        Get all institution information in all experiments.
+        Get institution subgroups in all experiments.
 
         Returns:
             dict: {experiment: {institution: dict}
         """
         ret = await krs.groups.list_groups(rest_client=self.krs_client)
-        futures = set()
-        for group in ret:
-            val = group.strip('/').split('/')
-            if len(val) == 3 and val[0] == 'institutions':
-                futures.add(asyncio.create_task(krs.groups.group_info(group, rest_client=self.krs_client)))
-
-        done, pending = await asyncio.wait(futures, timeout=30)
-        if pending:
-            raise HTTPError(503, 'Keycloak request(s) still pending')
 
         exps = {}
-        for task in done:
-            group_info = await task
-            val = group_info['path'].strip('/').split('/')
-            if val[1] not in exps:
+        for group in ret:
+            val = group.strip('/').split('/')
+            if (not val) or val[0] != 'institutions' or any(v.startswith('_') for v in val):
+                continue
+            if len(val) >= 2 and val[1] not in exps:
                 exps[val[1]] = {}
-            info = {
-                'subgroups': [child['name'] for child in group_info['subGroups'] if not child['name'].startswith('_')]
-            }
-            exps[val[1]][val[2]] = info
+            if len(val) >= 3 and val[2] not in exps[val[1]]:
+                exps[val[1]][val[2]] = {'subgroups': []}
+            if len(val) == 4:
+                exps[val[1]][val[2]]['subgroups'].append(val[3])
         self.write(exps)
 
 
