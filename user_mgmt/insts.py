@@ -203,9 +203,17 @@ class InstitutionUser(MyHandler):
         except Exception:
             raise HTTPError(400, 'invalid username')
 
+        # get child groups
+        try:
+            group_info = await krs.groups.group_info(inst_group, rest_client=self.krs_client)
+        except Exception:
+            raise HTTPError(404, 'institution does not exist')
+        child_groups = [child['name'] for child in group_info['subGroups'] if not child['name'].startswith('_')]
+
         await krs.groups.remove_user_group(inst_group, username, rest_client=self.krs_client)
-        if inst_group+'/authorlist' in self.auth_data['groups']:
-            await krs.groups.remove_user_group(inst_group+'/authorlist', username, rest_client=self.krs_client)
+        for name in child_groups:
+            await krs.groups.remove_user_group(f'{inst_group}/{name}', username, rest_client=self.krs_client)
+
         self.write({})
 
 

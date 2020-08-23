@@ -170,6 +170,7 @@ Home = {
       group: '',
       error: '',
       form_error: '',
+      group_form_error: '',
       valid: true,
       submitted: false,
       refresh: 0
@@ -238,13 +239,13 @@ Home = {
               }
             }
           }
-          return insts
+          return insts.sort()
         } catch (error) {
           console.log('error')
           console.log(error)
         }
       }
-      return {}
+      return []
     },
     groups: async function() {
       if (!keycloak.authenticated)
@@ -266,6 +267,22 @@ Home = {
       } catch(error) {
         return false
       }
+    }
+  },
+  watch: {
+    remove_institution: function(val) {
+      this.form_error = ''
+      if (val != '') {
+        this.join_inst = false
+      }
+    },
+    join_inst: function(val) {
+      this.form_error = ''
+      if (val)
+        this.remove_institution = ''
+    },
+    join_group: function(val) {
+      this.group_form_error = ''
     }
   },
   methods: {
@@ -338,10 +355,10 @@ Home = {
           } else if (error.request) {
             error_message = 'server did not respond';
           }
-          this.form_error = '<span class="red">Error in submission<br>'+error_message+'</span>'
+          this.group_form_error = '<span class="red">Error in submission<br>'+error_message+'</span>'
         }
       } else {
-        this.form_error = '<span class="red">Please fix invalid entries</span>'
+        this.group_form_error = '<span class="red">Please fix invalid entries</span>'
       }
     },
     leave_inst_action: async function(exp, inst) {
@@ -447,9 +464,9 @@ Home = {
     <div class="error_box" v-if="error" v-html="error"></div>
     <h3>Experiments / Institutions</h3>
     <div v-if="$asyncComputed.my_experiments.success">
-      <div class="indent" v-for="(insts, exp) in my_experiments">
+      <div class="indent" v-for="exp in Object.keys(my_experiments).sort()">
         <p class="italics">{{ exp }}<p>
-        <div class="double_indent institution" v-for="(inst_data, inst) in insts">
+        <div class="double_indent institution" v-for="inst in Object.keys(my_experiments[exp]).sort()">
           <span class="italics">{{ inst }}</span>
           <button @click="move_inst_action(exp, inst)">Move institutions</button>
           <button @click="leave_inst_action(exp, inst)">Leave institution</button>
@@ -469,7 +486,7 @@ Home = {
               </div>
             </form>
           </div>
-          <div class="double_indent subgroup" v-for="sub in inst_data.subgroups">
+          <div class="double_indent subgroup" v-for="sub in my_experiments[exp][inst].subgroups">
             <span class="italics">{{ sub }}</span>
             <button @click="leave_subgroup_action(exp, inst, sub)">Leave sub-group</button>
           </div>
@@ -484,7 +501,7 @@ Home = {
               <p>Select experiment:</p>
               <select v-model="experiment">
                 <option disabled value="">Please select one</option>
-                <option v-for="(insts, exp) in experiments">{{ exp }}</option>
+                <option v-for="exp in Object.keys(experiments).sort()">{{ exp }}</option>
               </select>
               <span class="red" v-if="!valid && !validExperiment">invalid entry</span>
             </div>
@@ -507,9 +524,9 @@ Home = {
     <div class="indent" v-else>Loading institution information...</div>
     <h3>Groups</h3>
     <div v-if="$asyncComputed.my_groups.success">
-      <div class="indent group" v-for="(grp_id,grp) in my_groups">
+      <div class="indent group" v-for="grp in Object.keys(my_groups).sort()">
         <span class="italics">{{ grp }}</span>
-        <button @click="leave_group_action(grp_id)">Leave group</button>
+        <button @click="leave_group_action(my_groups[grp])">Leave group</button>
       </div>
       <div class="indent" v-if="my_groups.length <= 0">You do not belong to any groups</div>
     </div>
@@ -522,11 +539,11 @@ Home = {
             <p>Select group:</p>
             <select v-model="group">
               <option disabled value="">Please select one</option>
-              <option v-for="(grp_id,grp) in groups">{{ grp }}</option>
+              <option v-for="grp in Object.keys(groups).sort()">{{ grp }}</option>
             </select>
             <span class="red" v-if="!validGroup">invalid entry</span>
           </div>
-          <div class="error_box" v-if="form_error" v-html="form_error"></div>
+          <div class="error_box" v-if="group_form_error" v-html="group_form_error"></div>
           <div class="entry">
             <input type="submit" value="Submit Join Request">
           </div>
@@ -611,7 +628,14 @@ Register = {
         return false
       }
     },
-    experiments: get_all_inst_subgroups
+    experiments: get_all_inst_subgroups,
+    institutions: function() {
+      try {
+        return this.experiments[this.experiment]
+      } catch(error) {
+        return {}
+      }
+    }
   },
   methods: {
       submit: async function(e) {
@@ -667,7 +691,7 @@ Register = {
         <p>Select your experiment: <span class="red">*</span></p>
         <select v-model="experiment">
           <option disabled value="">Please select one</option>
-          <option v-for="(insts, exp) in experiments">{{ exp }}</option>
+          <option v-for="exp in Object.keys(experiments).sort()">{{ exp }}</option>
         </select>
         <span class="red" v-if="!valid && !validExperiment">invalid entry</span>
       </div>
@@ -675,7 +699,7 @@ Register = {
         <p>Select your institution: <span class="red">*</span></p>
         <select v-model="institution">
           <option disabled value="">Please select one</option>
-          <option v-for="(vals, inst) in experiments[experiment]">{{ inst }}</option>
+          <option v-for="inst in Object.keys(institutions).sort()">{{ inst }}</option>
         </select>
         <span class="red" v-if="!valid && !validInstitution">invalid entry</span>
       </div>

@@ -145,6 +145,7 @@ async def test_institution_removeuser(server):
     ret = await client2.request('GET', '/api/experiments/IceCube/institutions/UW-Madison/users')
     assert ret == {'users': ['test'], 'authorlist': []}
 
+    await krs.groups.add_user_group('/institutions/IceCube/UW-Madison/authorlist', 'test', rest_client=krs_client)
     await client2.request('DELETE', '/api/experiments/IceCube/institutions/UW-Madison/users/test')
     ret = await client2.request('GET', '/api/experiments/IceCube/institutions/UW-Madison/users')
     assert ret == {'users': [], 'authorlist': []}
