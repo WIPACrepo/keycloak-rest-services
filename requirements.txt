@@ -7,4 +7,5 @@ cryptography
 pyjwt
 motor
 unidecode
+ldap3
 -e git+https://github.com/WIPACrepo/rest-tools#egg=rest_tools

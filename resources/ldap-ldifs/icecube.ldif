@@ -1,0 +1,30 @@
+# add basedn
+dn: dc=icecube,dc=wisc,dc=edu
+objectclass: dcObject
+objectclass: organization
+o: IceCube
+dc: icecube
+
+# add ldap groups
+dn: ou=groups,dc=icecube,dc=wisc,dc=edu
+objectclass: top
+objectclass: organizationalUnit
+ou: groups
+
+# add users
+dn: ou=people,dc=icecube,dc=wisc,dc=edu
+objectclass: top
+objectclass: organizationalUnit
+ou: people
+
+# add POSIX groups
+dn: ou=group,dc=icecube,dc=wisc,dc=edu
+objectclass: top
+objectclass: organizationalUnit
+ou: group
+
+# add institutions
+dn: ou=institutions,dc=icecube,dc=wisc,dc=edu
+objectclass: top
+objectclass: organizationalUnit
+ou: institutions
