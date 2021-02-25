@@ -1,8 +1,9 @@
 import os
 import time
+from functools import partial
 
 import pytest
-from rest_tools.client import OpenIDRestClient
+from rest_tools.client import RestClient
 
 from krs import bootstrap
 from krs.token import get_token
@@ -17,17 +18,14 @@ def keycloak_bootstrap(monkeypatch):
     secret = bootstrap.bootstrap()
     monkeypatch.setenv('KEYCLOAK_CLIENT_SECRET', secret)
 
-    token = get_token(os.environ['KEYCLOAK_URL'],
+    token = partial(get_token, os.environ['KEYCLOAK_URL'],
             client_id='testclient',
             client_secret=secret,
-            refresh=True,
     )
-    rest_client = OpenIDRestClient(
+    rest_client = RestClient(
             f'{os.environ["KEYCLOAK_URL"]}/auth/admin/realms/testrealm',
-            f'{os.environ["KEYCLOAK_URL"]}/auth/realms/master',
-            refresh_token=token,
-            client_id='testclient',
-            client_secret=secret,
+            token=token,
+            retries=0,
     )
     yield rest_client
 

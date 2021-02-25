@@ -9,7 +9,7 @@ from rest_tools.server import from_environment
 from rest_tools.client import RestClient
 
 
-def get_token(url, client_id, client_secret, refresh=False):
+def get_token(url, client_id, client_secret):
     url = f'{url}/auth/realms/master/protocol/openid-connect/token'
     args = {
         'grant_type': 'client_credentials',
@@ -21,10 +21,7 @@ def get_token(url, client_id, client_secret, refresh=False):
     r = requests.post(url, data=args)
     r.raise_for_status()
     req = r.json()
-    if refresh:
-        return req['refresh_token']
-    else:
-        return req['access_token']
+    return req['access_token']
 
 def get_rest_client():
     config = from_environment({
