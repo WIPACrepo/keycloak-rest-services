@@ -6,6 +6,7 @@ docker run -d --name ldap -p 1389:1389 -v $PWD/resources/ldap-ldifs:/ldifs --env
  #--env 'BITNAMI_DEBUG=true' 
 sleep 2
 
+echo "server at: localhost:1389"
 echo "admin login: cn=admin,dc=icecube,dc=wisc,dc=edu"
 echo "LDAP Ready"
 
