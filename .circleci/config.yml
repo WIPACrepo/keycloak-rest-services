@@ -5,12 +5,20 @@ jobs:
             - image: circleci/python:3.8
               environment:
                 KEYCLOAK_URL: http://localhost:8080
+                LDAP_URL: ldap://localhost:1389
                 USERNAME: admin
                 PASSWORD: admin
             - image: quay.io/keycloak/keycloak:10.0.2
               environment:
                 KEYCLOAK_USER: admin
                 KEYCLOAK_PASSWORD: admin
+            - image: bitnami/openldap:2
+              environment:
+                LDAP_PORT_NUMBER: 1389
+                LDAP_ADMIN_USERNAME: admin
+                LDAP_ADMIN_PASSWORD: admin
+                LDAP_ROOT: "dc=icecube,dc=wisc,dc=edu"
+                LDAP_CUSTOM_LDIF_DIR: "/ldifs"
         steps:
             - checkout
             - run: ./setupenv.sh
