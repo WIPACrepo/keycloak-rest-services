@@ -36,7 +36,7 @@ async def user_info(username, rest_client=None):
         raise Exception(f'user "{username}" does not exist')
     return ret[0]
 
-async def create_user(username, first_name, last_name, email, attribs=None, rest_client=None, ldap_client=None):
+async def create_user(username, first_name, last_name, email, attribs=None, rest_client=None):
     """
     Create a user in Keycloak.
 
@@ -47,7 +47,6 @@ async def create_user(username, first_name, last_name, email, attribs=None, rest
         email (str): email address
         attribs (dict): user attributes
         rest_client: keycloak rest client
-        ldap_client: ldap client (if necessary to create user in ldap first)
     """
     if not attribs:
         attribs = {}
@@ -65,10 +64,6 @@ async def create_user(username, first_name, last_name, email, attribs=None, rest
             'enabled': True,
             'attributes': {item.split('=',1)[0]:item.split('=',1)[-1] for item in attribs},
         }
-
-        if ldap_client:
-            print(f'creating user "{username}" in ldap')
-            ldap_client.create_user(user)
 
         ret = await rest_client.request('POST', '/users', user)
         print(f'user "{username}" created')
