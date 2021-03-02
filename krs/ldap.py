@@ -1,7 +1,10 @@
-from ldap3 import Server, Connection, ALL, ALL_ATTRIBUTES, MODIFY_ADD, MODIFY_REPLACE
+import logging
 
+from ldap3 import Server, Connection, ALL, ALL_ATTRIBUTES, MODIFY_ADD, MODIFY_REPLACE, MODIFY_DELETE
 from rest_tools.server import from_environment
 
+
+logger = logging.getLogger('krs.ldap')
 
 class LDAP:
     """
@@ -40,12 +43,15 @@ class LDAP:
             raise KeyError(f'user {username} not found')
         return c.entries[0]
 
-    def create_user(self, user):
+    def create_user(self, username, firstName, lastName, email):
         """
         Add a user to LDAP.
 
         Args:
-            user (dict): user info to add
+            username (str): username of user
+            firstName (str): first name of user
+            lastName (str): last name of user
+            email (str): email of user
         """
         # define the server
         s = Server(self.config['LDAP_URL'], get_info=ALL)
@@ -54,40 +60,44 @@ class LDAP:
         c = Connection(s, user=self.config['LDAP_ADMIN_USER'], password=self.config['LDAP_ADMIN_PASSWORD'], auto_bind=True)
 
         # check if user already exists
-        ret = c.search(self.config['LDAP_USER_BASE'], f'(uid={user["username"]})')
+        ret = c.search(self.config['LDAP_USER_BASE'], f'(uid={username})')
         if ret:
-            raise Exception(f'User {user["username"]} already exists')
+            raise Exception(f'User {username} already exists')
 
         # perform the Add operation
-        ret = c.add(f'uid={user["username"]},{self.config["LDAP_USER_BASE"]}', ['inetOrgPerson', 'organizationalPerson', 'person', 'top'],
+        ret = c.add(f'uid={username},{self.config["LDAP_USER_BASE"]}', ['inetOrgPerson', 'organizationalPerson', 'person', 'top'],
             {
-                'cn': f'{user["firstName"]} {user["lastName"]}',
-                'sn': user['lastName'],
-                'givenName': user['firstName'],
-                'mail': user['email'],
-                'uid': user['username'],
+                'cn': f'{firstName} {lastName}',
+                'sn': lastName,
+                'givenName': firstName,
+                'mail': email,
+                'uid': username,
             }
         )
         if not ret:
-            raise Exception(f'Create user {user["username"]} failed: {c.result["message"]}')
+            raise Exception(f'Create user {username} failed: {c.result["message"]}')
 
         # close the connection
         c.unbind()
 
-    def modify_user(self, username, objectClass=None, attributes=None):
+    def modify_user(self, username, attributes=None, objectClass=None, removeObjectClass=None):
         """
         Modify a user in LDAP.
 
         Args:
             username (str): username in LDAP
-            objectClass (str): objectClass to add (default: None)
             attributes (dict): attributes to modify
+            objectClass (str): objectClass to add (default: None)
+            removeObjectClass (str): objectClass to remove (default: None)
         """
+        if not attributes:
+            attributes = {}
+
         # define the server
         s = Server(self.config['LDAP_URL'], get_info=ALL)
 
         # define the connection
-        c = Connection(s, user=self.config['LDAP_ADMIN_USER'], password=self.config['LDAP_ADMIN_PASSWORD'], auto_bind=True)
+        c = Connection(s, user=self.config['LDAP_ADMIN_USER'], password=self.config['LDAP_ADMIN_PASSWORD'], auto_bind=True, raise_exceptions=True)
 
         # check if user exists
         ret = c.search(self.config['LDAP_USER_BASE'], f'(uid={username})', attributes=ALL_ATTRIBUTES)
@@ -95,13 +105,33 @@ class LDAP:
             raise Exception(f'User {username} does not exist')
         ret = c.entries[0]
 
-        vals = {a: [MODIFY_REPLACE if a in ret else MODIFY_ADD, attributes[a] if isinstance(attributes[a], list) else [attributes[a]]] for a in attributes}
-        vals['objectClass'] = [MODIFY_ADD, [objectClass]]
+        vals = {}
+        for a in attributes:
+            v = attributes[a] if isinstance(attributes[a], list) else [attributes[a]]
+            if attributes[a] is None:
+                if a in ret:
+                    vals[a] = [(MODIFY_DELETE, [])]
+                else:
+                    continue # trying to delete an attr that doesn't exist
+            elif a in ret:
+                vals[a] = [(MODIFY_REPLACE, v)]
+            else:
+                vals[a] = [(MODIFY_ADD, v)]
+
+        if objectClass and removeObjectClass:
+            raise Exeption('cannot add and remove object classes at once')
+        elif objectClass and objectClass not in ret['objectClass']:
+            vals['objectClass'] = [(MODIFY_ADD, [objectClass])]
+        elif removeObjectClass and removeObjectClass in ret['objectClass']:
+            vals['objectClass'] = [(MODIFY_DELETE, [removeObjectClass])]
 
         # perform the operation
-        ret = c.modify(f'uid={username},{self.config["LDAP_USER_BASE"]}', vals)
-        if not ret:
-            raise Exception(f'Modify user {user["username"]} failed: {c.result["message"]}')
+        logger.debug(f'ldap change for user {username}: {vals}')
+        try:
+            ret = c.modify(f'uid={username},{self.config["LDAP_USER_BASE"]}', vals)
+        except Exception :
+            logger.debug(f'ldap exception', exc_info=True)
+            raise Exception(f'Modify user {username} failed')
 
         # close the connection
         c.unbind()
