@@ -118,7 +118,7 @@ def create_service_role(client_id, realm=None, token=None):
                           headers={'Authorization': f'bearer {token}'})
         try:
             r.raise_for_status()
-        except:
+        except Exception:
             print(r.text)
             raise
 
@@ -127,7 +127,7 @@ def create_service_role(client_id, realm=None, token=None):
         r.raise_for_status()
         clients = r.json()
         if not any(c['clientId'] == client_id for c in clients):
-            raise Exception(f'failed to create client {client_id}')        
+            raise Exception(f'failed to create client {client_id}')
         print(f'created client "{client_id}"')
     else:
         print(f'client "{client_id}" already exists')
@@ -152,7 +152,7 @@ def create_service_role(client_id, realm=None, token=None):
 
     client_roles = []
     for r in roles:
-        if r['name'] in ('create-client','manage-clients','manage-users','query-clients','view-clients','view-users','view-realm'):
+        if r['name'] in ('create-client', 'manage-clients', 'manage-users', 'query-clients', 'view-clients', 'view-users', 'view-realm'):
             client_roles.append(r)
 
     if client_roles:
@@ -192,7 +192,7 @@ def delete_service_role(client_id, token=None):
         r = requests.delete(url, headers={'Authorization': f'bearer {token}'})
         try:
             r.raise_for_status()
-        except:
+        except Exception:
             print(r.text)
             raise
 
@@ -319,7 +319,7 @@ def user_mgmt_app(appurl, passwordGrant=False, token=None):
         if not ret:
             raise Exception('failed to create user_mgmt_app')
         client_id = ret[0]['id']
-        
+
         url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/{cfg["KEYCLOAK_REALM"]}/clients/{client_id}/protocol-mappers/models'
         args = {
             'config': {
@@ -335,7 +335,7 @@ def user_mgmt_app(appurl, passwordGrant=False, token=None):
         }
         r = requests.post(url, json=args, headers={'Authorization': f'bearer {token}'})
         r.raise_for_status()
-        
+
         url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/{cfg["KEYCLOAK_REALM"]}/clients/{client_id}/protocol-mappers/models'
         args = {
             'config': {
@@ -353,7 +353,7 @@ def user_mgmt_app(appurl, passwordGrant=False, token=None):
         }
         r = requests.post(url, json=args, headers={'Authorization': f'bearer {token}'})
         r.raise_for_status()
-        
+
         print('user_mgmt app created')
 
 

@@ -16,6 +16,7 @@ async def list_groups(max_groups=10000, rest_client=None):
     url = f'/groups?max={max_groups}'
     group_hierarchy = await rest_client.request('GET', url)
     ret = {}
+
     def add_groups(groups):
         for g in groups:
             ret[g['path']] = {
@@ -83,7 +84,7 @@ async def create_group(group_path, attrs=None, rest_client=None):
     else:
         if '/' not in group_path:
             raise Exception('"group_path" must start with /')
-        parent,groupname = group_path.rsplit('/',1)
+        parent, groupname = group_path.rsplit('/', 1)
         if parent:
             if parent not in groups:
                 raise Exception(f'parent group {parent} does not exist')
@@ -91,13 +92,13 @@ async def create_group(group_path, attrs=None, rest_client=None):
             url = f'/groups/{parent_id}/children'
         else:
             url = '/groups'
-        
+
         print(f'creating group "{group_path}"')
         group = {
             'name': groupname,
         }
         if attrs:
-            group['attributes'] = {k:[attrs[k]] for k in attrs}
+            group['attributes'] = {k: [attrs[k]] for k in attrs}
         await rest_client.request('POST', url, group)
         print(f'group "{group_path}" created')
 
@@ -191,7 +192,7 @@ async def add_user_group(group_path, username, rest_client=None):
             if group.startswith(group_path):
                 url = f'/users/{info["id"]}/groups/{groups[group]["id"]}'
                 await rest_client.request('PUT', url)
-        
+
         print(f'user "{username}" added to group "{group_path}"')
 
 async def remove_user_group(group_path, username, rest_client=None):
@@ -219,7 +220,6 @@ async def remove_user_group(group_path, username, rest_client=None):
 def main():
     import argparse
     from pprint import pprint
-    from .token import get_token
 
     parser = argparse.ArgumentParser(description='Keycloak group management')
     subparsers = parser.add_subparsers()

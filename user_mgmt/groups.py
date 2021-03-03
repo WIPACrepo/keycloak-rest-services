@@ -54,7 +54,7 @@ class Group(MyHandler):
             group = await krs.groups.group_info_by_id(group_id, rest_client=self.krs_client)
         except Exception:
             raise HTTPError(404, 'group does not exist')
-        
+
         if group['name'].startswith('_'):
             raise HTTPError(400, 'bad group request')
         admin_groups = await self.get_admin_groups()
@@ -82,7 +82,7 @@ class GroupUser(MyHandler):
             group = await krs.groups.group_info_by_id(group_id, rest_client=self.krs_client)
         except Exception:
             raise HTTPError(404, 'group does not exist')
-        
+
         if group['name'].startswith('_'):
             raise HTTPError(400, 'bad group request')
         admin_groups = await self.get_admin_groups()
@@ -113,7 +113,7 @@ class GroupUser(MyHandler):
             group = await krs.groups.group_info_by_id(group_id, rest_client=self.krs_client)
         except Exception:
             raise HTTPError(404, 'group does not exist')
-        
+
         if group['name'].startswith('_'):
             raise HTTPError(400, 'bad group request')
         admin_groups = await self.get_admin_groups()
@@ -198,7 +198,7 @@ class GroupApprovalsActionApprove(MyHandler):
         await self.db.group_approvals.delete_one({'id': approval_id})
 
         # TODO: send email
-        
+
         self.write({})
 
 

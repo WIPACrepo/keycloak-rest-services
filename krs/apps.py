@@ -42,7 +42,7 @@ async def list_apps(rest_client=None):
     for c in clients:
         if 'app' not in c['attributes'] or not c['attributes']['app']:
             continue
-        ret[c['clientId']] = {k:c[k] for k in c if k in ('clientId','defaultClientScopes','id','optionalClientScopes','rootUrl','serviceAccountsEnabled')}
+        ret[c['clientId']] = {k: c[k] for k in c if k in ('clientId', 'defaultClientScopes', 'id', 'optionalClientScopes', 'rootUrl', 'serviceAccountsEnabled')}
     return ret
 
 async def app_info(appname, rest_client=None):
@@ -83,7 +83,7 @@ async def list_scopes(only_apps=True, mappers=False, rest_client=None):
     Returns:
         dict: scope name: info
     """
-    url = f'/client-scopes'
+    url = '/client-scopes'
     scopes = await rest_client.request('GET', url)
     ret = {}
     for s in scopes:
@@ -91,12 +91,12 @@ async def list_scopes(only_apps=True, mappers=False, rest_client=None):
             continue
         if only_apps and 'app' not in s['attributes']:
             continue
-        ret[s['name']] = {k:s[k] for k in s if k in ('id','name','attributes')}
+        ret[s['name']] = {k: s[k] for k in s if k in ('id', 'name', 'attributes')}
         if mappers and 'protocolMappers' in s:
             ret[s['name']]['protocolMappers'] = s['protocolMappers']
     return ret
 
-async def create_app(appname, appurl, roles=['read','write'], builtin_scopes=[], access='public', service_account=False, rest_client=None):
+async def create_app(appname, appurl, roles=['read', 'write'], builtin_scopes=[], access='public', service_account=False, rest_client=None):
     """
     Create an application ("client") in Keycloak.
 
@@ -108,7 +108,7 @@ async def create_app(appname, appurl, roles=['read','write'], builtin_scopes=[],
         access (str): app scope access to roles (public, apps, none) (default: public)
         service_account (bool): enable the service account (default: False)
     """
-    if access not in ('public','apps','none'):
+    if access not in ('public', 'apps', 'none'):
         raise Exception('access is not one of the options: ["public", "apps", "none"]')
     if any(True for s in builtin_scopes if s not in ('profile', 'email', 'institution')):
         raise Exception('builtin_scopes has invalid scope. options are ["profile", "email", "institution"]')
@@ -163,7 +163,7 @@ async def create_app(appname, appurl, roles=['read','write'], builtin_scopes=[],
             'webOrigins': [appurl],
         }
         await rest_client.request('POST', '/clients', args)
-        
+
         ret = await app_info(appname, rest_client=rest_client)
         client_id = ret['id']
 
@@ -231,12 +231,12 @@ async def create_app(appname, appurl, roles=['read','write'], builtin_scopes=[],
             svc_user = await rest_client.request('GET', url)
 
             # get service roles
-            url = f'/users/{svc_user["id"]}/role-mappings/clients/{realm_client}'
+            url = f'/users/{svc_user["id"]}/role-mappings/clients/{client_id}'
             svc_roles = await rest_client.request('GET', url)
 
             for role in svc_roles:
-                if role['name'] == 'uma_authorization': # delete this to prevent self-administration
-                    url = f'/users/{svc_user["id"]}/role-mappings/clients/{realm_client}'
+                if role['name'] == 'uma_authorization':  # delete this to prevent self-administration
+                    url = f'/users/{svc_user["id"]}/role-mappings/clients/{client_id}'
                     await rest_client.request('DELETE', url)
 
         print(f'app "{appname}" created')
@@ -296,14 +296,14 @@ async def get_app_role_mappings(appname, role=None, rest_client=None):
 
     if role and role not in app_data['roles']:
         raise Exception(f'role "{role}" does not exist in app "{appname}"')
-    
+
     client_id = app_data['id']
 
     groups_with_role = {}
     groups = await list_groups(rest_client=rest_client)
     for g in groups:
         gid = groups[g]['id']
-    
+
         url = f'/groups/{gid}/role-mappings/clients/{client_id}'
         ret = await rest_client.request('GET', url)
         for mapping in ret:
@@ -349,7 +349,7 @@ async def add_app_role_mapping(appname, role, group, rest_client=None):
                 break
         else:
             raise Exception('could not get role representation')
-        
+
         url = f'/groups/{gid}/role-mappings/clients/{client_id}'
         args = [role_info]
         await rest_client.request('POST', url, args)
@@ -424,7 +424,7 @@ def get_public_token(username, password, scopes=None, openid_url=None, client='p
         header = jwt.get_unverified_header(encoded)
         if header['kid'] in public_keys:
             key = public_keys[header['kid']]
-            return jwt.decode(encoded, key, algorithms=['RS256','RS512'], options={'verify_aud':False})
+            return jwt.decode(encoded, key, algorithms=['RS256', 'RS512'], options={'verify_aud': False})
         else:
             raise Exception('key not found')
 
@@ -433,7 +433,7 @@ def get_public_token(username, password, scopes=None, openid_url=None, client='p
         'grant_type': 'password',
         'username': username,
         'password': password,
-#        'audience': api_identifier,
+        # 'audience': api_identifier,
         'scope': ' '.join(scopes),
         'client_id': client,
     }
@@ -458,8 +458,7 @@ def get_public_token(username, password, scopes=None, openid_url=None, client='p
 def main():
     import argparse
     from pprint import pprint
-    from rest_tools.client import OpenIDRestClient
-    from .token import get_token
+    from rest_tools.server import from_environment
 
     parser = argparse.ArgumentParser(description='Keycloak application management')
     subparsers = parser.add_subparsers()
@@ -481,7 +480,7 @@ def main():
     parser_delete.set_defaults(func=delete_app)
     parser_get_role_mappings = subparsers.add_parser('get_role_mappings', help='get app role-group mappings')
     parser_get_role_mappings.add_argument('appname', help='application name')
-    parser_get_role_mappings.add_argument('-r','--role', help='role name')
+    parser_get_role_mappings.add_argument('-r', '--role', help='role name')
     parser_get_role_mappings.set_defaults(func=get_app_role_mappings)
     parser_add_role_mapping = subparsers.add_parser('add_role_mapping', help='add an app role-group mapping')
     parser_add_role_mapping.add_argument('appname', help='application name')
@@ -506,7 +505,11 @@ def main():
     rest_client = get_rest_client()
     func = args.pop('func')
     if func == get_public_token:
-        args['openid_url'] = f'{cfg["KEYCLOAK_URL"]}/auth/realms/{cfg["KEYCLOAK_REALM"]}'
+        config = from_environment({
+            'KEYCLOAK_REALM': None,
+            'KEYCLOAK_URL': None,
+        })
+        args['openid_url'] = f'{config["KEYCLOAK_URL"]}/auth/realms/{config["KEYCLOAK_REALM"]}'
         ret = func(**args)
     else:
         ret = asyncio.run(func(rest_client=rest_client, **args))

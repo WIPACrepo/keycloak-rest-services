@@ -1,5 +1,4 @@
 import os
-import time
 from functools import partial
 
 import pytest
@@ -23,9 +22,9 @@ def keycloak_bootstrap(monkeypatch):
             client_secret=secret,
     )
     rest_client = RestClient(
-            f'{os.environ["KEYCLOAK_URL"]}/auth/admin/realms/testrealm',
-            token=token,
-            retries=0,
+        f'{os.environ["KEYCLOAK_URL"]}/auth/admin/realms/testrealm',
+        token=token,
+        retries=0,
     )
     yield rest_client
 

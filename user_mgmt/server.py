@@ -6,7 +6,7 @@ import os
 import logging
 from functools import partial
 
-from tornado.web import RequestHandler, StaticFileHandler, HTTPError
+from tornado.web import RequestHandler, HTTPError
 from rest_tools.client import RestClient
 from rest_tools.server import RestServer, RestHandlerSetup, from_environment
 import motor.motor_asyncio
@@ -34,9 +34,7 @@ class Main(RequestHandler):
                     keycloak_realm=self.keycloak_realm)
 
 def create_server():
-    static_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),'static')
-
-
+    static_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
 
     default_config = {
         'HOST': 'localhost',
@@ -60,7 +58,7 @@ def create_server():
     kwargs = RestHandlerSetup(rest_config)
 
     logging.info(f'DB: {config["DB_URL"]}')
-    db_url, db_name = config['DB_URL'].rsplit('/',1)
+    db_url, db_name = config['DB_URL'].rsplit('/', 1)
     db = motor.motor_asyncio.AsyncIOMotorClient(db_url)
     logging.info(f'DB name: {db_name}')
     kwargs['db'] = db[db_name]
@@ -85,10 +83,10 @@ def create_server():
 
     server.add_route('/api/all-experiments', AllExperiments, kwargs)
     server.add_route('/api/experiments', Experiments, kwargs)
-    server.add_route('/api/experiments/(?P<experiment>[\w\-]+)/institutions', MultiInstitutions, kwargs)
-    server.add_route('/api/experiments/(?P<experiment>[\w\-]+)/institutions/(?P<institution>[\w\-]+)', Institution, kwargs)
-    server.add_route('/api/experiments/(?P<experiment>[\w\-]+)/institutions/(?P<institution>[\w\-]+)/users', InstitutionMultiUsers, kwargs)
-    server.add_route('/api/experiments/(?P<experiment>[\w\-]+)/institutions/(?P<institution>[\w\-]+)/users/(?P<username>\w+)', InstitutionUser, kwargs)
+    server.add_route(r'/api/experiments/(?P<experiment>[\w\-]+)/institutions', MultiInstitutions, kwargs)
+    server.add_route(r'/api/experiments/(?P<experiment>[\w\-]+)/institutions/(?P<institution>[\w\-]+)', Institution, kwargs)
+    server.add_route(r'/api/experiments/(?P<experiment>[\w\-]+)/institutions/(?P<institution>[\w\-]+)/users', InstitutionMultiUsers, kwargs)
+    server.add_route(r'/api/experiments/(?P<experiment>[\w\-]+)/institutions/(?P<institution>[\w\-]+)/users/(?P<username>\w+)', InstitutionUser, kwargs)
 
     server.add_route('/api/inst_approvals', InstApprovals, kwargs)
     server.add_route(r'/api/inst_approvals/(?P<approval_id>\w+)/actions/approve', InstApprovalsActionApprove, kwargs)

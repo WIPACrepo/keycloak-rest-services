@@ -65,15 +65,15 @@ class LDAP:
             raise Exception(f'User {username} already exists')
 
         # perform the Add operation
-        ret = c.add(f'uid={username},{self.config["LDAP_USER_BASE"]}', ['inetOrgPerson', 'organizationalPerson', 'person', 'top'],
-            {
-                'cn': f'{firstName} {lastName}',
-                'sn': lastName,
-                'givenName': firstName,
-                'mail': email,
-                'uid': username,
-            }
-        )
+        objectClasses = ['inetOrgPerson', 'organizationalPerson', 'person', 'top']
+        attrs = {
+            'cn': f'{firstName} {lastName}',
+            'sn': lastName,
+            'givenName': firstName,
+            'mail': email,
+            'uid': username,
+        }
+        ret = c.add(f'uid={username},{self.config["LDAP_USER_BASE"]}', objectClasses, attrs)
         if not ret:
             raise Exception(f'Create user {username} failed: {c.result["message"]}')
 
@@ -112,14 +112,14 @@ class LDAP:
                 if a in ret:
                     vals[a] = [(MODIFY_DELETE, [])]
                 else:
-                    continue # trying to delete an attr that doesn't exist
+                    continue  # trying to delete an attr that doesn't exist
             elif a in ret:
                 vals[a] = [(MODIFY_REPLACE, v)]
             else:
                 vals[a] = [(MODIFY_ADD, v)]
 
         if objectClass and removeObjectClass:
-            raise Exeption('cannot add and remove object classes at once')
+            raise Exception('cannot add and remove object classes at once')
         elif objectClass and objectClass not in ret['objectClass']:
             vals['objectClass'] = [(MODIFY_ADD, [objectClass])]
         elif removeObjectClass and removeObjectClass in ret['objectClass']:
@@ -129,8 +129,8 @@ class LDAP:
         logger.debug(f'ldap change for user {username}: {vals}')
         try:
             ret = c.modify(f'uid={username},{self.config["LDAP_USER_BASE"]}', vals)
-        except Exception :
-            logger.debug(f'ldap exception', exc_info=True)
+        except Exception:
+            logger.debug('ldap exception', exc_info=True)
             raise Exception(f'Modify user {username} failed')
 
         # close the connection

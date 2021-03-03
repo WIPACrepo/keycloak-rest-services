@@ -62,10 +62,10 @@ async def create_user(username, first_name, last_name, email, attribs=None, rest
             'lastName': last_name,
             'username': username,
             'enabled': True,
-            'attributes': {item.split('=',1)[0]:item.split('=',1)[-1] for item in attribs},
+            'attributes': {item.split('=', 1)[0]: item.split('=', 1)[-1] for item in attribs},
         }
 
-        ret = await rest_client.request('POST', '/users', user)
+        await rest_client.request('POST', '/users', user)
         print(f'user "{username}" created')
     else:
         print(f'user "{username}" already exists')
@@ -114,7 +114,6 @@ async def delete_user(username, rest_client=None):
 def main():
     import argparse
     from pprint import pprint
-    from .token import get_token
 
     parser = argparse.ArgumentParser(description='Keycloak user management')
     subparsers = parser.add_subparsers()
