@@ -4,6 +4,8 @@ from tornado.web import HTTPError
 from tornado.escape import json_decode, json_encode
 from rest_tools.server import RestHandler
 
+import krs.groups
+
 class MyHandler(RestHandler):
     def initialize(self, db=None, krs_client=None, **kwargs):
         super().initialize(**kwargs)
@@ -21,7 +23,7 @@ class MyHandler(RestHandler):
         if not isinstance(chunk, (bytes, str, dict, list)):
             message = "write() only accepts bytes, str, dict, and list objects"
             raise TypeError(message)
-        if isinstance(chunk, (dict,list)):
+        if isinstance(chunk, (dict, list)):
             chunk = json_encode(chunk)
             self.set_header("Content-Type", "application/json; charset=UTF-8")
         chunk = chunk if isinstance(chunk, bytes) else chunk.encode("utf-8")
@@ -56,7 +58,7 @@ class MyHandler(RestHandler):
         return data
 
     async def get_admin_groups(self):
-        if '/admin' in self.auth_data['groups']: # super admin - all groups
+        if '/admin' in self.auth_data['groups']:  # super admin - all groups
             admin_groups = await krs.groups.list_groups(rest_client=self.krs_client)
         else:
             admin_groups = [g[:-7] for g in self.auth_data['groups'] if g.endswith('/_admin')]
@@ -69,7 +71,7 @@ class MyHandler(RestHandler):
         return groups
 
     async def get_admin_institutions(self):
-        if '/admin' in self.auth_data['groups']: # super admin - all institutions
+        if '/admin' in self.auth_data['groups']:  # super admin - all institutions
             admin_groups = await krs.groups.list_groups(rest_client=self.krs_client)
         else:
             admin_groups = [g[:-7] for g in self.auth_data['groups'] if g.endswith('/_admin')]

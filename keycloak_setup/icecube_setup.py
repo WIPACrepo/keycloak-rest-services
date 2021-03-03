@@ -394,8 +394,8 @@ def main():
     parser.add_argument('keycloak_url', help='Keycloak url')
     parser.add_argument('user_mgmt_url', help='User Management url')
     parser.add_argument('--keycloak_realm', default='IceCube', help='Keycloak realm')
-    parser.add_argument('-u','--username', default='admin', help='admin username')
-    parser.add_argument('-p','--password', default='admin', help='admin password')
+    parser.add_argument('-u', '--username', default='admin', help='admin username')
+    parser.add_argument('-p', '--password', default='admin', help='admin password')
 
     args = parser.parse_args()
 

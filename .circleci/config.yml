@@ -43,6 +43,15 @@ jobs:
             - run: |
                 . env/bin/activate &&
                 python -m pytest tests/user_mgmt --log-level=INFO
+    test_flake8:
+        docker:
+            - image: circleci/python:3.8
+        steps:
+            - checkout
+            - run: ./setupenv.sh
+            - run: |
+                . env/bin/activate &&
+                flake8
     deploy:
         docker:
             - image: circleci/buildpack-deps:stretch
@@ -64,11 +73,13 @@ workflows:
         jobs:
             - test_krs
             - test_user_mgmt
+            - test_flake8
             - deploy:
                 context: docker
                 requires:
                     - test_krs
                     - test_user_mgmt
+                    - test_flake8
                 filters:
                     branches:
                         only: master

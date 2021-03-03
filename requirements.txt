@@ -8,4 +8,5 @@ pyjwt
 motor
 unidecode
 ldap3
+flake8
 -e git+https://github.com/WIPACrepo/rest-tools#egg=rest_tools

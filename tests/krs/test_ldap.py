@@ -1,6 +1,5 @@
 import pytest
-import ldap3
-from ldap3 import Server, Connection, ALL
+from ldap3 import Connection
 
 from krs import ldap
 
@@ -23,11 +22,10 @@ def ldap_bootstrap(monkeypatch):
         c.delete(config["LDAP_USER_BASE"])
     cleanup()
 
-    c.add(config["LDAP_USER_BASE"], ['organizationalUnit', 'top'],
-        {
-            'ou': 'peopleTest',
-        }
-    )
+    args = {
+        'ou': 'peopleTest',
+    }
+    c.add(config["LDAP_USER_BASE"], ['organizationalUnit', 'top'], args)
 
     try:
         yield obj
@@ -56,14 +54,14 @@ def test_create_user_fail(ldap_bootstrap):
 
 def test_modify_user_class(ldap_bootstrap):
     ldap_bootstrap.create_user(username='foo', firstName='foo', lastName='bar', email='foo@bar')
-    ldap_bootstrap.modify_user('foo', {'gidNumber': 1234, 'uidNumber': 1234, 'homeDirectory': f'/home/foo'}, objectClass='posixAccount')
+    ldap_bootstrap.modify_user('foo', {'gidNumber': 1234, 'uidNumber': 1234, 'homeDirectory': '/home/foo'}, objectClass='posixAccount')
     ret = ldap_bootstrap.get_user('foo')
     assert ret['gidNumber'] == 1234
     assert 'posixAccount' in ret['objectClass']
 
 def test_modify_user_remove_class(ldap_bootstrap):
     ldap_bootstrap.create_user(username='foo', firstName='foo', lastName='bar', email='foo@bar')
-    ldap_bootstrap.modify_user('foo', {'gidNumber': 1234, 'uidNumber': 1234, 'homeDirectory': f'/home/foo'}, objectClass='posixAccount')
+    ldap_bootstrap.modify_user('foo', {'gidNumber': 1234, 'uidNumber': 1234, 'homeDirectory': '/home/foo'}, objectClass='posixAccount')
     ldap_bootstrap.modify_user('foo', {'gidNumber': None, 'uidNumber': None, 'homeDirectory': None}, removeObjectClass='posixAccount')
     ret = ldap_bootstrap.get_user('foo')
     assert 'gidNumber' not in ret
@@ -92,7 +90,7 @@ def test_modify_user_fail(ldap_bootstrap):
     ret = ldap_bootstrap.get_user('foo')
     assert 'gidNumber' not in ret
 
-    ldap_bootstrap.modify_user('foo', {'gidNumber': 1234, 'uidNumber': 1234, 'homeDirectory': f'/home/foo'}, objectClass='posixAccount')
+    ldap_bootstrap.modify_user('foo', {'gidNumber': 1234, 'uidNumber': 1234, 'homeDirectory': '/home/foo'}, objectClass='posixAccount')
     with pytest.raises(Exception):
         # cannot remove objectClass without removing attrs
         ldap_bootstrap.modify_user('foo', removeObjectClass='posixAccount')

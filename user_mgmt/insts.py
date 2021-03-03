@@ -3,11 +3,9 @@ Handle user institution-based actions.
 """
 import logging
 import uuid
-import asyncio
 
 import unidecode
 from tornado.web import HTTPError
-from tornado.escape import json_decode
 from rest_tools.server import catch_error, authenticated
 
 import krs.users
@@ -252,7 +250,7 @@ class InstApprovals(MyHandler):
             data = self.json_filter(req_fields, opt_fields)
 
             # make ascii username
-            username = unidecode.unidecode(data['first_name'][0]+data['last_name']).replace("'",'')
+            username = unidecode.unidecode(data['first_name'][0]+data['last_name']).replace("'", '')
 
             user_data = {
                 'id': uuid.uuid1().hex,
@@ -349,7 +347,7 @@ class InstApprovalsActionApprove(MyHandler):
         await self.db.inst_approvals.delete_one({'id': approval_id})
 
         # TODO: send email
-        
+
         self.write({})
 
 
