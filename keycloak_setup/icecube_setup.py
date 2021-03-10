@@ -356,6 +356,12 @@ ICECUBE_INSTS = {
         "is_US": False,
         "region": _EUROPE,
     },
+    "Utah": {
+        "cite": "Department of Physics and Astronomy, University of Utah, Salt Lake City, UT 84112, USA",
+        "abbreviation": "UTAH",
+        "is_US": True,
+        "region": _US_CAN,
+    },
     "UW-Madison-Astronomy": {
         "cite": "Dept. of Astronomy, University of Wisconsin–Madison, Madison, WI 53706, USA",
         "abbreviation": "UW",
