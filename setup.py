@@ -27,8 +27,8 @@ current_path = os.path.dirname(os.path.realpath(__file__))
 with open(os.path.join(current_path, "__init__.py")) as f:
     for line in f.readlines():
         if "__version__" in line:
-            PATTERN = r"""__version__ = ('|")(?P<v>.+)('|")"""
-            kwargs["version"] = re.match(PATTERN, line).groupdict()["v"]
+            # grab "X.Y.Z" from "__version__ = 'X.Y.Z'" (quote-style insensitive)
+            kwargs["version"] = line.replace('"', "'").split("=")[-1].split("'")[1]
             break
     else:
         raise Exception("cannot find __version__")
