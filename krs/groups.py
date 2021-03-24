@@ -125,11 +125,11 @@ async def get_group_membership(group_path, rest_client=None):
         group_path (str): group path (/parent/parent/name)
 
     Returns:
-        list: group paths
+        list: usernames
     """
     groups = await list_groups(rest_client=rest_client)
     if group_path not in groups:
-        raise Exception(f'group "{group_path}" does not exist')
+        raise KeyError(f'group "{group_path}" does not exist')
     group_id = groups[group_path]['id']
 
     url = f'/groups/{group_id}/members'

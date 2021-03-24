@@ -39,3 +39,25 @@ def get_rest_client():
         token=token_func,
         timeout=10,
     )
+
+
+def main():
+    import argparse
+    from pprint import pprint
+
+    parser = argparse.ArgumentParser(description='Keycloak tokens')
+    subparsers = parser.add_subparsers()
+    parser_get = subparsers.add_parser('get', help='get token')
+    parser_get.add_argument('url', help='keycloak base url')
+    parser_get.add_argument('client_id', help='keycloak client id')
+    parser_get.add_argument('client_secret', help='keycloak client secret')
+    parser_get.set_defaults(func=get_token)
+    args = vars(parser.parse_args())
+
+    func = args.pop('func')
+    ret = func(**args)
+    if ret is not None:
+        pprint(ret)
+
+if __name__ == '__main__':
+    main()
