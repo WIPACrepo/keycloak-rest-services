@@ -32,6 +32,14 @@ async def test_create_user(keycloak_bootstrap):
     await users.create_user('testuser', first_name='first', last_name='last', email='foo@test', rest_client=keycloak_bootstrap)
 
 @pytest.mark.asyncio
+async def test_modify_user(keycloak_bootstrap):
+    await users.create_user('testuser', first_name='first', last_name='last', email='foo@test', rest_client=keycloak_bootstrap)
+    await users.modify_user('testuser', {'foo': 'bar'}, rest_client=keycloak_bootstrap)
+    ret = await users.user_info('testuser', rest_client=keycloak_bootstrap)
+    assert 'foo' in ret['attributes']
+    assert ret['attributes']['foo'] == 'bar'
+
+@pytest.mark.asyncio
 async def test_set_user_password(keycloak_bootstrap):
     await users.create_user('testuser', first_name='first', last_name='last', email='foo@test', rest_client=keycloak_bootstrap)
     await users.set_user_password('testuser', 'foo', rest_client=keycloak_bootstrap)

@@ -34,6 +34,10 @@ async def user_info(username, rest_client=None):
 
     if not ret:
         raise Exception(f'user "{username}" does not exist')
+    if 'attributes' in ret[0]:
+        for k in ret[0]['attributes']:
+            if len(ret[0]['attributes'][k]) == 1:
+                ret[0]['attributes'][k] = ret[0]['attributes'][k][0]
     return ret[0]
 
 async def create_user(username, first_name, last_name, email, attribs=None, rest_client=None):
@@ -62,13 +66,41 @@ async def create_user(username, first_name, last_name, email, attribs=None, rest
             'lastName': last_name,
             'username': username,
             'enabled': True,
-            'attributes': {item.split('=', 1)[0]: item.split('=', 1)[-1] for item in attribs},
+            'attributes': attribs,
         }
 
         await rest_client.request('POST', '/users', user)
         print(f'user "{username}" created')
     else:
         print(f'user "{username}" already exists')
+
+async def modify_user(username, attribs=None, rest_client=None):
+    """
+    Modify a user in Keycloak.
+
+    Args:
+        username (str): username of user to modify
+        attribs (dict): user attributes
+        rest_client: keycloak rest client
+    """
+    if not attribs:
+        attribs = {}
+
+    # get current user info
+    try:
+        ret = await user_info(username, rest_client=rest_client)
+    except Exception:
+        print(f'user "{username}" does not exist')
+
+    url = f'/users/{ret["id"]}'
+    ret = await rest_client.request('GET', url)
+
+    # update info
+    if 'attributes' in ret:
+        ret['attributes'].update(attribs)
+    else:
+        ret['attributes'] = attribs
+    await rest_client.request('PUT', url, ret)
 
 async def set_user_password(username, password=None, rest_client=None):
     """
@@ -129,6 +161,10 @@ def main():
     parser_create.add_argument('email', help='email address')
     parser_create.add_argument('attribs', nargs=argparse.REMAINDER)
     parser_create.set_defaults(func=create_user)
+    parser_modify = subparsers.add_parser('modify', help='modify an existing user')
+    parser_modify.add_argument('username', help='user name')
+    parser_modify.add_argument('attribs', nargs=argparse.REMAINDER)
+    parser_modify.set_defaults(func=modify_user)
     parser_set_password = subparsers.add_parser('set_password', help='set a user\'s password')
     parser_set_password.add_argument('username', help='user name')
     parser_set_password.add_argument('--password', default=None, help='password')
@@ -140,6 +176,8 @@ def main():
 
     rest_client = get_rest_client()
     func = args.pop('func')
+    if 'attribs' in args:
+        args['attribs'] = {item.split('=', 1)[0]: item.split('=', 1)[-1] for item in args['attribs']}
     ret = asyncio.run(func(rest_client=rest_client, **args))
     if ret is not None:
         pprint(ret)

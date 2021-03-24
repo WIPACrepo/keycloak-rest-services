@@ -1,40 +1,18 @@
 import pytest
-from ldap3 import Connection
 
 from krs import ldap
 
+from ..util import ldap_bootstrap
 
-@pytest.fixture
-def ldap_bootstrap(monkeypatch):
-    monkeypatch.setenv('LDAP_USER_BASE', 'ou=peopleTest,dc=icecube,dc=wisc,dc=edu')
-
-    obj = ldap.LDAP()
-    config = obj.config
-
-    c = Connection(config['LDAP_URL'], user=config['LDAP_ADMIN_USER'], password=config['LDAP_ADMIN_PASSWORD'], auto_bind=True)
-
-    def cleanup():
-        ret = c.search(config["LDAP_USER_BASE"], '(uid=*)', attributes=['uid'])
-        if ret:
-            uids = [e['uid'] for e in c.entries]
-            for uid in uids:
-                c.delete(f'uid={uid},{config["LDAP_USER_BASE"]}')
-        c.delete(config["LDAP_USER_BASE"])
-    cleanup()
-
-    args = {
-        'ou': 'peopleTest',
-    }
-    c.add(config["LDAP_USER_BASE"], ['organizationalUnit', 'top'], args)
-
-    try:
-        yield obj
-    finally:
-        cleanup()
 
 def test_get_users_none(ldap_bootstrap):
     with pytest.raises(KeyError):
         ldap_bootstrap.get_user('foo')
+
+def test_list_users_none(ldap_bootstrap):
+    # this raises because no user entries is conflated with a fatal operation
+    with pytest.raises(Exception):
+        ldap_bootstrap.list_users()
 
 def test_create_user(ldap_bootstrap):
     ldap_bootstrap.create_user(username='foo', firstName='foo', lastName='bar', email='foo@bar')
@@ -44,6 +22,26 @@ def test_create_user(ldap_bootstrap):
     assert ret['givenName'] == 'foo'
     assert ret['sn'] == 'bar'
     assert ret['mail'] == 'foo@bar'
+
+def test_list_users(ldap_bootstrap):
+    ldap_bootstrap.create_user(username='foo', firstName='foo', lastName='bar', email='foo@bar')
+
+    ret = ldap_bootstrap.list_users()
+    assert len(ret) == 1
+    assert 'foo' in ret
+    assert ret['foo']['uid'] == 'foo'
+    assert ret['foo']['givenName'] == 'foo'
+    assert ret['foo']['sn'] == 'bar'
+    assert ret['foo']['mail'] == 'foo@bar'
+    
+def test_list_users_attrs(ldap_bootstrap):
+    ldap_bootstrap.create_user(username='foo', firstName='foo', lastName='bar', email='foo@bar')
+
+    ret = ldap_bootstrap.list_users(['sn'])
+    assert len(ret) == 1
+    assert 'foo' in ret
+    assert ret['foo']['sn'] == 'bar'
+    assert 'uid' not in ret['foo']
 
 def test_create_user_fail(ldap_bootstrap):
     with pytest.raises(Exception):

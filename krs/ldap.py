@@ -1,6 +1,7 @@
 import logging
 
 from ldap3 import Server, Connection, ALL, ALL_ATTRIBUTES, MODIFY_ADD, MODIFY_REPLACE, MODIFY_DELETE
+import requests
 from rest_tools.server import from_environment
 
 
@@ -17,6 +18,82 @@ class LDAP:
             'LDAP_ADMIN_PASSWORD': 'admin',
             'LDAP_USER_BASE': 'ou=people,dc=icecube,dc=wisc,dc=edu',
         })
+
+    async def keycloak_ldap_link(self, keycloak_token=None):
+        cfg = from_environment({
+            'KEYCLOAK_URL': None,
+            'KEYCLOAK_REALM': None,
+        })
+        url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/{cfg["KEYCLOAK_REALM"]}/components'
+
+        args = {
+            "name": "ldap",
+            "providerId": "ldap",
+            "providerType": "org.keycloak.storage.UserStorageProvider",
+            "config": {
+                "connectionUrl": [ self.config['LDAP_URL'] ],
+                "bindCredential": [ self.config['LDAP_ADMIN_PASSWORD'] ],
+                "bindDn": [ self.config['LDAP_ADMIN_USER'] ],
+                "usersDn": [ self.config['LDAP_USER_BASE'] ],
+                "userObjectClasses": ["inetOrgPerson, organizationalPerson"],
+                "usernameLDAPAttribute": ["uid"],
+                "uuidLDAPAttribute": ["uid"],
+                "rdnLDAPAttribute": ["uid"],
+                "fullSyncPeriod": ["604800"],
+                "pagination": ["true"],
+                "connectionPooling": ["true"],
+                "cachePolicy": ["DEFAULT"],
+                "useKerberosForPasswordAuthentication": ["false"],
+                "importEnabled": ["true"],
+                "enabled": ["true"],
+                "changedSyncPeriod": ["60"],
+                "lastSync": ["-1"],
+                "vendor": ["other"],
+                "allowKerberosAuthentication": ["false"],
+                "syncRegistrations": ["true"],
+                "authType": ["simple"],
+                "debug": ["false"],
+                "searchScope": ["1"],
+                "useTruststoreSpi": ["ldapsOnly"],
+                "trustEmail": ["false"],
+                "priority": ["0"],
+                "editMode": ["WRITABLE"],
+                "validatePasswordPolicy": ["false"],
+                "batchSizeForSync": ["1000"]
+            }
+        }
+        r = requests.post(url, headers={'Authorization': f'bearer {keycloak_token}'}, json=args)
+        r.raise_for_status()
+
+    def list_users(self, attrs=None):
+        """
+        List user information in LDAP.
+
+        Args:
+            attrs (list): attributes from each user to return (default: ALL)
+
+        Returns:
+            dict: username: attr dict
+        """
+        # define the server
+        s = Server(self.config['LDAP_URL'], get_info=ALL)
+
+        # define the connection
+        c = Connection(s, auto_bind=True)
+
+        # search for the user
+        ret = c.search(self.config['LDAP_USER_BASE'], '(uid=*)', attributes=ALL_ATTRIBUTES)
+        if not ret:
+            raise Exception(f'Search users failed: {c.result["message"]}')
+        ret = {}
+        for entry in c.entries:
+            entry = entry.entry_attributes_as_dict
+            if attrs:
+                val = {k: (entry[k][0] if len(entry[k]) == 1 else entry[k]) for k in entry if k in attrs}
+            else:
+                val = {k: (entry[k][0] if len(entry[k]) == 1 else entry[k]) for k in entry}
+            ret[entry['uid'][0]] = val
+        return ret
 
     def get_user(self, username):
         """
