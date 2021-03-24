@@ -13,7 +13,7 @@ async def process(group_path, keycloak_client=None, ldap_client=None):
     # get highest uid, gid in ldap
     max_uid = 0
     max_gid = 0
-    users = ldap_client.list_users(['uidNumber','gidNumber'])
+    users = ldap_client.list_users(['uidNumber', 'gidNumber'])
     for username in users:
         user = users[username]
         if 'uidNumber' in user and user['uidNumber'] > max_uid:
