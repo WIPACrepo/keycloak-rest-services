@@ -5,6 +5,21 @@ import asyncio
 
 from .token import get_rest_client
 
+def _fix_attributes(user):
+    """
+    "Fix" user attributes that are only a single value.
+
+    Translates them from a list to the single value.  Operation
+    is done in-place.
+
+    Args:
+        user (dict): user object
+    """
+    if 'attributes' in user:
+        for k in user['attributes']:
+            if len(user['attributes'][k]) == 1:
+                user['attributes'][k] = user['attributes'][k][0]
+
 async def list_users(max_users=10000, rest_client=None):
     """
     List users in Keycloak.
@@ -16,6 +31,7 @@ async def list_users(max_users=10000, rest_client=None):
     data = await rest_client.request('GET', url)
     ret = {}
     for u in data:
+        _fix_attributes(u)
         ret[u['username']] = u
     return ret
 
@@ -34,10 +50,7 @@ async def user_info(username, rest_client=None):
 
     if not ret:
         raise Exception(f'user "{username}" does not exist')
-    if 'attributes' in ret[0]:
-        for k in ret[0]['attributes']:
-            if len(ret[0]['attributes'][k]) == 1:
-                ret[0]['attributes'][k] = ret[0]['attributes'][k][0]
+    _fix_attributes(ret[0])
     return ret[0]
 
 async def create_user(username, first_name, last_name, email, attribs=None, rest_client=None):
