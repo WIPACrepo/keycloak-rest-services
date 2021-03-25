@@ -15,6 +15,7 @@ import os
 import logging
 import asyncio
 import getpass
+import pathlib
 
 from krs.users import list_users
 from krs.token import get_rest_client
@@ -27,7 +28,8 @@ async def process(root_dir, keycloak_client=None):
     for username in ret:
         user = ret[username]
         if ('attributes' in user and 'homeDirectory' in user['attributes']
-            and 'uidNumber' in user['attributes'] and 'gidNumber' in user['attributes']):
+                and 'uidNumber' in user['attributes']
+                and 'gidNumber' in user['attributes']):
             homedir = user['attributes']['homeDirectory']
             if homedir.startswith('/'):
                 homedir = homedir[1:]
@@ -35,10 +37,8 @@ async def process(root_dir, keycloak_client=None):
             if not path.exists():
                 logger.info(f'creating home directory at {path}')
                 path.mkdir(mode=0o755, parents=True, exist_ok=True)
-                uid = user['attributes']['uidNumber']
-                gid = user['attributes']['gidNumber']
                 if getpass.getuser() == 'root':
-                    os.chown(path, int(), int(user['attributes']['gidNumber']))
+                    os.chown(path, int(user['attributes']['uidNumber']), int(user['attributes']['gidNumber']))
                 else:
                     logger.debug('skipping chown because we are not root')
 
