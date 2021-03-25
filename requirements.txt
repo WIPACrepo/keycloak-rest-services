@@ -9,4 +9,4 @@ motor
 unidecode
 ldap3
 flake8
--e git+https://github.com/WIPACrepo/rest-tools#egg=rest_tools
+git+https://github.com/WIPACrepo/rest-tools@v1.1.0#egg=rest_tools
