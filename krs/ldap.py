@@ -1,7 +1,7 @@
 import logging
 
 from ldap3 import Server, Connection, ALL, ALL_ATTRIBUTES, MODIFY_ADD, MODIFY_REPLACE, MODIFY_DELETE
-import requests
+from rest_tools.client import RestClient
 from rest_tools.server import from_environment
 
 
@@ -24,46 +24,158 @@ class LDAP:
             'KEYCLOAK_URL': None,
             'KEYCLOAK_REALM': None,
         })
-        url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/{cfg["KEYCLOAK_REALM"]}/components'
+        base_url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/{cfg["KEYCLOAK_REALM"]}'
+        rc = RestClient(base_url, keycloak_token)
+        url = '/components'
 
+        # define LDAP provider
         args = {
-            "name": "ldap",
-            "providerId": "ldap",
-            "providerType": "org.keycloak.storage.UserStorageProvider",
-            "config": {
-                "connectionUrl": [self.config['LDAP_URL']],
-                "bindCredential": [self.config['LDAP_ADMIN_PASSWORD']],
-                "bindDn": [self.config['LDAP_ADMIN_USER']],
-                "usersDn": [self.config['LDAP_USER_BASE']],
-                "userObjectClasses": ["inetOrgPerson, organizationalPerson"],
-                "usernameLDAPAttribute": ["uid"],
-                "uuidLDAPAttribute": ["uid"],
-                "rdnLDAPAttribute": ["uid"],
-                "fullSyncPeriod": ["604800"],
-                "pagination": ["true"],
-                "connectionPooling": ["true"],
-                "cachePolicy": ["DEFAULT"],
-                "useKerberosForPasswordAuthentication": ["false"],
-                "importEnabled": ["true"],
-                "enabled": ["true"],
-                "changedSyncPeriod": ["60"],
-                "lastSync": ["-1"],
-                "vendor": ["other"],
-                "allowKerberosAuthentication": ["false"],
-                "syncRegistrations": ["true"],
-                "authType": ["simple"],
-                "debug": ["false"],
-                "searchScope": ["1"],
-                "useTruststoreSpi": ["ldapsOnly"],
-                "trustEmail": ["false"],
-                "priority": ["0"],
-                "editMode": ["WRITABLE"],
-                "validatePasswordPolicy": ["false"],
-                "batchSizeForSync": ["1000"]
+            'name': 'ldap',
+            'providerId': 'ldap',
+            'providerType': 'org.keycloak.storage.UserStorageProvider',
+            'config': {
+                'connectionUrl': [self.config['LDAP_URL']],
+                'bindCredential': [self.config['LDAP_ADMIN_PASSWORD']],
+                'bindDn': [self.config['LDAP_ADMIN_USER']],
+                'usersDn': [self.config['LDAP_USER_BASE']],
+                'userObjectClasses': ['inetOrgPerson, organizationalPerson'],
+                'usernameLDAPAttribute': ['uid'],
+                'uuidLDAPAttribute': ['uid'],
+                'rdnLDAPAttribute': ['uid'],
+                'fullSyncPeriod': ['604800'],
+                'pagination': ['true'],
+                'connectionPooling': ['true'],
+                'cachePolicy': ['DEFAULT'],
+                'useKerberosForPasswordAuthentication': ['false'],
+                'importEnabled': ['true'],
+                'enabled': ['true'],
+                'changedSyncPeriod': ['60'],
+                'lastSync': ['-1'],
+                'vendor': ['other'],
+                'allowKerberosAuthentication': ['false'],
+                'syncRegistrations': ['true'],
+                'authType': ['simple'],
+                'debug': ['false'],
+                'searchScope': ['1'],
+                'useTruststoreSpi': ['ldapsOnly'],
+                'trustEmail': ['false'],
+                'priority': ['0'],
+                'editMode': ['WRITABLE'],
+                'validatePasswordPolicy': ['false'],
+                'batchSizeForSync': ['1000'],
             }
         }
-        r = requests.post(url, headers={'Authorization': f'bearer {keycloak_token}'}, json=args)
-        r.raise_for_status()
+        await rc.request('POST', url, args)
+        ret = await rc.request('GET', url)
+        ldapComponentId = None
+        ldapAttrs = []
+        for comp in ret:
+            if 'providerId' in comp:
+                if comp['providerId'] == 'ldap':
+                    ldapComponentId = comp['id']
+                elif comp['providerId'] == 'user-attribute-ldap-mapper':
+                    ldapAttrs.append(comp['name'])
+        if not ldapComponentId:
+            raise RuntimeError('LDAP provider not registered in Keycloak')
+
+        # define mandatory attrs
+        if 'username' not in ldapAttrs:
+            args = {
+                'name': 'username',
+                'providerId': 'user-attribute-ldap-mapper',
+                'providerType': 'org.keycloak.storage.ldap.mappers.LDAPStorageMapper',
+                'parentId': ldapComponentId,
+                'config': {
+                    'is.mandatory.in.ldap': ['true'],
+                    'always.read.value.from.ldap': ['false'],
+                    'read.only': ['false'],
+                    'user.model.attribute': ['username'],
+                    'ldap.attribute': ['uid'],
+                }
+            }
+            await rc.request('POST', url, args)
+
+        if 'first name' not in ldapAttrs:
+            args = {
+                'name': 'first name',
+                'providerId': 'user-attribute-ldap-mapper',
+                'providerType': 'org.keycloak.storage.ldap.mappers.LDAPStorageMapper',
+                'parentId': ldapComponentId,
+                'config': {
+                    'is.mandatory.in.ldap': ['true'],
+                    'always.read.value.from.ldap': ['true'],
+                    'read.only': ['false'],
+                    'user.model.attribute': ['firstName'],
+                    'ldap.attribute': ['cn'],
+                }
+            }
+            await rc.request('POST', url, args)
+
+        if 'last name' not in ldapAttrs:
+            args = {
+                'name': 'last name',
+                'providerId': 'user-attribute-ldap-mapper',
+                'providerType': 'org.keycloak.storage.ldap.mappers.LDAPStorageMapper',
+                'parentId': ldapComponentId,
+                'config': {
+                    'is.mandatory.in.ldap': ['true'],
+                    'always.read.value.from.ldap': ['true'],
+                    'read.only': ['false'],
+                    'user.model.attribute': ['lastName'],
+                    'ldap.attribute': ['sn'],
+                }
+            }
+            await rc.request('POST', url, args)
+
+        if 'email' not in ldapAttrs:
+            args = {
+                'name': 'email',
+                'providerId': 'user-attribute-ldap-mapper',
+                'providerType': 'org.keycloak.storage.ldap.mappers.LDAPStorageMapper',
+                'parentId': ldapComponentId,
+                'config': {
+                    'is.mandatory.in.ldap': ['true'],
+                    'always.read.value.from.ldap': ['false'],
+                    'read.only': ['false'],
+                    'user.model.attribute': ['email'],
+                    'ldap.attribute': ['mail'],
+                }
+            }
+            await rc.request('POST', url, args)
+
+        # define optional attrs
+        for attr in ('uidNumber', 'gidNumber', 'homeDirectory'):
+            if attr not in ldapAttrs:
+                args = {
+                    'name': attr,
+                    'providerId': 'user-attribute-ldap-mapper',
+                    'providerType': 'org.keycloak.storage.ldap.mappers.LDAPStorageMapper',
+                    'parentId': ldapComponentId,
+                    'config': {
+                        'is.mandatory.in.ldap': ['false'],
+                        'always.read.value.from.ldap': ['false'],
+                        'read.only': ['false'],
+                        'user.model.attribute': [attr],
+                        'ldap.attribute': [attr],
+                    }
+                }
+                await rc.request('POST', url, args)
+
+    async def force_keycloak_sync(self, keycloak_client=None):
+        ret = await keycloak_client.request('GET', '/components')
+        ldapComponentId = None
+        for comp in ret:
+            if 'providerId' in comp and comp['providerId'] == 'ldap':
+                ldapComponentId = comp['id']
+                break
+        if not ldapComponentId:
+            raise RuntimeError('LDAP provider not registered in Keycloak')
+
+        try:
+            await keycloak_client.request('POST', f'/user-storage/{ldapComponentId}/sync?action=triggerChangedUsersSync')
+        except Exception as e:
+            logger.info(f'error: {e.response.text}')
+            raise
 
     def list_users(self, attrs=None):
         """
