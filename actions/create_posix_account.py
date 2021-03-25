@@ -31,8 +31,8 @@ async def process(group_path, keycloak_client=None, ldap_client=None):
         attribs = {'uidNumber': max_id, 'gidNumber': max_id, 'homeDirectory': f'/home/{username}'}
         ldap_client.modify_user(username, attribs, objectClass='posixAccount')
 
-        # add attrs to Keycloak
-        await modify_user(username, attribs, rest_client=keycloak_client)
+        # sync with Keycloak
+        await ldap_client.force_keycloak_sync(keycloak_client=keycloak_client)
 
 
 def main():
