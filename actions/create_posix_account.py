@@ -5,7 +5,6 @@ import logging
 import asyncio
 
 from krs.groups import get_group_membership
-from krs.users import modify_user
 from krs.token import get_rest_client
 from krs.ldap import LDAP
 
