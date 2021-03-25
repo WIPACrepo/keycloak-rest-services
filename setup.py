@@ -1,12 +1,19 @@
 #!/usr/bin/env python
 """Setup."""
 
+
 import glob
 import os
 import re
 import sys
+from typing import List
 
 PACKAGE = "keycloak-rest-services"
+HERE = os.path.dirname(os.path.realpath(__file__))
+REQUIREMENTS_PATH = os.path.join(HERE, "requirements.txt")
+REQUIREMENTS = open(REQUIREMENTS_PATH).read().splitlines()
+kwargs = {}
+
 
 if sys.version_info < (3, 6):
     print(f"ERROR: {PACKAGE} requires at least Python 3.6+ to run.")
@@ -20,11 +27,8 @@ except ImportError:
     setuptools = None
     from distutils.core import setup
 
-kwargs = {}
 
-current_path = os.path.dirname(os.path.realpath(__file__))
-
-with open(os.path.join(current_path, "__init__.py")) as f:
+with open(os.path.join(HERE, "__init__.py")) as f:
     for line in f.readlines():
         if "__version__" in line:
             # grab "X.Y.Z" from "__version__ = 'X.Y.Z'" (quote-style insensitive)
@@ -33,37 +37,35 @@ with open(os.path.join(current_path, "__init__.py")) as f:
     else:
         raise Exception("cannot find __version__")
 
-with open(os.path.join(current_path, "README.md")) as f:
+with open(os.path.join(HERE, "README.md")) as f:
     kwargs["long_description"] = f.read()
     kwargs["long_description_content_type"] = "text/markdown"
 
-if setuptools is not None:
-    # If setuptools is not available, you're on your own for dependencies.
-    install_requires = []
-    dependency_links = []
-    with open(os.path.join(current_path, "requirements.txt")) as f:
-        for line in f.readlines():
-            # GitHub Dependency
-            if m := re.match(r"(-e git:|-e git\+|git:|git\+)(?P<src>.*)", line):
-                src = m.groupdict()["src"]
-                if m := re.match(r"(?P<url>.*)(?P<egg>#egg=)(?P<pkg>.*)", src):
-                    # add tarball master link
-                    tarball_link = f"{m['url']}/tarball/master{m['egg']}{m['pkg']}"
-                    dependency_links.append(tarball_link)
-                    # add package name
-                    install_requires.append(m["pkg"])
-                else:
-                    print("Dependency to a git repository should have the format:")
-                    print("git+[ssh|https]://git@github.com/xxxx/xxxx#egg=package_name")
-            # Don't Add PyTests
-            elif "pytest" in line:
-                continue
-            # PyPI Dependency
-            else:
-                install_requires.append(line)
 
-    kwargs["install_requires"] = install_requires
-    kwargs["dependency_links"] = dependency_links
+def _get_pypi_requirements() -> List[str]:
+    return [
+        m.replace("==", ">=")
+        for m in REQUIREMENTS
+        if ("git+" not in m) and ("pytest" not in m)
+    ]
+
+
+def _get_git_requirements() -> List[str]:
+    def valid(req: str) -> bool:
+        pat = r"^git\+https://github\.com/[^/]+/[^/]+@(v)?\d+\.\d+\.\d+#egg=\w+$"
+        if not re.match(pat, req):
+            raise Exception(
+                f"from {REQUIREMENTS_PATH}: "
+                f"pip-install git-package url is not in standardized format {pat} ({req})"
+            )
+        return True
+
+    return [m.replace("git+", "") for m in REQUIREMENTS if "git+" in m and valid(m)]
+
+
+if setuptools is not None:
+    kwargs["install_requires"] = _get_pypi_requirements()
+    kwargs["dependency_links"] = _get_git_requirements()
     kwargs["zip_safe"] = False
 
 
