@@ -16,27 +16,54 @@ async def process(group_path, keycloak_client=None, ldap_client=None):
     # get highest uid, gid in ldap
     max_uid = 0
     max_gid = 0
-    users = ldap_client.list_users(['uidNumber', 'gidNumber'])
+    users = ldap_client.list_users(['uidNumber', 'gidNumber', 'loginShell'])
+    ldapPosix = set()
     for username in users:
         user = users[username]
         if 'uidNumber' in user and user['uidNumber'] > max_uid:
             max_uid = user['uidNumber']
         if 'gidNumber' in user and user['gidNumber'] > max_gid:
             max_gid = user['gidNumber']
+        if 'loginShell' in user and user['loginShell'] and user['loginShell'] != '/sbin/nologin':
+            ldapPosix.add(username)
     max_id = max(max_uid, max_gid)
 
     ret = await get_group_membership(group_path, rest_client=keycloak_client)
+
+    # add new users
     for username in ret:
         if username in users and 'uidNumber' in users[username]:
-            continue
-        # modify user account in LDAP
-        max_id += 1
-        attribs = {'uidNumber': max_id, 'gidNumber': max_id, 'homeDirectory': f'/home/{username}'}
-        ldap_client.modify_user(username, attribs, objectClass='posixAccount')
+            if 'loginShell' in user and user['loginShell'] and user['loginShell'] == '/sbin/nologin':
+                # add back an existing account access
+                attribs = {
+                    'loginShell': '/bin/bash',
+                }
+                ldap_client.modify_user(username, attribs)
+                logger.info(f're-enabled user {username} as a POSIX user')
+        else:
+            # new uid/gid
+            max_id += 1
+            user = users[username]
+            shell = user['attributes']['loginShell'] if 'attributes' in user and 'loginShell' in user['attributes'] else '/bin/bash'
+            attribs = {
+                'uidNumber': max_id,
+                'gidNumber': max_id,
+                'homeDirectory': f'/home/{username}',
+                'loginShell': shell,
+            }
+            ldap_client.modify_user(username, attribs, objectClass='posixAccount')
+            logger.info(f'added user {username} as a POSIX user with {max_id}:{max_id}')
 
-        # sync with Keycloak
-        await ldap_client.force_keycloak_sync(keycloak_client=keycloak_client)
-        logger.info(f'added user {username} as a POSIX user with {max_id}:{max_id}')
+    # remove users that lost POSIX access
+    for username in ldapPosix.difference(ret):
+        attribs = {
+            'loginShell': '/sbin/nologin',
+        }
+        ldap_client.modify_user(username, attribs)
+        logger.info(f'disabled user {username} as a POSIX user')
+
+    # sync with Keycloak
+    await ldap_client.force_keycloak_sync(keycloak_client=keycloak_client)
 
 def listener(group_path, address=None, exchange=None, dedup=1, **kwargs):
     """Set up RabbitMQ listener"""

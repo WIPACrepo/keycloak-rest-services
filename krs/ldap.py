@@ -144,7 +144,7 @@ class LDAP:
             await rc.request('POST', url, args)
 
         # define optional attrs
-        for attr in ('uidNumber', 'gidNumber', 'homeDirectory'):
+        for attr in ('uidNumber', 'gidNumber', 'homeDirectory', 'loginShell'):
             if attr not in ldapAttrs:
                 args = {
                     'name': attr,
