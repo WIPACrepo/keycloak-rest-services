@@ -44,6 +44,11 @@ jobs:
                 LDAP_ADMIN_PASSWORD: admin
                 LDAP_ROOT: "dc=icecube,dc=wisc,dc=edu"
                 LDAP_CUSTOM_LDIF_DIR: "/ldifs"
+            - image: rabbitmq:3-management
+              environment:
+                RABBITMQ_DEFAULT_USER: admin
+                RABBITMQ_DEFAULT_PASS: admin
+                RABBITMQ_DEFAULT_VHOST: keycloak
         steps:
             - checkout
             - run: ./setupenv.sh

@@ -356,6 +356,29 @@ def user_mgmt_app(appurl, passwordGrant=False, token=None):
 
         print('user_mgmt app created')
 
+def add_rabbitmq_listener(realm=None, token=None):
+    cfg = from_environment({
+        'KEYCLOAK_URL': None,
+    })
+
+    url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/{realm}/events/config'
+    r = requests.get(url, headers={'Authorization': f'bearer {token}'})
+    r.raise_for_status()
+    event_config = r.json()
+
+    # make sure rabbitmq is in the config listeners
+    if 'keycloak-to-rabbitmq' in event_config['eventsListeners']:
+        print('rabbitmq listener already registered')
+    else:
+        print('registering rabbitmq listener')
+        event_config['eventsListeners'].append('keycloak-to-rabbitmq')
+        r = requests.put(url, json=event_config, headers={'Authorization': f'bearer {token}'})
+        try:
+            r.raise_for_status()
+        except Exception:
+            print(r.text)
+            raise
+
 
 def bootstrap():
     cfg = from_environment({
@@ -373,6 +396,8 @@ def bootstrap():
     create_public_app(cfg['KEYCLOAK_REALM'], token=token)
 
     client_secret = create_service_role(cfg['KEYCLOAK_CLIENT_ID'], realm=cfg['KEYCLOAK_REALM'], token=token)
+
+    add_rabbitmq_listener(realm=cfg['KEYCLOAK_REALM'], token=token)
 
     print(f'\nclient_id={cfg["KEYCLOAK_CLIENT_ID"]}')
     print(f'client_secret={client_secret}')

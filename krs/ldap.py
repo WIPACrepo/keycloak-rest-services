@@ -162,6 +162,7 @@ class LDAP:
                 await rc.request('POST', url, args)
 
     async def force_keycloak_sync(self, keycloak_client=None):
+        logger.info('syncing keycloak and ldap')
         ret = await keycloak_client.request('GET', '/components')
         ldapComponentId = None
         for comp in ret:
