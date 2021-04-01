@@ -115,7 +115,7 @@ async def test_listener(keycloak_bootstrap, ldap_bootstrap, listener):
 
     await groups.add_user_group('/posix', 'testuser', rest_client=keycloak_bootstrap)
 
-    await asyncio.sleep(.1) # allow posix account to run
+    await asyncio.sleep(.25) # allow listener to run
 
     ret = await users.user_info('testuser', rest_client=keycloak_bootstrap)
     assert 'homeDirectory' in ret['attributes']
