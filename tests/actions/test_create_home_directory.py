@@ -1,7 +1,8 @@
 import pytest
+import asyncio
 
 #from krs.token import get_token
-from krs import users, groups, bootstrap
+from krs import users, groups, bootstrap, rabbitmq
 from actions import create_home_directory
 
 from ..util import keycloak_bootstrap, ldap_bootstrap
@@ -77,4 +78,46 @@ async def test_already_exists(keycloak_bootstrap, tmp_path):
     await create_home_directory.process(tmp_path, keycloak_client=keycloak_bootstrap)
 
     assert ret_path.exists()
+    assert not ret_path.is_dir()
+
+@pytest.fixture
+@pytest.mark.asyncio
+async def listener(keycloak_bootstrap, tmp_path):
+    rabbitmq.create_user('guest', 'guest')
+    mq = create_home_directory.listener(root_dir=tmp_path, dedup=None, keycloak_client=keycloak_bootstrap)
+    await mq.start()
+    try:
+        yield mq
+    finally:
+        await mq.stop()
+
+
+@pytest.mark.asyncio
+async def test_listener_create(keycloak_bootstrap, tmp_path, listener):
+    attrs = {
+        'homeDirectory': '/home/testuser',
+        'uidNumber': 12345,
+        'gidNumber': 12345,
+    }
+    await users.create_user('testuser', first_name='first', last_name='last', email='foo@test', attribs=attrs, rest_client=keycloak_bootstrap)
+
+    await asyncio.sleep(.1)
+
+    ret_path = tmp_path / 'home/testuser'
+    assert ret_path.is_dir()
+
+@pytest.mark.asyncio
+async def test_listener_other(keycloak_bootstrap, tmp_path, listener):
+    attrs = {
+        'homeDirectory': '/home/testuser',
+        'uidNumber': 12345,
+        'gidNumber': 12345,
+    }
+    await users.create_user('testuser', first_name='first', last_name='last', email='foo@test', attribs=attrs, rest_client=keycloak_bootstrap)
+
+    await asyncio.sleep(.1)
+
+    await users.create_user('testuser2', first_name='first', last_name='last', email='foo@test2', rest_client=keycloak_bootstrap)
+
+    ret_path = tmp_path / 'home/testuser2'
     assert not ret_path.is_dir()
