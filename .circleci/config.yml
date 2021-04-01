@@ -34,9 +34,13 @@ jobs:
                 USERNAME: admin
                 PASSWORD: admin
             - image: quay.io/keycloak/keycloak:10.0.2
+              entrypoint: "sh -c 'curl -o/opt/jboss/keycloak/standalone/deployments/keycloak-to-rabbit-1.0.jar https://github.com/aznamier/keycloak-event-listener-rabbitmq/releases/download/1.0/keycloak-to-rabbit-1.0.jar && /opt/jboss/tools/docker-entrypoint.sh'"
               environment:
                 KEYCLOAK_USER: admin
                 KEYCLOAK_PASSWORD: admin
+                KK_TO_RMQ_USERNAME: admin
+                KK_TO_RMQ_PASSWORD: admin
+                KK_TO_RMQ_VHOST: keycloak
             - image: bitnami/openldap:2
               environment:
                 LDAP_PORT_NUMBER: 1389
