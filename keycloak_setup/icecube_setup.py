@@ -266,6 +266,12 @@ ICECUBE_INSTS = {
         "is_US": False,
         "region": _EUROPE,
     },
+    "Padova": {
+        "cite": "Dipartimento di Fisica e Astronomia Galileo Galilei, Università Degli Studi di Padova, 35122 Padova PD, Italy",
+        "abbreviation": "UNIPD",
+        "is_US": False,
+        "region": _EUROPE,
+    },
     "Penn-State-Astronomy": {
         "cite": "Dept. of Astronomy and Astrophysics, Pennsylvania State University, University Park, PA 16802, USA",
         "abbreviation": "PSU",
