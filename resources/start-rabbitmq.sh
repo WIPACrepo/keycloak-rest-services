@@ -1,8 +1,8 @@
 #!/bin/bash
 docker run -d --name rabbitmq -h rabbitmq -p 5672:5672 -p 15672:15672 \
- --env RABBITMQ_DEFAULT_USER=admin --env RABBITMQ_DEFAULT_PASS=admin \
- --env RABBITMQ_DEFAULT_VHOST=keycloak \
- rabbitmq:3-management
+ --env RABBITMQ_USERNAME=admin --env RABBITMQ_PASSWORD=admin \
+ --env RABBITMQ_VHOST=keycloak \
+ bitnami/rabbitmq:3.8
 sleep 5
 
 # add read-only user for keycloak events
