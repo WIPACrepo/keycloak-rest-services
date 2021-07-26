@@ -1,0 +1,23 @@
+.login-pf body {
+    background: #eee;
+    background-size: cover;
+    height: 100%;
+}
+
+.login-pf .login-pf-page .card-pf {
+    padding: 2em 4em;
+    margin: 0 4em;
+}
+
+#kc-header-wrapper img {
+    height: 60px;
+    width: 228px;
+    max-width: 228px;
+    text-align: center;
+}
+
+:root {
+    --pf-global--active-color--100: #3773a2;
+    --pf-global--primary-color--100: #3773a2;
+    --pf-global--primary-color--dark-100: #3773a2;
+}

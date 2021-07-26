@@ -1,6 +1,7 @@
 #!/bin/bash
 docker run -d --name keycloak --network host \
  -v $PWD/resources/keycloak-to-rabbit-1.0.jar:/opt/jboss/keycloak/standalone/deployments/keycloak-to-rabbit-1.0.jar \
+ -v $PWD/keycloak_theme:/opt/jboss/keycloak/themes/custom \
  --env KK_TO_RMQ_USERNAME=admin --env KK_TO_RMQ_PASSWORD=admin \
  --env KK_TO_RMQ_VHOST=keycloak \
  jboss/keycloak:12.0.2 -Djboss.bind.address.private=127.0.0.1 -Djboss.bind.address=127.0.0.1
