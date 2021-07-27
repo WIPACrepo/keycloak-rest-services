@@ -7,10 +7,8 @@ Example::
 
     python actions/create_email_account.py --email-server mail.icecube.wisc.edu
 """
-import os
 import logging
 import asyncio
-import getpass
 import pathlib
 import tempfile
 import subprocess
