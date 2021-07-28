@@ -8,6 +8,7 @@ from rest_tools.client import RestClient
 from krs import bootstrap
 from krs.token import get_token
 from krs import ldap
+from krs import rabbitmq
 
 @pytest.fixture
 def keycloak_bootstrap(monkeypatch):
@@ -62,3 +63,7 @@ def ldap_bootstrap(monkeypatch):
         yield obj
     finally:
         cleanup()
+
+@pytest.fixture(scope="session")
+def rabbitmq_bootstrap():
+    rabbitmq.create_user('keycloak_guest', 'guest')
