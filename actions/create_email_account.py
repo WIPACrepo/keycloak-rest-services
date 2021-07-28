@@ -80,14 +80,15 @@ if changes:
 '''
     scp_and_run(email_server, script)
 
-def listener(address=None, exchange=None, dedup=1, **kwargs):
+def listener(group_path, address=None, exchange=None, dedup=1, **kwargs):
     """Set up RabbitMQ listener"""
     async def action(message):
         logger.debug(f'{message}')
-        await process(**kwargs)
+        if message['representation']['path'] == group_path:
+            await process(group_path=group_path, **kwargs)
 
     args = {
-        'routing_key': 'KK.EVENT.ADMIN.#.USER.#',
+        'routing_key': 'KK.EVENT.ADMIN.#.GROUP_MEMBERSHIP.#',
         'dedup': dedup,
     }
     if address:

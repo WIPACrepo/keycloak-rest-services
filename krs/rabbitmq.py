@@ -26,7 +26,7 @@ class RabbitMQListener:
         message_count (int): number of messages to prefetch
         dedup (int): deduplicate multiple requests received over specified time interval
     """
-    def __init__(self, action, address='amqp://guest:guest@127.0.0.1/keycloak', exchange='amq.topic',
+    def __init__(self, action, address='amqp://keycloak_guest:guest@127.0.0.1/keycloak', exchange='amq.topic',
                  routing_key='KK.EVENT.ADMIN.#', message_count=100, dedup=None):
         self.action = action
         self.address = address

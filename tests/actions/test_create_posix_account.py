@@ -1,11 +1,12 @@
 import pytest
 import asyncio
+import logging
 
 #from krs.token import get_token
 from krs import users, groups, bootstrap, rabbitmq
 from actions import create_posix_account
 
-from ..util import keycloak_bootstrap, ldap_bootstrap
+from ..util import keycloak_bootstrap, ldap_bootstrap, rabbitmq_bootstrap
 
 
 @pytest.mark.asyncio
@@ -97,8 +98,7 @@ async def test_create_remove_add(keycloak_bootstrap, ldap_bootstrap):
 
 @pytest.fixture
 @pytest.mark.asyncio
-async def listener(keycloak_bootstrap, ldap_bootstrap):
-    rabbitmq.create_user('guest', 'guest')
+async def listener(keycloak_bootstrap, ldap_bootstrap, rabbitmq_bootstrap):
     mq = create_posix_account.listener('/posix', dedup=None, keycloak_client=keycloak_bootstrap, ldap_client=ldap_bootstrap)
     await mq.start()
     try:
@@ -113,11 +113,12 @@ async def test_listener(keycloak_bootstrap, ldap_bootstrap, listener):
     await users.create_user('testuser', first_name='first', last_name='last', email='foo@test', rest_client=keycloak_bootstrap)
     await groups.create_group('/posix', rest_client=keycloak_bootstrap)
 
-    await groups.add_user_group('/posix', 'testuser', rest_client=keycloak_bootstrap)
+    await groups.add_user_group('/posix', 'testuser', rest_client=keycloak_bootstrap) # triggers listener
 
-    await asyncio.sleep(.25) # allow listener to run
+    await asyncio.sleep(.5) # allow listener to run
 
     ret = await users.user_info('testuser', rest_client=keycloak_bootstrap)
+    logging.info(f'{ret}')
     assert 'homeDirectory' in ret['attributes']
     assert ret['attributes']['homeDirectory'] == '/home/testuser'
 
