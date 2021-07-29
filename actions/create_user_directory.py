@@ -16,6 +16,7 @@ import logging
 import asyncio
 import getpass
 import pathlib
+import subprocess
 
 from krs.groups import get_group_membership
 from krs.users import list_users
@@ -24,6 +25,13 @@ from krs.rabbitmq import RabbitMQListener
 
 
 logger = logging.getLogger('create_user_directory')
+
+QUOTAS = {
+    '/mnt/homework/homework': '/sbin/zfs set userquota@"{}"=15G homework/homework',
+    '/mnt/homework/public_html': '/sbin/zfs set userquota@"{}"=3G homework/public_html',
+    '/mnt/homework/private_cvmfs': '/sbin/zfs set userquota@"{}"=10G homework/private_cvmfs',
+    '/mnt/lfs7/users': '/usr/bin/lfs setquota -g {} --block-softlimit 2000000 --block-hardlimit 2250000 /mnt/lfs7'
+}
 
 async def process(group_path, root_dir, keycloak_client=None):
     group_members = await get_group_membership(group_path, rest_client=keycloak_client)
@@ -37,8 +45,10 @@ async def process(group_path, root_dir, keycloak_client=None):
                 path.mkdir(mode=0o755, parents=True, exist_ok=True)
                 if getpass.getuser() == 'root':
                     os.chown(path, int(user['attributes']['uidNumber']), int(user['attributes']['gidNumber']))
+                    if root_dir in QUOTAS:
+                        subprocess.check_call(QUOTAS[root_dir].format(username), shell=True)
                 else:
-                    logger.debug('skipping chown because we are not root')
+                    logger.debug('skipping chown and quota because we are not root')
 
 def listener(address=None, exchange=None, dedup=1, **kwargs):
     """Set up RabbitMQ listener"""
