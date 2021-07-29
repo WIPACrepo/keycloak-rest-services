@@ -98,7 +98,7 @@ async def test_listener_create(keycloak_bootstrap, tmp_path, listener, patch_ssh
     await groups.create_group('/email', rest_client=keycloak_bootstrap)
     await groups.add_user_group('/email', 'testuser', rest_client=keycloak_bootstrap)
 
-    await asyncio.sleep(.1) # allow listener to run
+    await asyncio.sleep(.25) # allow listener to run
 
     patch_ssh.assert_called_once()
     assert patch_ssh.call_args.args[0] == 'test.test.test'
