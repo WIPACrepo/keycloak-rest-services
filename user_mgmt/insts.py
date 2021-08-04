@@ -3,6 +3,8 @@ Handle user institution-based actions.
 """
 import logging
 import uuid
+import random
+import string
 
 import unidecode
 from tornado.web import HTTPError
@@ -356,7 +358,7 @@ class InstApprovalsActionApprove(MyHandler):
         try:
             if newuser:
                 krs.email.send_email(
-                    recipient={'name': f'{args["first_name"]} {args["last_name"}', 'email': args['email']},
+                    recipient={'name': f'{args["first_name"]} {args["last_name"]}', 'email': args['email']},
                     subject='IceCube Account Approved',
                     content=f'''Welcome to IceCube {args["first_name"]} {args["last_name"]}!
 
@@ -394,11 +396,11 @@ listed in the "Other Governing Agreements" section of the policy linked above.
 ''')
             else:
                 try:
-                    args = await krs.users.user_info(username, rest_client=self.krs_client)
+                    args = await krs.users.user_info(ret['username'], rest_client=self.krs_client)
                 except Exception:
                     raise HTTPError(400, 'invalid username')
                 krs.email.send_email(
-                    recipient={'name': f'{args["first_name"]} {args["last_name"}', 'email': args['email']},
+                    recipient={'name': f'{args["first_name"]} {args["last_name"]}', 'email': args['email']},
                     subject='IceCube Account Institution Changes',
                     content=f'''IceCube Institution Change
 
@@ -449,11 +451,11 @@ class InstApprovalsActionDeny(MyHandler):
                 }
             else:
                 try:
-                    args = await krs.users.user_info(username, rest_client=self.krs_client)
+                    args = await krs.users.user_info(ret['username'], rest_client=self.krs_client)
                 except Exception:
                     raise HTTPError(400, 'invalid username')
             krs.email.send_email(
-                recipient={'name': f'{args["first_name"]} {args["last_name"}', 'email': args['email']},
+                recipient={'name': f'{args["first_name"]} {args["last_name"]}', 'email': args['email']},
                 subject='IceCube Account Request Denied',
                 content=f'''IceCube Account Request Denied
 

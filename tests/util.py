@@ -4,6 +4,8 @@ from functools import partial
 import pytest
 from ldap3 import Connection
 from rest_tools.client import RestClient
+from rest_tools.server import from_environment
+import requests
 
 from krs import bootstrap
 from krs.token import get_token
@@ -66,4 +68,22 @@ def ldap_bootstrap(monkeypatch):
 
 @pytest.fixture(scope="session")
 def rabbitmq_bootstrap():
+    config = from_environment({
+        'RABBITMQ_MGMT_URL': 'http://localhost:15672',
+        'RABBITMQ_ADMIN_USER': 'admin',
+        'RABBITMQ_ADMIN_PASSWORD': 'admin',
+    })
+    auth = (config['RABBITMQ_ADMIN_USER'], config['RABBITMQ_ADMIN_PASSWORD'])
+
+    for _ in range(100):
+        r = requests.get(f'{config["RABBITMQ_MGMT_URL"]}/api/users', auth=auth)
+        try:
+            r.raise_for_status()
+        except Exception:
+            time.sleep(1)
+        else:
+            break
+    else:
+        raise Exception('RabbitMQ is not responding!')
+
     rabbitmq.create_user('keycloak_guest', 'guest')
