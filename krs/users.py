@@ -115,13 +115,14 @@ async def modify_user(username, attribs=None, rest_client=None):
         ret['attributes'] = attribs
     await rest_client.request('PUT', url, ret)
 
-async def set_user_password(username, password=None, rest_client=None):
+async def set_user_password(username, password=None, temporary=False, rest_client=None):
     """
     Set a user's password in Keycloak.
 
     Args:
         username (str): username of user
         password (str): new password
+        temporary (bool): is this a temporary password that must be changed?
     """
     if password is None:
         # get password from cmdline
@@ -136,6 +137,7 @@ async def set_user_password(username, password=None, rest_client=None):
         url = f'/users/{ret["id"]}/reset-password'
         args = {
             'value': password,
+            'temporary': bool(temporary),
         }
         ret = await rest_client.request('PUT', url, args)
         print(f'user "{username}" password set')

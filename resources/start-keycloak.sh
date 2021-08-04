@@ -8,7 +8,11 @@ docker run -d --name keycloak --network host \
 sleep 60
 docker exec keycloak /opt/jboss/keycloak/bin/add-user-keycloak.sh -u admin -p admin
 docker restart keycloak
-sleep 60
+
+until curl http://localhost:8080 >/dev/null 2>/dev/null
+do
+    sleep 5
+done
 
 echo "Keycloak Ready"
 

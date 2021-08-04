@@ -10,6 +10,7 @@ from rest_tools.server import catch_error, authenticated
 
 import krs.users
 import krs.groups
+import krs.email
 
 from . import MyHandler
 
@@ -346,7 +347,7 @@ class InstApprovalsActionApprove(MyHandler):
 
         await self.db.inst_approvals.delete_one({'id': approval_id})
 
-        # TODO: send email
+        #krs.email.send_email(args['email'], 'IceCube Account Approved', 'test')
 
         self.write({})
 
