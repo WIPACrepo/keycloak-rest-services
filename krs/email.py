@@ -6,10 +6,7 @@ from email.headerregistry import Address
 from email.utils import make_msgid
 
 
-TEMPLATE = """
-IceCube Identity Management
-
-{}
+TEMPLATE = """{}
 
 
 This message was sent via an automated system and does not accept replies.
