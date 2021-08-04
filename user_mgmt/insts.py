@@ -315,8 +315,10 @@ class InstApprovalsActionApprove(MyHandler):
         if not any(ret['experiment'] == exp and ret['institution'] == insts[exp] for exp in insts):
             raise HTTPError(403, 'invalid authorization')
 
+        newuser = 'newuser' in ret and ret['newuser']
+
         audit_logger.info(f'{self.auth_data["username"]} is approving request {approval_id}')
-        if 'newuser' in ret and ret['newuser']:
+        if newuser:
             # create new user account
             user_data = await self.db.user_registrations.find_one({'id': ret['newuser']})
             if not user_data:
@@ -332,6 +334,9 @@ class InstApprovalsActionApprove(MyHandler):
                 },
             }
             await krs.users.create_user(rest_client=self.krs_client, **args)
+            password = random.choices(string.ascii_letters+string.digits, k=16)
+            await krs.users.set_user_password(args['username'], password, temporary=True, rest_client=self.krs_client)
+
             await self.db.user_registrations.delete_one({'id': ret['newuser']})
 
         # add user to institution
@@ -347,7 +352,61 @@ class InstApprovalsActionApprove(MyHandler):
 
         await self.db.inst_approvals.delete_one({'id': approval_id})
 
-        #krs.email.send_email(args['email'], 'IceCube Account Approved', 'test')
+        # send email
+        try:
+            if newuser:
+                krs.email.send_email(
+                    recipient={'name': f'{args["first_name"]} {args["last_name"}', 'email': args['email']},
+                    subject='IceCube Account Approved',
+                    content=f'''Welcome to IceCube {args["first_name"]} {args["last_name"]}!
+
+You have a new account with the IceCube project at UW-Madison.
+
+Username:  {args["username"]}
+Password:  {password}
+E-mail Address:  {args["username"]}@icecube.wisc.edu
+
+Please change your password immediately. Go to the password reset page to do so:
+  https://keycloak.icecube.wisc.edu/auth/realms/IceCube/account/password
+
+Many IceCube resources, including the IceCube wiki, are protected with a
+generic set of user credentials. If you see a window asking for security
+credentials, enter the generic IceCube credentials below.
+  Username:  icecube
+  Password:  skua
+
+More information about your account and resources available to you can be
+found in the wiki:
+  https://wiki.icecube.wisc.edu/index.php/Newbies
+
+Please send requests for desktop or server support to: help@icecube.wisc.edu.
+
+
+This account will be terminated when your association ends with the IceCube
+Project. When your account is terminated, you may request email forwarding to
+another address for up to six months.
+
+By using this account, you agree to the IceCube IT Acceptable Use Policy.
+  https://wiki.icecube.wisc.edu/index.php/Acceptable_Use_Policy
+
+IceCube accounts are also subject to University of Wisconsin-Madison policies
+listed in the "Other Governing Agreements" section of the policy linked above.
+''')
+            else:
+                try:
+                    args = await krs.users.user_info(username, rest_client=self.krs_client)
+                except Exception:
+                    raise HTTPError(400, 'invalid username')
+                krs.email.send_email(
+                    recipient={'name': f'{args["first_name"]} {args["last_name"}', 'email': args['email']},
+                    subject='IceCube Account Institution Changes',
+                    content=f'''IceCube Institution Change
+
+Your account with the IceCube project at UW-Madison has been altered.
+You are now a member of {ret["experiment"]}/{ret["institution"]}.
+''')
+        except Exception:
+            logging.warning('failed to send email for inst approval')
 
         self.write({})
 
@@ -369,11 +428,38 @@ class InstApprovalsActionDeny(MyHandler):
         if not any(ret['experiment'] == exp and ret['institution'] == insts[exp] for exp in insts):
             raise HTTPError(403, 'invalid authorization')
 
+        newuser = 'newuser' in ret and ret['newuser']
+
         audit_logger.info(f'{self.auth_data["username"]} is denying request {approval_id}')
-        if 'newuser' in ret and ret['newuser']:
+        if newuser:
+            user_data = await self.db.user_registrations.find_one({'id': ret['newuser']})
+            if not user_data:
+                raise HTTPError(400, 'invalid new user')
             await self.db.user_registrations.delete_one({'id': ret['newuser']})
         await self.db.inst_approvals.delete_one({'id': approval_id})
 
-        # TODO: send email
+        # send email
+        try:
+            if newuser:
+                args = {
+                    "username": user_data['username'],
+                    "first_name": user_data['first_name'],
+                    "last_name": user_data['last_name'],
+                    "email": user_data['external_email'],
+                }
+            else:
+                try:
+                    args = await krs.users.user_info(username, rest_client=self.krs_client)
+                except Exception:
+                    raise HTTPError(400, 'invalid username')
+            krs.email.send_email(
+                recipient={'name': f'{args["first_name"]} {args["last_name"}', 'email': args['email']},
+                subject='IceCube Account Request Denied',
+                content=f'''IceCube Account Request Denied
+
+Your account request for {ret["experiment"]}/{ret["institution"]} is denied.
+''')
+        except Exception:
+            logging.warning('failed to send email for inst deny')
 
         self.write({})
