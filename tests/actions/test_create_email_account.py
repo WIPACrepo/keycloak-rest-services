@@ -11,7 +11,7 @@ from ..util import keycloak_bootstrap, rabbitmq_bootstrap
 
 
 class TestException(Exception):
-    pass
+    __test__ = False
 
 @pytest.fixture
 def patch_ssh(mocker):
