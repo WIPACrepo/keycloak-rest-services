@@ -3,7 +3,6 @@
 import smtplib
 from email.message import EmailMessage
 from email.headerregistry import Address
-from email.utils import make_msgid
 
 
 TEMPLATE = """{}
@@ -68,7 +67,7 @@ def send_email(recipient, subject, content, sender='no-reply@icecube.wisc.edu'):
         msg['To'] = recipient
 
     msg.set_content(TEMPLATE.format(content))
-    msg.add_alternative(HTML_TEMPLATE.format(content.replace('\n','<br>')),
+    msg.add_alternative(HTML_TEMPLATE.format(content.replace('\n', '<br>')),
                         subtype='html')
 
     with smtplib.SMTP('localhost') as s:

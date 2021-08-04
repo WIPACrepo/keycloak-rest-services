@@ -24,7 +24,7 @@ jobs:
             - run: ./setupenv.sh
             - run: |
                 . env/bin/activate &&
-                python -m pytest tests/krs --log-level=INFO
+                python -m pytest tests/krs --tb=short --log-level=INFO
     test_actions:
         docker:
             - image: circleci/python:3.8
@@ -58,7 +58,7 @@ jobs:
             - run: ./setupenv.sh
             - run: |
                 . env/bin/activate &&
-                python -m pytest tests/actions --log-level=INFO
+                python -m pytest tests/actions --tb=short --log-level=INFO
     test_user_mgmt:
         docker:
             - image: circleci/python:3.8
@@ -76,7 +76,7 @@ jobs:
             - run: ./setupenv.sh
             - run: |
                 . env/bin/activate &&
-                python -m pytest tests/user_mgmt --log-level=INFO
+                python -m pytest tests/user_mgmt --tb=short --log-level=INFO
     test_flake8:
         docker:
             - image: circleci/python:3.8

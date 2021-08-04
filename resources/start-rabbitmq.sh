@@ -4,7 +4,7 @@ docker run -d --name rabbitmq -h rabbitmq -p 5672:5672 -p 15672:15672 \
  --env RABBITMQ_VHOST=keycloak \
  bitnami/rabbitmq:3.8
 
-until curl -u admin:admin http://localhost:15672/api/users 2>/dev/null
+until curl -u admin:admin http://localhost:15672/api/users >/dev/null 2>/dev/null
 do
     sleep 1
 done
