@@ -4,6 +4,8 @@ import smtplib
 from email.message import EmailMessage
 from email.headerregistry import Address
 
+from rest_tools.server import from_environment
+
 
 TEMPLATE = """{}
 
@@ -33,7 +35,7 @@ HTML_TEMPLATE = """
   </head>
   <body>
     <header>
-      <img alt="IceCube" src="https://res.cloudinary.com/icecube/images/c_scale,w_456,h_120/v1611782268/IC-webheader/IC-webheader.png" srcset="https://res.cloudinary.com/icecube/images/c_scale,w_456,h_120/v1611782268/IC-webheader/IC-webheader.png 1x, https://res.cloudinary.com/icecube/images/c_scale,w_912,h_240/v1611782268/IC-webheader/IC-webheader.png 2x" width="228" height="60" />
+      <img alt="IceCube Logo" src="https://res.cloudinary.com/icecube/images/c_scale,w_456,h_120/v1611782268/IC-webheader/IC-webheader.png" srcset="https://res.cloudinary.com/icecube/images/c_scale,w_456,h_120/v1611782268/IC-webheader/IC-webheader.png 1x, https://res.cloudinary.com/icecube/images/c_scale,w_912,h_240/v1611782268/IC-webheader/IC-webheader.png 2x" width="228" height="60" />
     </header>
     <div class="main">
       <h2>IceCube Identity Management</h2>
@@ -50,7 +52,24 @@ HTML_TEMPLATE = """
 """
 
 
-def send_email(recipient, subject, content, sender='no-reply@icecube.wisc.edu'):
+def send_email(recipient, subject, content, sender=None):
+    """
+    Send an email message.
+
+    Args:
+        recipient (dict): Dict with name and email, or just a string email address
+        subject (str): Email subject
+        content (str): Email content
+        sender (dict): (optional) Dict with name and email, or just a string email address
+    """
+    config = from_environment({
+        'EMAIL_SENDER': 'no-reply@icecube.wisc.edu',
+        'EMAIL_SMTP_SERVER': 'localhost',
+    })
+
+    if not sender:
+        sender = config['EMAIL_SENDER']
+
     msg = EmailMessage()
     msg['Subject'] = subject
 
@@ -70,5 +89,5 @@ def send_email(recipient, subject, content, sender='no-reply@icecube.wisc.edu'):
     msg.add_alternative(HTML_TEMPLATE.format(content.replace('\n', '<br>')),
                         subtype='html')
 
-    with smtplib.SMTP('localhost') as s:
+    with smtplib.SMTP(config['EMAIL_SMTP_SERVER']) as s:
         s.send_message(msg)
