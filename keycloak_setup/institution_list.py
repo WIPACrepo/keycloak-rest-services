@@ -95,6 +95,12 @@ ICECUBE_INSTS = {
         "is_US": True,
         "region": _US_CAN,
     },
+    "Columbia": {
+        "cite": "Columbia Astrophysics and Nevis Laboratories, Columbia University, New York, NY 10027, USA",
+        "abbreviation": "COLUMBIA",
+        "is_US": True,
+        "region": _US_CAN,
+    },
     "Copenhagen": {
         "cite": "Niels Bohr Institute, University of Copenhagen, DK-2100 Copenhagen, Denmark",
         "abbreviation": "NBI",
