@@ -29,6 +29,12 @@ ICECUBE_INSTS = {
         "is_US": False,
         "region": _EUROPE,
     },
+    "Academia Sinica": {
+        "cite": "Institute of Physics, Academia Sinica, Taipei City, 115201, Taiwan",
+        "abbreviation": "AS",
+        "is_US": False,
+        "region": _ASIA_PAC,
+    },
     "Adelaide": {
         "cite": "Department of Physics, University of Adelaide, Adelaide, 5005, Australia",
         "abbreviation": "ADELAIDE",
