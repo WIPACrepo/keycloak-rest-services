@@ -29,6 +29,12 @@ ICECUBE_INSTS = {
         "is_US": False,
         "region": _EUROPE,
     },
+    "Academia Sinica": {
+        "cite": "Institute of Physics, Academia Sinica, Taipei City, 115201, Taiwan",
+        "abbreviation": "AS",
+        "is_US": False,
+        "region": _ASIA_PAC,
+    },
     "Adelaide": {
         "cite": "Department of Physics, University of Adelaide, Adelaide, 5005, Australia",
         "abbreviation": "ADELAIDE",
@@ -340,6 +346,12 @@ ICECUBE_INSTS = {
         "abbreviation": "UCLA",
         "is_US": True,
         "region": _US_CAN,
+    },
+    "UCLouvain": {
+        "cite": "Centre for Cosmology, Particle Physics and Phenomenology – CP3, UCLouvain, B-1348 Louvain-la-Neuve, Belgium",
+        "abbreviation": "UCLOUVAIN",
+        "is_US": False,
+        "region": _EUROPE,
     },
     "Uppsala": {
         "cite": "Dept. of Physics and Astronomy, Uppsala University, Box 516, S-75120 Uppsala, Sweden",
