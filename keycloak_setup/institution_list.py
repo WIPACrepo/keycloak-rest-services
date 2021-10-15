@@ -341,6 +341,12 @@ ICECUBE_INSTS = {
         "is_US": True,
         "region": _US_CAN,
     },
+    "UC Louvain": {
+        "cite": "Centre for Cosmology, Particle Physics and Phenomenology – CP3 UCLouvain, Belgium",
+        "abbreviation": "UCLOUVAIN",
+        "is_US": False,
+        "region": _EUROPE,
+    },
     "Uppsala": {
         "cite": "Dept. of Physics and Astronomy, Uppsala University, Box 516, S-75120 Uppsala, Sweden",
         "abbreviation": "UU",
