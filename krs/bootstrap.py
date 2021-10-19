@@ -165,6 +165,10 @@ def create_service_role(client_id, realm=None, token=None):
     url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/master/clients/{kc_id}/client-secret'
     r = requests.get(url, headers={'Authorization': f'bearer {token}'})
     r.raise_for_status()
+    if 'value' not in r.json():
+        url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/master/clients/{kc_id}/client-secret'
+        r = requests.post(url, headers={'Authorization': f'bearer {token}'})
+        r.raise_for_status()
     return r.json()['value']
 
 def delete_service_role(client_id, token=None):
@@ -420,9 +424,9 @@ def bootstrap():
 
     client_secret = create_service_role(cfg['KEYCLOAK_CLIENT_ID'], realm=cfg['KEYCLOAK_REALM'], token=token)
 
-    add_rabbitmq_listener(realm=cfg['KEYCLOAK_REALM'], token=token)
+    #add_rabbitmq_listener(realm=cfg['KEYCLOAK_REALM'], token=token)
 
-    add_custom_theme(realm=cfg['KEYCLOAK_REALM'], token=token)
+    #add_custom_theme(realm=cfg['KEYCLOAK_REALM'], token=token)
 
     print(f'\nclient_id={cfg["KEYCLOAK_CLIENT_ID"]}')
     print(f'client_secret={client_secret}')

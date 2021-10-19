@@ -772,7 +772,7 @@ Insts = {
             }
             for (const key in ret.data) {
               entry.members[key] = ret.data[key]
-            } 
+            }
             institutions.push(entry)
           }
           return institutions
@@ -877,7 +877,7 @@ Insts = {
       <div class="inst" v-for="inst in approvals">
         <h4>{{ inst["experiment"] }} - {{ inst["institution"] }}</h4>
         <div class="user indent" v-for="approval in inst['users']">
-          <span class="newuser" v-if="'newuser' in approval">New</span> 
+          <span class="newuser" v-if="'newuser' in approval">New</span>
           <span class="username">{{ approval['username'] }}</span>
           <span class="name" v-if="'first_name' in approval">{{ approval['first_name'] }} {{ approval['last_name'] }}</span>
           <span class="author" v-if="'authorlist' in approval">Author</span>
@@ -1329,7 +1329,10 @@ async function vue_startup(keycloak_url, keycloak_realm){
     clientId: 'user_mgmt'
   });
   try {
-    await keycloak.init();
+    await keycloak.init({
+      onLoad: 'check-sso',
+      checkLoginIframe: false
+    });
   } catch (error) {
     console.log("error initializing keycloak")
   }
