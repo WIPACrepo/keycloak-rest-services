@@ -3,6 +3,7 @@
 import smtplib
 from email.message import EmailMessage
 from email.headerregistry import Address
+from email.utils import localtime
 
 from rest_tools.server import from_environment
 
@@ -65,7 +66,7 @@ def send_email(recipient, subject, content, sender=None):
     config = from_environment({
         'EMAIL_SENDER': 'no-reply@icecube.wisc.edu',
         'EMAIL_SMTP_SERVER': 'localhost',
-        'EMAIL_SMTP_TIMEOUT': 20,
+        'EMAIL_SMTP_TIMEOUT': 5,  # email should be mostly instant
     })
 
     if not sender:
@@ -73,6 +74,7 @@ def send_email(recipient, subject, content, sender=None):
 
     msg = EmailMessage()
     msg['Subject'] = subject
+    msg['Date'] = localtime()
 
     if isinstance(sender, dict):
         username, domain = sender['email'].split('@')
