@@ -408,7 +408,7 @@ Your account with the IceCube project at UW-Madison has been altered.
 You are now a member of {ret["experiment"]}/{ret["institution"]}.
 ''')
         except Exception:
-            logging.warning('failed to send email for inst approval')
+            logging.warning('failed to send email for inst approval', exc_info=True)
 
         self.write({})
 
@@ -462,6 +462,6 @@ class InstApprovalsActionDeny(MyHandler):
 Your account request for {ret["experiment"]}/{ret["institution"]} is denied.
 ''')
         except Exception:
-            logging.warning('failed to send email for inst deny')
+            logging.warning('failed to send email for inst deny', exc_info=True)
 
         self.write({})

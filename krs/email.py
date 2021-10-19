@@ -65,6 +65,7 @@ def send_email(recipient, subject, content, sender=None):
     config = from_environment({
         'EMAIL_SENDER': 'no-reply@icecube.wisc.edu',
         'EMAIL_SMTP_SERVER': 'localhost',
+        'EMAIL_SMTP_TIMEOUT': 20,
     })
 
     if not sender:
@@ -89,5 +90,5 @@ def send_email(recipient, subject, content, sender=None):
     msg.add_alternative(HTML_TEMPLATE.format(content.replace('\n', '<br>')),
                         subtype='html')
 
-    with smtplib.SMTP(config['EMAIL_SMTP_SERVER']) as s:
+    with smtplib.SMTP(config['EMAIL_SMTP_SERVER'], timeout=config['EMAIL_SMTP_TIMEOUT']) as s:
         s.send_message(msg)
