@@ -4,11 +4,10 @@ pytest-cov
 pytest-mock
 coverage
 requests
-cryptography
-pyjwt
+pyjwt[crypto]
 motor
 unidecode
 ldap3
 aio_pika
 flake8
-git+https://github.com/WIPACrepo/rest-tools@v1.1.0#egg=rest_tools
+git+https://github.com/WIPACrepo/rest-tools@v1.1.15#egg=rest_tools
