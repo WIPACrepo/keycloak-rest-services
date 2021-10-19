@@ -129,6 +129,9 @@ async def set_user_password(username, password=None, temporary=False, rest_clien
         import getpass
         password = getpass.getpass()
 
+    if not isinstance(password, str):
+        raise Exception('password must be a string')
+
     try:
         ret = await user_info(username, rest_client=rest_client)
     except Exception:

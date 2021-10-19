@@ -336,7 +336,7 @@ class InstApprovalsActionApprove(MyHandler):
                 },
             }
             await krs.users.create_user(rest_client=self.krs_client, **args)
-            password = random.choices(string.ascii_letters+string.digits, k=16)
+            password = ''.join(random.choices(string.ascii_letters+string.digits, k=16))
             await krs.users.set_user_password(args['username'], password, temporary=True, rest_client=self.krs_client)
 
             await self.db.user_registrations.delete_one({'id': ret['newuser']})

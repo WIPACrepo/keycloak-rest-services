@@ -45,6 +45,12 @@ async def test_set_user_password(keycloak_bootstrap):
     await users.set_user_password('testuser', 'foo', rest_client=keycloak_bootstrap)
 
 @pytest.mark.asyncio
+async def test_set_user_password_bad(keycloak_bootstrap):
+    await users.create_user('testuser', first_name='first', last_name='last', email='foo@test', rest_client=keycloak_bootstrap)
+    with pytest.raises(Exception):
+        await users.set_user_password('testuser', ['f', 'o', 'o'], rest_client=keycloak_bootstrap)
+
+@pytest.mark.asyncio
 async def test_delete_user(keycloak_bootstrap):
     await users.create_user('testuser', first_name='first', last_name='last', email='foo@test', rest_client=keycloak_bootstrap)
     await users.delete_user('testuser', rest_client=keycloak_bootstrap)
