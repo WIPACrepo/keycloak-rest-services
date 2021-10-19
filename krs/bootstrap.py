@@ -424,9 +424,9 @@ def bootstrap():
 
     client_secret = create_service_role(cfg['KEYCLOAK_CLIENT_ID'], realm=cfg['KEYCLOAK_REALM'], token=token)
 
-    #add_rabbitmq_listener(realm=cfg['KEYCLOAK_REALM'], token=token)
+    # add_rabbitmq_listener(realm=cfg['KEYCLOAK_REALM'], token=token)
 
-    #add_custom_theme(realm=cfg['KEYCLOAK_REALM'], token=token)
+    # add_custom_theme(realm=cfg['KEYCLOAK_REALM'], token=token)
 
     print(f'\nclient_id={cfg["KEYCLOAK_CLIENT_ID"]}')
     print(f'client_secret={client_secret}')
