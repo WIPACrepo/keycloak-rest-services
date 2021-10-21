@@ -348,7 +348,7 @@ ICECUBE_INSTS = {
         "region": _US_CAN,
     },
     "UCLouvain": {
-        "cite": "Centre for Cosmology, Particle Physics and Phenomenology – CP3, UCLouvain, B-1348 Louvain-la-Neuve, Belgium",
+        "cite": "Centre for Cosmology, Particle Physics and Phenomenology - CP3, Université catholique de Louvain, Louvain-la-Neuve, Belgium",
         "abbreviation": "UCLOUVAIN",
         "is_US": False,
         "region": _EUROPE,
