@@ -23,11 +23,15 @@ if the application scope is allowed to be public.
 """
 import os
 import asyncio
+import logging
 
 import requests
 
 from .token import get_rest_client
 from .groups import list_groups, group_info
+
+
+logger = logging.getLogger('krs.apps')
 
 async def list_apps(rest_client=None):
     """
@@ -119,7 +123,7 @@ async def create_app(appname, appurl, roles=['read', 'write'], builtin_scopes=[]
     try:
         await app_info(appname, rest_client=rest_client)
     except Exception:
-        print(f'creating app "{appname}"')
+        logger.info(f'creating app "{appname}"')
         args = {
             'access': {'configure': True, 'manage': True, 'view': True},
             'adminUrl': appurl,
@@ -239,9 +243,9 @@ async def create_app(appname, appurl, roles=['read', 'write'], builtin_scopes=[]
                     url = f'/users/{svc_user["id"]}/role-mappings/clients/{client_id}'
                     await rest_client.request('DELETE', url)
 
-        print(f'app "{appname}" created')
+        logger.info(f'app "{appname}" created')
     else:
-        print(f'app "{appname}" already exists')
+        logger.info(f'app "{appname}" already exists')
 
 async def delete_app(appname, rest_client=None):
     """
@@ -271,12 +275,12 @@ async def delete_app(appname, rest_client=None):
     try:
         ret = await app_info(appname, rest_client=rest_client)
     except Exception:
-        print(f'app "{appname}" does not exist')
+        logger.info(f'app "{appname}" does not exist')
     else:
         client_id = ret['id']
         url = f'/clients/{client_id}'
         await rest_client.request('DELETE', url)
-        print(f'app "{appname}" deleted')
+        logger.info(f'app "{appname}" deleted')
 
 async def get_app_role_mappings(appname, role=None, rest_client=None):
     """
@@ -338,7 +342,7 @@ async def add_app_role_mapping(appname, role, group, rest_client=None):
     url = f'/groups/{gid}/role-mappings/clients/{client_id}'
     mappings = await rest_client.request('GET', url)
     if any(role == mapping['name'] for mapping in mappings):
-        print(f'app "{appname}" role mapping {role}-{group} already exists')
+        logger.info(f'app "{appname}" role mapping {role}-{group} already exists')
     else:
         # get full role info
         url = f'/clients/{client_id}/roles'
@@ -353,7 +357,7 @@ async def add_app_role_mapping(appname, role, group, rest_client=None):
         url = f'/groups/{gid}/role-mappings/clients/{client_id}'
         args = [role_info]
         await rest_client.request('POST', url, args)
-        print(f'app "{appname}" role mapping {role}-{group} created')
+        logger.info(f'app "{appname}" role mapping {role}-{group} created')
 
 async def delete_app_role_mapping(appname, role, group, rest_client=None):
     """
@@ -378,7 +382,7 @@ async def delete_app_role_mapping(appname, role, group, rest_client=None):
     url = f'/groups/{gid}/role-mappings/clients/{client_id}'
     mappings = await rest_client.request('GET', url)
     if not any(role == mapping['name'] for mapping in mappings):
-        print(f'app "{appname}" role mapping {role}-{group} does not exist')
+        logger.info(f'app "{appname}" role mapping {role}-{group} does not exist')
     else:
         # get full role info
         url = f'/clients/{client_id}/roles'
@@ -393,7 +397,7 @@ async def delete_app_role_mapping(appname, role, group, rest_client=None):
         url = f'/groups/{gid}/role-mappings/clients/{client_id}'
         args = [role_info]
         await rest_client.request('DELETE', url, args)
-        print(f'app "{appname}" role mapping {role}-{group} deleted')
+        logger.info(f'app "{appname}" role mapping {role}-{group} deleted')
 
 def get_public_token(username, password, scopes=None, openid_url=None, client='public', secret=None, raw=False, **kwargs):
     import jwt
@@ -444,7 +448,7 @@ def get_public_token(username, password, scopes=None, openid_url=None, client='p
         r.raise_for_status()
     except requests.exceptions.HTTPError as e:
         try:
-            print('Error:', e.response.json()['error_description'])
+            logger.info('Error:', e.response.json()['error_description'])
         except Exception:
             pass
         raise
@@ -501,6 +505,8 @@ def main():
     parser_get_public_token.add_argument('--raw', action='store_true', help='output raw token')
     parser_get_public_token.set_defaults(func=get_public_token)
     args = vars(parser.parse_args())
+
+    logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
 
     rest_client = get_rest_client()
     func = args.pop('func')

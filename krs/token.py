@@ -54,6 +54,8 @@ def main():
     parser_get.set_defaults(func=get_token)
     args = vars(parser.parse_args())
 
+    logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
+
     func = args.pop('func')
     ret = func(**args)
     if ret is not None:

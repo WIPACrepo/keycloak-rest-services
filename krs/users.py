@@ -2,8 +2,11 @@
 User actions against Keycloak.
 """
 import asyncio
+import logging
 
 from .token import get_rest_client
+
+logger = logging.getLogger('krs.users')
 
 def _fix_attributes(user):
     """
@@ -71,8 +74,8 @@ async def create_user(username, first_name, last_name, email, attribs=None, rest
     try:
         await user_info(username, rest_client=rest_client)
     except Exception:
-        print(f'creating user "{username}"')
-        print(username)
+        logger.info(f'creating user "{username}"')
+        logger.info(username)
         user = {
             'email': email,
             'firstName': first_name,
@@ -83,9 +86,9 @@ async def create_user(username, first_name, last_name, email, attribs=None, rest
         }
 
         await rest_client.request('POST', '/users', user)
-        print(f'user "{username}" created')
+        logger.info(f'user "{username}" created')
     else:
-        print(f'user "{username}" already exists')
+        logger.info(f'user "{username}" already exists')
 
 async def modify_user(username, attribs=None, rest_client=None):
     """
@@ -103,7 +106,7 @@ async def modify_user(username, attribs=None, rest_client=None):
     try:
         ret = await user_info(username, rest_client=rest_client)
     except Exception:
-        print(f'user "{username}" does not exist')
+        logger.info(f'user "{username}" does not exist')
 
     url = f'/users/{ret["id"]}'
     ret = await rest_client.request('GET', url)
@@ -135,7 +138,7 @@ async def set_user_password(username, password=None, temporary=False, rest_clien
     try:
         ret = await user_info(username, rest_client=rest_client)
     except Exception:
-        print(f'user "{username}" does not exist')
+        logger.info(f'user "{username}" does not exist')
     else:
         url = f'/users/{ret["id"]}/reset-password'
         args = {
@@ -143,7 +146,7 @@ async def set_user_password(username, password=None, temporary=False, rest_clien
             'temporary': bool(temporary),
         }
         ret = await rest_client.request('PUT', url, args)
-        print(f'user "{username}" password set')
+        logger.info(f'user "{username}" password set')
 
 async def delete_user(username, rest_client=None):
     """
@@ -155,11 +158,11 @@ async def delete_user(username, rest_client=None):
     try:
         ret = await user_info(username, rest_client=rest_client)
     except Exception:
-        print(f'user "{username}" does not exist')
+        logger.info(f'user "{username}" does not exist')
     else:
         url = f'/users/{ret["id"]}'
         ret = await rest_client.request('DELETE', url)
-        print(f'user "{username}" deleted')
+        logger.info(f'user "{username}" deleted')
 
 def main():
     import argparse
@@ -191,6 +194,8 @@ def main():
     parser_delete.add_argument('username', help='user name')
     parser_delete.set_defaults(func=delete_user)
     args = vars(parser.parse_args())
+
+    logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
 
     rest_client = get_rest_client()
     func = args.pop('func')

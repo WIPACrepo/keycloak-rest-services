@@ -2,9 +2,12 @@
 Group actions against Keycloak.
 """
 import asyncio
+import logging
 
 from .users import user_info
 from .token import get_rest_client
+
+logger = logging.getLogger('krs.groups')
 
 async def list_groups(max_groups=10000, rest_client=None):
     """
@@ -80,7 +83,7 @@ async def create_group(group_path, attrs=None, rest_client=None):
     """
     groups = await list_groups(rest_client=rest_client)
     if group_path in groups:
-        print(f'group "{group_path}" already exists')
+        logger.info(f'group "{group_path}" already exists')
     else:
         if '/' not in group_path:
             raise Exception('"group_path" must start with /')
@@ -93,14 +96,14 @@ async def create_group(group_path, attrs=None, rest_client=None):
         else:
             url = '/groups'
 
-        print(f'creating group "{group_path}"')
+        logger.info(f'creating group "{group_path}"')
         group = {
             'name': groupname,
         }
         if attrs:
             group['attributes'] = {k: [attrs[k]] for k in attrs}
         await rest_client.request('POST', url, group)
-        print(f'group "{group_path}" created')
+        logger.info(f'group "{group_path}" created')
 
 async def delete_group(group_path, rest_client=None):
     """
@@ -113,9 +116,9 @@ async def delete_group(group_path, rest_client=None):
     if group_path in groups:
         url = f'/groups/{groups[group_path]["id"]}'
         await rest_client.request('DELETE', url)
-        print(f'group "{group_path}" deleted')
+        logger.info(f'group "{group_path}" deleted')
     else:
-        print(f'group "{group_path}" does not exist')
+        logger.info(f'group "{group_path}" does not exist')
 
 async def get_group_membership(group_path, rest_client=None):
     """
@@ -176,7 +179,7 @@ async def add_user_group(group_path, username, rest_client=None):
     membership = await get_user_groups(username, rest_client=rest_client)
 
     if group_path in membership:
-        print(f'user "{username}" already a member of group "{group_path}"')
+        logger.info(f'user "{username}" already a member of group "{group_path}"')
     else:
         # need to temp-remove child groups
         # https://issues.redhat.com/browse/KEYCLOAK-11298
@@ -193,7 +196,7 @@ async def add_user_group(group_path, username, rest_client=None):
                 url = f'/users/{info["id"]}/groups/{groups[group]["id"]}'
                 await rest_client.request('PUT', url)
 
-        print(f'user "{username}" added to group "{group_path}"')
+        logger.info(f'user "{username}" added to group "{group_path}"')
 
 async def remove_user_group(group_path, username, rest_client=None):
     """
@@ -211,11 +214,11 @@ async def remove_user_group(group_path, username, rest_client=None):
     membership = await get_user_groups(username, rest_client=rest_client)
 
     if group_path not in membership:
-        print(f'user "{username}" not a member of group "{group_path}"')
+        logger.info(f'user "{username}" not a member of group "{group_path}"')
     else:
         url = f'/users/{info["id"]}/groups/{groups[group_path]["id"]}'
         await rest_client.request('DELETE', url)
-        print(f'user "{username}" removed from group "{group_path}"')
+        logger.info(f'user "{username}" removed from group "{group_path}"')
 
 def main():
     import argparse
@@ -249,6 +252,8 @@ def main():
     parser_remove_user_group.add_argument('group_path', help='group path (/parentA/parentB/name)')
     parser_remove_user_group.set_defaults(func=remove_user_group)
     args = vars(parser.parse_args())
+
+    logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
 
     rest_client = get_rest_client()
     func = args.pop('func')

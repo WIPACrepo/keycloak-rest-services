@@ -127,6 +127,8 @@ if __name__ == "__main__":
         if args[a] is None:
             args.pop(a)
 
+    logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
+
     async def action(body):
         pprint(body)
 
