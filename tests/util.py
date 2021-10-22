@@ -41,6 +41,9 @@ def keycloak_bootstrap(monkeypatch):
 @pytest.fixture
 def ldap_bootstrap(monkeypatch):
     monkeypatch.setenv('LDAP_USER_BASE', 'ou=peopleTest,dc=icecube,dc=wisc,dc=edu')
+    monkeypatch.setenv('LDAP_GROUP_BASE', 'ou=groupTest,dc=icecube,dc=wisc,dc=edu')
+    LDAP_GROUPS_BASE = 'ou=groupsTest,dc=icecube,dc=wisc,dc=edu'
+    monkeypatch.setenv('LDAP_GROUPS_BASE', LDAP_GROUPS_BASE)
 
     obj = ldap.LDAP()
     config = obj.config
@@ -54,12 +57,32 @@ def ldap_bootstrap(monkeypatch):
             for uid in uids:
                 c.delete(f'uid={uid},{config["LDAP_USER_BASE"]}')
         c.delete(config["LDAP_USER_BASE"])
+        ret = c.search(config["LDAP_GROUP_BASE"], '(cn=*)', attributes=['cn'])
+        if ret:
+            names = [e['cn'] for e in c.entries]
+            for cn in names:
+                c.delete(f'cn={cn},{config["LDAP_GROUP_BASE"]}')
+        c.delete(config["LDAP_GROUP_BASE"])
+        ret = c.search(LDAP_GROUPS_BASE, '(cn=*)', attributes=['cn'])
+        if ret:
+            names = [e['cn'] for e in c.entries]
+            for cn in names:
+                c.delete(f'cn={cn},{LDAP_GROUPS_BASE}')
+        c.delete(LDAP_GROUPS_BASE)
     cleanup()
 
     args = {
         'ou': 'peopleTest',
     }
     c.add(config["LDAP_USER_BASE"], ['organizationalUnit', 'top'], args)
+    args = {
+        'ou': 'groupTest',
+    }
+    c.add(config["LDAP_GROUP_BASE"], ['organizationalUnit', 'top'], args)
+    args = {
+        'ou': 'groupsTest',
+    }
+    c.add(LDAP_GROUPS_BASE, ['organizationalUnit', 'top'], args)
 
     try:
         yield obj

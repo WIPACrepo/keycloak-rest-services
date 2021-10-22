@@ -17,6 +17,7 @@ class LDAP:
             'LDAP_ADMIN_USER': 'cn=admin,dc=icecube,dc=wisc,dc=edu',
             'LDAP_ADMIN_PASSWORD': 'admin',
             'LDAP_USER_BASE': 'ou=people,dc=icecube,dc=wisc,dc=edu',
+            'LDAP_GROUP_BASE': 'ou=group,dc=icecube,dc=wisc,dc=edu',
         })
 
     async def keycloak_ldap_link(self, keycloak_token=None):
@@ -322,6 +323,205 @@ class LDAP:
         except Exception:
             logger.debug('ldap exception', exc_info=True)
             raise Exception(f'Modify user {username} failed')
+
+        # close the connection
+        c.unbind()
+
+    def list_groups(self, groupbase=None, attrs=None):
+        """
+        List group information in LDAP.
+
+        Args:
+            groupbase (str): (optional) base (OU) of group
+            attrs (list): attributes from each group to return (default: ALL)
+
+        Returns:
+            dict: groupname: attr dict
+        """
+        if not groupbase:
+            groupbase = self.config['LDAP_GROUP_BASE']
+
+        # define the server
+        s = Server(self.config['LDAP_URL'], get_info=ALL)
+
+        # define the connection
+        c = Connection(s, auto_bind=True)
+
+        # search for the group
+        ret = c.search(groupbase, '(cn=*)', attributes=ALL_ATTRIBUTES)
+        if not ret:
+            raise Exception(f'Search groups failed: {c.result["message"]}')
+        ret = {}
+        for entry in c.entries:
+            entry = entry.entry_attributes_as_dict
+            if attrs:
+                val = {k: (entry[k][0] if len(entry[k]) == 1 else entry[k]) for k in entry if k in attrs}
+            else:
+                val = {k: (entry[k][0] if len(entry[k]) == 1 else entry[k]) for k in entry}
+            ret[entry['cn'][0]] = val
+        return ret
+
+    def get_group(self, groupname, groupbase=None):
+        """
+        Get group information from LDAP.
+
+        Args:
+            groupname (str): name of group
+            groupbase (str): (optional) base (OU) of group
+
+        Returns:
+            dict: group info
+
+        Raises:
+            KeyError
+        """
+        if not groupbase:
+            groupbase = self.config['LDAP_GROUP_BASE']
+
+        # define the server
+        s = Server(self.config['LDAP_URL'], get_info=ALL)
+
+        # define the connection
+        c = Connection(s, auto_bind=True)
+
+        # search for the user
+        ret = c.search(group_base, f'(cn={groupname})', attributes=ALL_ATTRIBUTES)
+        if not ret:
+            raise KeyError(f'Group {groupname} not found')
+        return c.entries[0]
+
+    def create_group(self, groupname, groupbase=None, gidNumber=None):
+        """
+        Add a group to LDAP.
+
+        Args:
+            groupname (str): name of group
+            groupbase (str): (optional) base (OU) of group
+            gidNumber (int): for posix groups, gid number of group
+        """
+        if not groupbase:
+            groupbase = self.config['LDAP_GROUP_BASE']
+
+        # define the server
+        s = Server(self.config['LDAP_URL'], get_info=ALL)
+
+        # define the connection
+        c = Connection(s, user=self.config['LDAP_ADMIN_USER'], password=self.config['LDAP_ADMIN_PASSWORD'], auto_bind=True)
+
+        # check if group already exists
+        ret = c.search(groupbase, f'(cn={groupname})')
+        if ret:
+            raise Exception(f'Group {groupname} already exists')
+
+        # perform the Add operation
+        objectClasses = ['posixGroup' if gidNumber else 'groupOfNames', 'top']
+        attrs = {
+            'cn': groupname,
+        }
+        if gidNumber:
+            attrs['gidNumber'] = gidNumber
+        else:
+            attrs['member'] = 'cn=empty-membership-placeholder'
+        ret = c.add(f'cn={groupname},{groupbase}', objectClasses, attrs)
+        if not ret:
+            raise Exception(f'Create group {groupname} failed: {c.result["message"]}')
+
+        # close the connection
+        c.unbind()
+
+    def add_user_group(self, username, groupname, groupbase=None):
+        """
+        Add a user to a group in LDAP.
+
+        Args:
+            username (str): name of user
+            groupname (str): name of group
+            groupbase (str): (optional) base (OU) of group
+        """
+        if not groupbase:
+            groupbase = self.config['LDAP_GROUP_BASE']
+
+        # define the server
+        s = Server(self.config['LDAP_URL'], get_info=ALL)
+
+        # define the connection
+        c = Connection(s, user=self.config['LDAP_ADMIN_USER'], password=self.config['LDAP_ADMIN_PASSWORD'], auto_bind=True)
+
+        # check if group exists
+        ret = c.search(groupbase, f'(cn={groupname})', attributes=ALL_ATTRIBUTES)
+        if not ret:
+            raise Exception(f'Group {groupname} does not exist')
+        ret = c.entries[0].entry_attributes_as_dict
+
+        vals = {}
+        if 'gidNumber' in ret: # posix group
+            if 'memberUid' in ret and username in ret['memberUid']:
+                return
+            else:
+                vals['memberUid'] = [(MODIFY_ADD), [username]]
+        else:
+            user_cn = f'uid={username},{self.config["LDAP_USER_BASE"]}'
+            if 'member' in ret and user_cn in ret['member']:
+                return
+            else:
+                vals['member'] = [(MODIFY_ADD), [user_cn]]
+
+        # perform the operation
+        logger.debug(f'ldap change for group {groupname}: {vals}')
+        try:
+            ret = c.modify(f'cn={groupname},{groupbase}', vals)
+        except Exception:
+            logger.debug('ldap exception', exc_info=True)
+            raise Exception(f'Add user {username} to group {username} failed')
+
+        # close the connection
+        c.unbind()
+
+    def remove_user_group(self, username, groupname, groupbase=None):
+        """
+        Remove a user from a group in LDAP.
+
+        Args:
+            username (str): name of user
+            groupname (str): name of group
+            groupbase (str): (optional) base (OU) of group
+        """
+        if not groupbase:
+            groupbase = self.config['LDAP_GROUP_BASE']
+
+        # define the server
+        s = Server(self.config['LDAP_URL'], get_info=ALL)
+
+        # define the connection
+        c = Connection(s, user=self.config['LDAP_ADMIN_USER'], password=self.config['LDAP_ADMIN_PASSWORD'], auto_bind=True)
+
+        # check if group exists
+        ret = c.search(groupbase, f'(cn={groupname})', attributes=ALL_ATTRIBUTES)
+        if not ret:
+            raise Exception(f'Group {groupname} does not exist')
+        ret = c.entries[0].entry_attributes_as_dict
+
+        vals = {}
+        if 'gidNumber' in ret: # posix group
+            if 'memberUid' in ret and username in ret['memberUid']:
+                vals['memberUid'] = [(MODIFY_DELETE), [username]]
+            else:
+                return
+        else:
+            user_cn = f'uid={username},{self.config["LDAP_USER_BASE"]}'
+            if 'member' in ret and user_cn in ret['member']:
+                vals['member'] = [(MODIFY_DELETE), user_cn]
+            else:
+                logger.info('user not in group')
+                return
+
+        # perform the operation
+        logger.debug(f'ldap change for group {groupname}: {vals}')
+        try:
+            ret = c.modify(f'cn={groupname},{groupbase}', vals)
+        except Exception:
+            logger.debug('ldap exception', exc_info=True)
+            raise Exception(f'Remove user {username} from group {username} failed')
 
         # close the connection
         c.unbind()

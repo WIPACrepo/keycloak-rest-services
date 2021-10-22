@@ -33,7 +33,7 @@ def test_list_users(ldap_bootstrap):
     assert ret['foo']['givenName'] == 'foo'
     assert ret['foo']['sn'] == 'bar'
     assert ret['foo']['mail'] == 'foo@bar'
-    
+
 def test_list_users_attrs(ldap_bootstrap):
     ldap_bootstrap.create_user(username='foo', firstName='foo', lastName='bar', email='foo@bar')
 
@@ -92,3 +92,101 @@ def test_modify_user_fail(ldap_bootstrap):
     with pytest.raises(Exception):
         # cannot remove objectClass without removing attrs
         ldap_bootstrap.modify_user('foo', removeObjectClass='posixAccount')
+
+def test_create_group(ldap_bootstrap):
+    ldap_bootstrap.create_group('foo')
+    ret = ldap_bootstrap.list_groups()
+    assert list(ret.keys()) == ['foo']
+
+def test_add_user_group(ldap_bootstrap):
+    ldap_bootstrap.create_user(username='foo', firstName='foo', lastName='bar', email='foo@bar')
+    ldap_bootstrap.create_group('foo')
+    ldap_bootstrap.add_user_group('foo', 'foo')
+
+    ret = ldap_bootstrap.list_groups()
+    assert list(ret.keys()) == ['foo']
+    assert any(member.startswith('uid=foo,') for member in ret['foo']['member'])
+
+def test_add_user_group_twice(ldap_bootstrap):
+    ldap_bootstrap.create_user(username='foo', firstName='foo', lastName='bar', email='foo@bar')
+    ldap_bootstrap.create_group('foo')
+    ldap_bootstrap.add_user_group('foo', 'foo')
+    ldap_bootstrap.add_user_group('foo', 'foo')
+
+    ret = ldap_bootstrap.list_groups()
+    assert list(ret.keys()) == ['foo']
+    assert 1 == sum(1 for member in ret['foo']['member'] if member.startswith('uid=foo,'))
+
+def test_remove_user_group(ldap_bootstrap):
+    ldap_bootstrap.create_user(username='foo', firstName='foo', lastName='bar', email='foo@bar')
+    ldap_bootstrap.create_group('foo')
+    ldap_bootstrap.add_user_group('foo', 'foo')
+    ldap_bootstrap.remove_user_group('foo', 'foo')
+
+    ret = ldap_bootstrap.list_groups()
+    assert list(ret.keys()) == ['foo']
+    print(ret)
+    assert not any(member.startswith('uid=foo,') for member in ret['foo']['member'])
+
+def test_remove_user_group_twice(ldap_bootstrap):
+    ldap_bootstrap.create_user(username='foo', firstName='foo', lastName='bar', email='foo@bar')
+    ldap_bootstrap.create_group('foo')
+    ldap_bootstrap.add_user_group('foo', 'foo')
+    ldap_bootstrap.remove_user_group('foo', 'foo')
+    ldap_bootstrap.remove_user_group('foo', 'foo')
+
+    ret = ldap_bootstrap.list_groups()
+    assert list(ret.keys()) == ['foo']
+    print(ret)
+    assert not any(member.startswith('uid=foo,') for member in ret['foo']['member'])
+
+def test_create_group_posix(ldap_bootstrap):
+    ldap_bootstrap.create_group('foo', gidNumber=1000)
+    ret = ldap_bootstrap.list_groups()
+    assert list(ret.keys()) == ['foo']
+
+def test_add_user_group_posix(ldap_bootstrap):
+    ldap_bootstrap.create_user(username='foo', firstName='foo', lastName='bar', email='foo@bar')
+    ldap_bootstrap.create_group('foo', gidNumber=1000)
+    ldap_bootstrap.add_user_group('foo', 'foo')
+
+    ret = ldap_bootstrap.list_groups()
+    assert list(ret.keys()) == ['foo']
+    assert 'foo' in ret['foo']['memberUid']
+
+def test_add_user_group_posix_twice(ldap_bootstrap):
+    ldap_bootstrap.create_user(username='foo', firstName='foo', lastName='bar', email='foo@bar')
+    ldap_bootstrap.create_group('foo', gidNumber=1000)
+    ldap_bootstrap.add_user_group('foo', 'foo')
+    ldap_bootstrap.add_user_group('foo', 'foo')
+
+    ret = ldap_bootstrap.list_groups()
+    print(ret)
+    assert list(ret.keys()) == ['foo']
+    if isinstance(ret['foo']['memberUid'], str):
+        assert 'foo' in ret['foo']['memberUid']
+    else:
+        assert 1 == sum(1 for member in ret['foo']['memberUid'] if member == 'foo')
+
+def test_remove_user_group_posix(ldap_bootstrap):
+    ldap_bootstrap.create_user(username='foo', firstName='foo', lastName='bar', email='foo@bar')
+    ldap_bootstrap.create_group('foo', gidNumber=1000)
+    ldap_bootstrap.add_user_group('foo', 'foo')
+    ldap_bootstrap.remove_user_group('foo', 'foo')
+
+    ret = ldap_bootstrap.list_groups()
+    assert list(ret.keys()) == ['foo']
+    print(ret)
+    assert 'memberUid' not in ret['foo'] or 'foo' not in ret['foo']['memberUid']
+
+def test_remove_user_group_posix_twice(ldap_bootstrap):
+    ldap_bootstrap.create_user(username='foo', firstName='foo', lastName='bar', email='foo@bar')
+    ldap_bootstrap.create_group('foo', gidNumber=1000)
+    ldap_bootstrap.add_user_group('foo', 'foo')
+    ldap_bootstrap.remove_user_group('foo', 'foo')
+    ldap_bootstrap.remove_user_group('foo', 'foo')
+
+    ret = ldap_bootstrap.list_groups()
+    assert list(ret.keys()) == ['foo']
+    print(ret)
+    assert 'memberUid' not in ret['foo'] or 'foo' not in ret['foo']['memberUid']
