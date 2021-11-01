@@ -68,7 +68,8 @@ async def app_info(appname, rest_client=None):
 
     url = f'/clients/{data["id"]}/client-secret'
     ret = await rest_client.request('GET', url)
-    data['clientSecret'] = ret['value']
+    if 'value' in ret:
+        data['clientSecret'] = ret['value']
 
     url = f'/clients/{data["id"]}/roles'
     ret = await rest_client.request('GET', url)
