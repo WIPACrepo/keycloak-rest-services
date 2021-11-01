@@ -339,6 +339,9 @@ class InstApprovalsActionApprove(MyHandler):
             password = ''.join(random.choices(string.ascii_letters+string.digits, k=16))
             await krs.users.set_user_password(args['username'], password, temporary=True, rest_client=self.krs_client)
 
+            # posix by default
+            await krs.groups.add_user_group('/posix', args['username'], rest_client=self.krs_client)
+
             await self.db.user_registrations.delete_one({'id': ret['newuser']})
 
         # add user to institution
@@ -347,10 +350,27 @@ class InstApprovalsActionApprove(MyHandler):
         if 'authorlist' in ret and ret['authorlist']:
             await krs.groups.add_user_group(inst_group+'/authorlist', ret['username'], rest_client=self.krs_client)
 
+        # also add to gen2 institution
+        if ret['experiment'] == 'IceCube':
+            gen2_inst_group = f'/institutions/IceCube-Gen2/{ret["institution"]}'
+            ret2 = await krs.groups.list_groups(rest_client=self.krs_client)
+            if gen2_inst_group in ret2:
+                await krs.groups.add_user_group(gen2_inst_group, ret['username'], rest_client=self.krs_client)
+                if 'authorlist' in ret and ret['authorlist']:
+                    await krs.groups.add_user_group(gen2_inst_group+'/authorlist', ret['username'], rest_client=self.krs_client)
+
         if 'remove_institution' in ret and ret['remove_institution']:
             inst_group = f'/institutions/{ret["experiment"]}/{ret["remove_institution"]}'
             await krs.groups.remove_user_group(inst_group, ret['username'], rest_client=self.krs_client)
             await krs.groups.remove_user_group(inst_group+'/authorlist', ret['username'], rest_client=self.krs_client)
+
+            # also remove gen2 institution
+            if ret['experiment'] == 'IceCube':
+                gen2_inst_group = f'/institutions/IceCube-Gen2/{ret["remove_institution"]}'
+                ret2 = await krs.groups.list_groups(rest_client=self.krs_client)
+                if gen2_inst_group in ret2:
+                    await krs.groups.remove_user_group(gen2_inst_group, ret['username'], rest_client=self.krs_client)
+                    await krs.groups.remove_user_group(gen2_inst_group+'/authorlist', ret['username'], rest_client=self.krs_client)
 
         await self.db.inst_approvals.delete_one({'id': approval_id})
 
@@ -400,7 +420,7 @@ listed in the "Other Governing Agreements" section of the policy linked above.
                 except Exception:
                     raise HTTPError(400, 'invalid username')
                 krs.email.send_email(
-                    recipient={'name': f'{args["first_name"]} {args["last_name"]}', 'email': args['email']},
+                    recipient={'name': f'{args["firstName"]} {args["lastName"]}', 'email': args['email']},
                     subject='IceCube Account Institution Changes',
                     content=f'''IceCube Institution Change
 

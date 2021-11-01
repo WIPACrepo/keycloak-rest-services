@@ -30,7 +30,7 @@ async def test_institutions(server):
 
     await krs.groups.create_group('/institutions', rest_client=krs_client)
     await krs.groups.create_group('/institutions/IceCube', rest_client=krs_client)
-    
+
     ret = await client.request('GET', '/api/experiments/IceCube/institutions')
     assert ret == []
 
@@ -94,7 +94,7 @@ async def test_institution_users(server):
 
     with pytest.raises(Exception):
         await client.request('GET', '/api/experiments/IceCube/institutions/UW-Madison/users')
-    
+
     client2 = await rest('test2', groups=['/institutions/IceCube/UW-Madison/_admin'])
 
     ret = await client2.request('GET', '/api/experiments/IceCube/institutions/UW-Madison/users')
@@ -109,7 +109,7 @@ async def test_institution_adduser(server):
     await krs.groups.create_group('/institutions/IceCube', rest_client=krs_client)
     await krs.groups.create_group('/institutions/IceCube/UW-Madison', rest_client=krs_client)
     await krs.groups.create_group('/institutions/IceCube/UW-Madison/authorlist', rest_client=krs_client)
-    
+
     client2 = await rest('test2', groups=['/institutions/IceCube/UW-Madison/_admin'])
 
     ret = await client2.request('GET', '/api/experiments/IceCube/institutions/UW-Madison/users')
@@ -316,6 +316,71 @@ async def test_inst_approvals_actions_approve(server, mongo_client):
 
     ret = await krs.groups.get_group_membership('/institutions/IceCube/UW-Madison', rest_client=krs_client)
     assert 'test' in ret
+
+@pytest.mark.asyncio
+async def test_inst_approvals_actions_approve_gen2(server, mongo_client):
+    rest, krs_client, *_ = server
+
+    await krs.groups.create_group('/institutions', rest_client=krs_client)
+    await krs.groups.create_group('/institutions/IceCube', rest_client=krs_client)
+    await krs.groups.create_group('/institutions/IceCube/UW-Madison', rest_client=krs_client)
+    await krs.groups.create_group('/institutions/IceCube-Gen2', rest_client=krs_client)
+    await krs.groups.create_group('/institutions/IceCube-Gen2/UW-Madison', rest_client=krs_client)
+
+    client = await rest('test')
+    client2 = await rest('test2', groups=['/institutions/IceCube/UW-Madison/_admin'])
+
+    data = {
+        'experiment': 'IceCube',
+        'institution': 'UW-Madison',
+    }
+    ret = await client.request('POST', '/api/inst_approvals', data)
+    approval_id = ret['id']
+
+    await client2.request('POST', f'/api/inst_approvals/{approval_id}/actions/approve')
+
+    ret = await mongo_client.inst_approvals.find().to_list(10)
+    assert len(ret) == 0
+
+    ret = await krs.groups.get_group_membership('/institutions/IceCube/UW-Madison', rest_client=krs_client)
+    assert 'test' in ret
+    ret = await krs.groups.get_group_membership('/institutions/IceCube-Gen2/UW-Madison', rest_client=krs_client)
+    assert 'test' in ret
+
+@pytest.mark.asyncio
+async def test_inst_approvals_actions_approve_posix(server, mongo_client):
+    rest, krs_client, *_ = server
+
+    await krs.groups.create_group('/institutions', rest_client=krs_client)
+    await krs.groups.create_group('/institutions/IceCube', rest_client=krs_client)
+    await krs.groups.create_group('/institutions/IceCube/UW-Madison', rest_client=krs_client)
+    await krs.groups.create_group('/posix', rest_client=krs_client)
+
+    client2 = await rest('test2', groups=['/institutions/IceCube/UW-Madison/_admin'])
+
+    data = {
+        'experiment': 'IceCube',
+        'institution': 'UW-Madison',
+        'first_name': 'first',
+        'last_name': 'last',
+        'email': 'test@test',
+    }
+    _, krs_client, address, *_ = server
+    session = AsyncSession(retries=0)
+    r = await asyncio.wrap_future(session.post(address+'/api/inst_approvals', json=data))
+    r.raise_for_status()
+    ret = r.json()
+    approval_id = ret['id']
+
+    await client2.request('POST', f'/api/inst_approvals/{approval_id}/actions/approve')
+
+    ret = await mongo_client.inst_approvals.find().to_list(10)
+    assert len(ret) == 0
+
+    ret = await krs.groups.get_group_membership('/institutions/IceCube/UW-Madison', rest_client=krs_client)
+    assert 'flast' in ret
+    ret = await krs.groups.get_group_membership('/posix', rest_client=krs_client)
+    assert 'flast' in ret
 
 @pytest.mark.asyncio
 async def test_inst_approvals_actions_deny(server, mongo_client):
