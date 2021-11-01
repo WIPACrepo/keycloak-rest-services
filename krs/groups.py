@@ -61,7 +61,7 @@ async def group_info_by_id(group_id, rest_client=None):
     Get group information.
 
     Args:
-        group_path (str): group path (/parent/parent/name)
+        group_id (str): group id
 
     Returns:
         dict: group info
@@ -135,6 +135,18 @@ async def get_group_membership(group_path, rest_client=None):
         raise KeyError(f'group "{group_path}" does not exist')
     group_id = groups[group_path]['id']
 
+    return await get_group_membership_by_id(group_id, rest_client=rest_client)
+
+async def get_group_membership_by_id(group_id, rest_client=None):
+    """
+    Get the membership list of a group.
+
+    Args:
+        group_id (str): group id
+
+    Returns:
+        list: usernames
+    """
     url = f'/groups/{group_id}/members'
     data = await rest_client.request('GET', url)
 

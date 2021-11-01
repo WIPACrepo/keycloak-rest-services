@@ -96,6 +96,30 @@ async def test_create_remove_add(keycloak_bootstrap, ldap_bootstrap):
     assert 'loginShell' in ret['attributes']
     assert ret['attributes']['loginShell'] != '/sbin/nologin'
 
+@pytest.mark.asyncio
+async def test_create_extra_groups(keycloak_bootstrap, ldap_bootstrap):
+    await ldap_bootstrap.keycloak_ldap_link(bootstrap.get_token())
+
+    await users.create_user('testuser', first_name='first', last_name='last', email='foo@test', rest_client=keycloak_bootstrap)
+    await groups.create_group('/posix', rest_client=keycloak_bootstrap)
+    await groups.add_user_group('/posix', 'testuser', rest_client=keycloak_bootstrap)
+
+    ldap_bootstrap.create_group('foo', gidNumber=1234)
+    await create_posix_account.process('/posix', keycloak_client=keycloak_bootstrap, ldap_client=ldap_bootstrap)
+
+    ret = await users.user_info('testuser', rest_client=keycloak_bootstrap)
+    assert 'homeDirectory' in ret['attributes']
+    assert ret['attributes']['homeDirectory'] == '/home/testuser'
+    assert 'loginShell' in ret['attributes']
+    assert ret['attributes']['loginShell'] != '/sbin/nologin'
+    assert 'gidNumber' in ret['attributes']
+    assert ret['attributes']['gidNumber'] == '1235'
+
+    ret = ldap_bootstrap.get_user('testuser')
+    assert 'homeDirectory' in ret
+    assert ret['homeDirectory'] == '/home/testuser'
+    assert 'posixAccount' in ret['objectClass']
+
 @pytest.fixture
 @pytest.mark.asyncio
 async def listener(keycloak_bootstrap, ldap_bootstrap, rabbitmq_bootstrap):

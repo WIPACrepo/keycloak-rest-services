@@ -6,25 +6,25 @@ o: IceCube
 dc: icecube
 
 # add ldap groups
-dn: ou=groups,dc=icecube,dc=wisc,dc=edu
+dn: ou=Groups,dc=icecube,dc=wisc,dc=edu
 objectclass: top
 objectclass: organizationalUnit
-ou: groups
+ou: Groups
 
 # add users
-dn: ou=people,dc=icecube,dc=wisc,dc=edu
+dn: ou=People,dc=icecube,dc=wisc,dc=edu
 objectclass: top
 objectclass: organizationalUnit
-ou: people
+ou: People
 
 # add POSIX groups
-dn: ou=group,dc=icecube,dc=wisc,dc=edu
+dn: ou=Group,dc=icecube,dc=wisc,dc=edu
 objectclass: top
 objectclass: organizationalUnit
-ou: group
+ou: Group
 
 # add institutions
-dn: ou=institutions,dc=icecube,dc=wisc,dc=edu
+dn: ou=Institutions,dc=icecube,dc=wisc,dc=edu
 objectclass: top
 objectclass: organizationalUnit
-ou: institutions
+ou: Institutions

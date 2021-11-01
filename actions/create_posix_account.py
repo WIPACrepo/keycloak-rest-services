@@ -26,6 +26,11 @@ async def process(group_path, keycloak_client=None, ldap_client=None):
             max_gid = user['gidNumber']
         if 'loginShell' in user and user['loginShell'] and user['loginShell'] != '/sbin/nologin':
             ldapPosix.add(username)
+    groups = ldap_client.list_groups(attrs=['gidNumber'])
+    for cn in groups:
+        group = groups[cn]
+        if 'gidNumber' in group and group['gidNumber'] > max_gid:
+            max_gid = group['gidNumber']
     max_id = max(max_uid, max_gid)
 
     ret = await get_group_membership(group_path, rest_client=keycloak_client)

@@ -16,8 +16,8 @@ class LDAP:
             'LDAP_URL': None,
             'LDAP_ADMIN_USER': 'cn=admin,dc=icecube,dc=wisc,dc=edu',
             'LDAP_ADMIN_PASSWORD': 'admin',
-            'LDAP_USER_BASE': 'ou=people,dc=icecube,dc=wisc,dc=edu',
-            'LDAP_GROUP_BASE': 'ou=group,dc=icecube,dc=wisc,dc=edu',
+            'LDAP_USER_BASE': 'ou=People,dc=icecube,dc=wisc,dc=edu',
+            'LDAP_GROUP_BASE': 'ou=Group,dc=icecube,dc=wisc,dc=edu',
         })
 
     async def keycloak_ldap_link(self, keycloak_token=None):
@@ -349,7 +349,7 @@ class LDAP:
 
         # search for the group
         ret = c.search(groupbase, '(cn=*)', attributes=ALL_ATTRIBUTES)
-        if not ret:
+        if c.result['result']:
             raise Exception(f'Search groups failed: {c.result["message"]}')
         ret = {}
         for entry in c.entries:
@@ -385,7 +385,7 @@ class LDAP:
         c = Connection(s, auto_bind=True)
 
         # search for the user
-        ret = c.search(group_base, f'(cn={groupname})', attributes=ALL_ATTRIBUTES)
+        ret = c.search(groupbase, f'(cn={groupname})', attributes=ALL_ATTRIBUTES)
         if not ret:
             raise KeyError(f'Group {groupname} not found')
         return c.entries[0]
@@ -470,6 +470,9 @@ class LDAP:
         logger.debug(f'ldap change for group {groupname}: {vals}')
         try:
             ret = c.modify(f'cn={groupname},{groupbase}', vals)
+            if c.result['result']:
+                logger.debug(f'modify ldap error: {c.result["message"]}')
+                raise Exception(f'Add user {username} to group {username} failed')
         except Exception:
             logger.debug('ldap exception', exc_info=True)
             raise Exception(f'Add user {username} to group {username} failed')

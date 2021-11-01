@@ -98,6 +98,10 @@ def test_create_group(ldap_bootstrap):
     ret = ldap_bootstrap.list_groups()
     assert list(ret.keys()) == ['foo']
 
+def test_list_group(ldap_bootstrap):
+    ret = ldap_bootstrap.list_groups()
+    assert list(ret.keys()) == []
+
 def test_add_user_group(ldap_bootstrap):
     ldap_bootstrap.create_user(username='foo', firstName='foo', lastName='bar', email='foo@bar')
     ldap_bootstrap.create_group('foo')
