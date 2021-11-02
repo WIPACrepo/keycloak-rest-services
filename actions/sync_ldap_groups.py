@@ -65,9 +65,6 @@ async def process(group_path, ldap_ou=None, posix=False, recursive=False, keyclo
             continue
         groups.append(ret[p])
 
-    else:
-        groups = [ret[p] for p in ret if p.startswith(group_path+'/') and not ret[p]['name'].startswith('_')]
-
     for group in groups:
         ldap_cn = flatten_group_name(group['path'][len(group_path)+1:])
         logger.debug(f'working on group: {ldap_cn}')

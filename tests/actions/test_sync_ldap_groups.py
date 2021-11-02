@@ -169,10 +169,8 @@ async def test_sync_group_many_new(keycloak_bootstrap, ldap_bootstrap):
     assert 'uid=testuser,'+ldap_bootstrap.config['LDAP_USER_BASE'] in ret['member']
     assert 'uid=testuser2,'+ldap_bootstrap.config['LDAP_USER_BASE'] in ret['member']
 
-    ret = ldap_bootstrap.get_group('test-foo')
-    assert 'gidNumber' not in ret
-    assert 'member' in ret
-    assert ret['member'] == 'cn=empty-membership-placeholder'
+    with pytest.raises(KeyError):
+        ret = ldap_bootstrap.get_group('test-foo')
 
 @pytest.mark.asyncio
 async def test_sync_group_recursive(keycloak_bootstrap, ldap_bootstrap):
