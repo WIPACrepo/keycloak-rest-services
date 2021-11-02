@@ -455,7 +455,7 @@ class LDAP:
         ret = c.entries[0].entry_attributes_as_dict
 
         vals = {}
-        if 'gidNumber' in ret: # posix group
+        if 'gidNumber' in ret:  # posix group
             if 'memberUid' in ret and username in ret['memberUid']:
                 return
             else:
@@ -506,7 +506,7 @@ class LDAP:
         ret = c.entries[0].entry_attributes_as_dict
 
         vals = {}
-        if 'gidNumber' in ret: # posix group
+        if 'gidNumber' in ret:  # posix group
             if 'memberUid' in ret and username in ret['memberUid']:
                 vals['memberUid'] = [(MODIFY_DELETE), [username]]
             else:
