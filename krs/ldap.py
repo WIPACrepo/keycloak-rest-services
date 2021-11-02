@@ -388,7 +388,8 @@ class LDAP:
         ret = c.search(groupbase, f'(cn={groupname})', attributes=ALL_ATTRIBUTES)
         if not ret:
             raise KeyError(f'Group {groupname} not found')
-        return c.entries[0]
+        entry = c.entries[0].entry_attributes_as_dict
+        return {k: (entry[k][0] if len(entry[k]) == 1 else entry[k]) for k in entry}
 
     def create_group(self, groupname, groupbase=None, gidNumber=None):
         """

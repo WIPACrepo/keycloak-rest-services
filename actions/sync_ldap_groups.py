@@ -38,7 +38,7 @@ def get_ldap_members(group):
         users = [group['memberUid']]
     return users
 
-async def process(group_path, ldap_ou=None, posix=False, keycloak_client=None, ldap_client=None):
+async def process(group_path, ldap_ou=None, posix=False, recursive=False, keycloak_client=None, ldap_client=None):
     ldap_groups = ldap_client.list_groups(groupbase=ldap_ou)
 
     if posix:
@@ -55,7 +55,18 @@ async def process(group_path, ldap_ou=None, posix=False, keycloak_client=None, l
                 max_gid = group['gidNumber']
 
     ret = await list_groups(rest_client=keycloak_client)
-    groups = [ret[p] for p in ret if p.startswith(group_path+'/') and not ret[p]['name'].startswith('_')]
+    groups = []
+    for p in ret:
+        if not p.startswith(group_path+'/'):
+            continue
+        elif ret[p]['name'].startswith('_'):
+            continue
+        elif (not recursive) and '/' in p[len(group_path)+1:]:
+            continue
+        groups.append(ret[p])
+
+    else:
+        groups = [ret[p] for p in ret if p.startswith(group_path+'/') and not ret[p]['name'].startswith('_')]
 
     for group in groups:
         ldap_cn = flatten_group_name(group['path'][len(group_path)+1:])
@@ -111,6 +122,7 @@ def main():
     parser.add_argument('group_path', default='/posix', help='parent group path (/parentA/parentB/name)')
     parser.add_argument('ldap_ou', default=None, help='LDAP OU for groups')
     parser.add_argument('--posix', default=False, action='store_true', help='enable posix group handling')
+    parser.add_argument('--recursive', default=False, action='store_true', help='enable recursive syncing of nested groups')
     parser.add_argument('--log-level', default='info', choices=('debug', 'info', 'warning', 'error'), help='logging level')
     parser.add_argument('--listen', default=False, action='store_true', help='enable persistent RabbitMQ listener')
     parser.add_argument('--listen-address', help='RabbitMQ address, including user/pass')
@@ -124,6 +136,7 @@ def main():
 
     if args['listen']:
         ret = listener(args['group_path'], ldap_ou=args['ldap_ou'], posix=args['posix'],
+                       recursive=args['recursive'],
                        address=args['listen_address'], exchange=args['listen_exchange'],
                        keycloak_client=keycloak_client, ldap_client=ldap_client)
         loop = asyncio.get_event_loop()
@@ -131,7 +144,8 @@ def main():
         loop.run_forever()
     else:
         asyncio.run(process(args['group_path'], ldap_ou=args['ldap_ou'],
-                            posix=args['posix'], keycloak_client=keycloak_client,
+                            posix=args['posix'], recursive=args['recursive'],
+                            keycloak_client=keycloak_client,
                             ldap_client=ldap_client))
 
 
