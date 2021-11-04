@@ -10,7 +10,7 @@ from rest_tools.server import catch_error, authenticated
 import krs.users
 import krs.groups
 
-from . import MyHandler
+from .handler import MyHandler
 
 audit_logger = logging.getLogger('audit')
 

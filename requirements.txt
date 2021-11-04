@@ -10,4 +10,4 @@ unidecode
 ldap3
 aio_pika
 flake8
-git+https://github.com/WIPACrepo/rest-tools@v1.1.19#egg=rest_tools
+git+https://github.com/WIPACrepo/rest-tools@v1.1.20#egg=rest_tools
