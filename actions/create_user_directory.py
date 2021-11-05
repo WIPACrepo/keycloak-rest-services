@@ -32,29 +32,34 @@ logger = logging.getLogger('create_user_directory')
 async def process(group_path, root_dir, keycloak_client=None):
     group_members = await get_group_membership(group_path, rest_client=keycloak_client)
     users = await list_users(rest_client=keycloak_client)
+    is_root = getpass.getuser() == 'root'
+    if not is_root:
+        logger.debug('Running as user ' + getpass.getuser())
+        logger.debug('Will not chown or set quota')
+
     for username in group_members:
         user = users[username]
         if 'attributes' in user and 'uidNumber' in user['attributes'] and 'gidNumber' in user['attributes']:
             path = root_dir / username
             if not path.exists():
-                logger.info(f'creating user directory at {path}')
+                logger.info(f'Creating directory {path}')
                 path.mkdir(mode=0o755, parents=True, exist_ok=True)
-                if getpass.getuser() == 'root':
+                if is_root:
+                    logging.debug(f'Changing ownership of {path} to {user["attributes"]["uid"]}:{user["attributes"]["gid"]}')
                     os.chown(path, int(user['attributes']['uidNumber']), int(user['attributes']['gidNumber']))
                     if root_dir in QUOTAS:
-                        subprocess.check_call(QUOTAS[root_dir].format(username), shell=True)
-                else:
-                    logger.debug('skipping chown and quota because we are not root')
+                        logging.debug(f'Setting quota on directory {path}')
+                        subprocess.check_call(QUOTAS[root_dir].format(int(user['attributes']['uidNumber'])), shell=True)
 
-def listener(address=None, exchange=None, dedup=1, **kwargs):
+def listener(group_path, address=None, exchange=None, dedup=1, **kwargs):
     """Set up RabbitMQ listener"""
     async def action(message):
         logger.debug(f'{message}')
-        if 'attributes' in message['representation'] and 'uidNumber' in message['representation']['attributes']:
-            await process(**kwargs)
+        if message['representation']['path'] == group_path:
+            await process(group_path=group_path, **kwargs)
 
     args = {
-        'routing_key': 'KK.EVENT.ADMIN.#.USER.#',
+        'routing_key': 'KK.EVENT.ADMIN.#.GROUP_MEMBERSHIP.#',
         'dedup': dedup,
     }
     if address:

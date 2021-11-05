@@ -53,8 +53,8 @@ QUOTAS = {json.dumps(actions.util.QUOTAS)}
 existing = os.listdir(root_dir)
 is_root = getpass.getuser() == 'root'
 if not is_root:
-    logging.debug('running as user ' + getpass.getuser())
-    logging.debug('will not chown or set quota')
+    logging.debug('Running as user ' + getpass.getuser())
+    logging.debug('Will not chown or set quota')
 
 for username in set(user_dirs).difference(existing):
     path = user_dirs[username]['path']
