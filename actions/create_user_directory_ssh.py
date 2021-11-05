@@ -45,6 +45,8 @@ async def process(server, group_path, root_dir, mode=0o755, keycloak_client=None
     script = f'''import subprocess
 import os
 import getpass
+import logging
+logging.basicConfig(level={logging.getLogger().getEffectiveLevel()})
 
 user_dirs = {json.dumps(user_dirs)}
 QUOTAS = {json.dumps(actions.util.QUOTAS)}
@@ -55,25 +57,29 @@ is_root = getpass.getuser() == 'root'
 for username in set(user_dirs).difference(existing):
     path = user_dirs[username]['path']
     if not os.path.exists(path):
+        logging.info('Creating directory ' + path)
         os.makedirs(path, mode={mode})
         if is_root:
+            logging.debug('Changing ownership of %s to %d:%d', path,
+                          user_dirs[username]['uid'], user_dirs[username]['gid'])
             os.chown(path, user_dirs[username]['uid'], user_dirs[username]['gid'])
             if root_dir in QUOTAS:
+                logging.debug('Setting quota on directory ' + path)
                 subprocess.check_call(QUOTAS[root_dir].format(username), shell=True)
 '''
     actions.util.scp_and_run_sudo(server, script, script_name='create_directory.py')
 
 
 
-def listener(address=None, exchange=None, dedup=1, **kwargs):
+def listener(group_path, address=None, exchange=None, dedup=1, **kwargs):
     """Set up RabbitMQ listener"""
     async def action(message):
         logger.debug(f'{message}')
-        if 'attributes' in message['representation'] and 'uidNumber' in message['representation']['attributes']:
-            await process(**kwargs)
+        if message['representation']['path'] == group_path:
+            await process(group_path=group_path, **kwargs)
 
     args = {
-        'routing_key': 'KK.EVENT.ADMIN.#.USER.#',
+        'routing_key': 'KK.EVENT.ADMIN.#.GROUP_MEMBERSHIP.#',
         'dedup': dedup,
     }
     if address:
