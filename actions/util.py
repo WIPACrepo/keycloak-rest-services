@@ -5,12 +5,12 @@ import tempfile
 
 QUOTAS = {
     # production dirs
-    '/mnt/homework/homework': '/sbin/zfs set userquota@"{}"=15G homework/homework',
-    '/mnt/homework/public_html': '/sbin/zfs set userquota@"{}"=3G homework/public_html',
-    '/mnt/homework/private_cvmfs': '/sbin/zfs set userquota@"{}"=10G homework/private_cvmfs',
+    '/mnt/homework/homework': '/sbin/zfs set userquota@{}=15G homework/homework',
+    '/mnt/homework/public_html': '/sbin/zfs set userquota@{}=3G homework/public_html',
+    '/mnt/homework/private_cvmfs': '/sbin/zfs set userquota@{}=10G homework/private_cvmfs',
     '/mnt/lfs7/users': '/usr/bin/lfs setquota -g {} --block-softlimit 2000000 --block-hardlimit 2250000 /mnt/lfs7',
     # testing dirs
-    '/mnt/homework/homework_test': '/sbin/zfs set userquota@"{}"=15G homework/homework_test',
+    '/mnt/homework/homework_test': '/sbin/zfs set userquota@{}=15G homework/homework_test',
     '/mnt/lfs7/users_test': '/usr/bin/lfs setquota -g {} --block-softlimit 2000000 --block-hardlimit 2250000 /mnt/lfs7',
 }
 
