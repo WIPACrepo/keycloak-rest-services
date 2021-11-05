@@ -94,7 +94,7 @@ def main():
     parser.add_argument('group_path', default='/posix', help='group path (/parentA/parentB/name)')
     parser.add_argument('--mode', default=0o755, type=auto_int, help='directory chmod mode (default: 755)')
     parser.add_argument('--root-dir', default='/', type=pathlib.Path, help='root directory to create home user directories in (default=/)')
-    parser.add_argument('--log_level', default='info', choices=('debug', 'info', 'warning', 'error'), help='logging level')
+    parser.add_argument('--log-level', default='info', choices=('debug', 'info', 'warning', 'error'), help='logging level')
     parser.add_argument('--listen', default=False, action='store_true', help='enable persistent RabbitMQ listener')
     parser.add_argument('--listen-address', help='RabbitMQ address, including user/pass')
     parser.add_argument('--listen-exchange', help='RabbitMQ exchange name')

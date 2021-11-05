@@ -85,7 +85,7 @@ def main():
     parser = argparse.ArgumentParser(description='Create email accounts')
     parser.add_argument('group_path', default='/email', help='group path (/parentA/parentB/name)')
     parser.add_argument('--email-server', default='mail.icecube.wisc.edu', help='email server')
-    parser.add_argument('--log_level', default='info', choices=('debug', 'info', 'warning', 'error'), help='logging level')
+    parser.add_argument('--log-level', default='info', choices=('debug', 'info', 'warning', 'error'), help='logging level')
     parser.add_argument('--listen', default=False, action='store_true', help='enable persistent RabbitMQ listener')
     parser.add_argument('--listen-address', help='RabbitMQ address, including user/pass')
     parser.add_argument('--listen-exchange', help='RabbitMQ exchange name')
