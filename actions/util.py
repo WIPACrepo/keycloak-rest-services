@@ -34,3 +34,17 @@ def scp_and_run(host, script_data, script_name='create.py'):
         ssh(host, 'python', f'/tmp/{script_name}')
     finally:
         ssh(host, 'rm', f'/tmp/{script_name}')
+
+def scp_and_run_sudo(host, script_data, script_name='create.py'):
+    """Transfer a script to a remote machine, run it as root, then delete it."""
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        filename = pathlib.Path(tmpdirname) / script_name
+        with open(filename, 'w') as f:
+            f.write(script_data)
+        cmd = ['scp'] + ssh_opts + [filename, f'{host}:/tmp/{script_name}']
+        subprocess.check_call(cmd, stderr=subprocess.DEVNULL)
+
+    try:
+        ssh(host, 'sudo', 'python', f'/tmp/{script_name}')
+    finally:
+        ssh(host, 'rm', f'/tmp/{script_name}')

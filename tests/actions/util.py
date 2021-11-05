@@ -8,3 +8,7 @@ class TestException(Exception):
 @pytest.fixture
 def patch_ssh(mocker):
     return mocker.patch('actions.util.scp_and_run')
+
+@pytest.fixture
+def patch_ssh_sudo(mocker):
+    return mocker.patch('actions.util.scp_and_run_sudo')

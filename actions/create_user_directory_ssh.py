@@ -61,7 +61,7 @@ for username in set(user_dirs).difference(existing):
             if root_dir in QUOTAS:
                 subprocess.check_call(QUOTAS[root_dir].format(username), shell=True)
 '''
-    actions.util.scp_and_run(server, script, script_name='create_directory.py')
+    actions.util.scp_and_run_sudo(server, script, script_name='create_directory.py')
 
 
 

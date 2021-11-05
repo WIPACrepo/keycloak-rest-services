@@ -56,7 +56,7 @@ if changes:
     subprocess.call('/usr/bin/sudo /usr/sbin/postmap /etc/postfix/canonical_recipient', shell=True)
     subprocess.call('/usr/bin/sudo /usr/sbin/postmap /etc/postfix/canonical_sender', shell=True)
     subprocess.call('/usr/bin/sudo /usr/sbin/postmap /etc/postfix/local_recipients', shell=True)
-    subprocess.call('/usr/sbin/postfix reload', shell=True)
+    subprocess.call('/usr/bin/sudo /usr/sbin/postfix reload', shell=True)
 '''
     actions.util.scp_and_run(email_server, script, script_name='create_email_accounts.py')
 
