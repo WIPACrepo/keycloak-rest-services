@@ -19,7 +19,7 @@ ssh_opts = ['-o', 'UserKnownHostsFile=/dev/null', '-o', 'StrictHostKeyChecking=n
 def ssh(host, *args):
     """Run command on remote machine via ssh."""
     cmd = ['ssh'] + ssh_opts + [f'{host}'] + list(args)
-    subprocess.check_call(cmd, stderr=subprocess.DEVNULL)
+    subprocess.check_call(cmd)
 
 def scp_and_run(host, script_data, script_name='create.py'):
     """Transfer a script to a remote machine, run it, then delete it."""
@@ -28,7 +28,7 @@ def scp_and_run(host, script_data, script_name='create.py'):
         with open(filename, 'w') as f:
             f.write(script_data)
         cmd = ['scp'] + ssh_opts + [filename, f'{host}:/tmp/{script_name}']
-        subprocess.check_call(cmd, stderr=subprocess.STDOUT)
+        subprocess.check_call(cmd, stderr=subprocess.DEVNULL)
 
     try:
         ssh(host, 'python', f'/tmp/{script_name}')
@@ -42,7 +42,7 @@ def scp_and_run_sudo(host, script_data, script_name='create.py'):
         with open(filename, 'w') as f:
             f.write(script_data)
         cmd = ['scp'] + ssh_opts + [filename, f'{host}:/tmp/{script_name}']
-        subprocess.check_call(cmd, stderr=subprocess.STDOUT)
+        subprocess.check_call(cmd, stderr=subprocess.DEVNULL)
 
     try:
         ssh(host, 'sudo', 'python', f'/tmp/{script_name}')
