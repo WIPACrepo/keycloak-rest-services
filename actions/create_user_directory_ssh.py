@@ -23,7 +23,7 @@ from krs.rabbitmq import RabbitMQListener
 import actions.util
 
 
-logger = logging.getLogger('create_user_directory')
+logger = logging.getLogger('create_user_directory_ssh')
 
 
 async def process(server, group_path, root_dir, mode=0o755, keycloak_client=None):
