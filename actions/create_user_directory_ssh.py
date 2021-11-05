@@ -44,12 +44,13 @@ async def process(server, group_path, root_dir, mode=0o755, keycloak_client=None
 import os
 import getpass
 import logging
-logging.basicConfig(level={logging.getLogger().getEffectiveLevel()})
+logging.basicConfig(level={logger.getEffectiveLevel()})
 
+root_dir = '{root_dir}'
 user_dirs = {json.dumps(user_dirs)}
 QUOTAS = {json.dumps(actions.util.QUOTAS)}
 
-existing = os.listdir('{root_dir}')
+existing = os.listdir(root_dir)
 is_root = getpass.getuser() == 'root'
 if not is_root:
     logging.debug('running as user ' + getpass.getuser())
