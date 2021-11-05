@@ -18,30 +18,10 @@ from krs.groups import get_group_membership
 from krs.users import list_users
 from krs.token import get_rest_client
 from krs.rabbitmq import RabbitMQListener
-
+import actions.util
 
 logger = logging.getLogger('create_email_account')
 
-ssh_opts = ['-o', 'UserKnownHostsFile=/dev/null', '-o', 'StrictHostKeyChecking=no']
-
-def ssh(host, *args):
-    """Run command on remote machine via ssh."""
-    cmd = ['ssh'] + ssh_opts + [f'{host}'] + list(args)
-    subprocess.check_call(cmd, stderr=subprocess.DEVNULL)
-
-def scp_and_run(host, script_data):
-    """Transfer a script to a remote machine, run it, then delete it."""
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        filename = pathlib.Path(tmpdirname) / 'create_email_accounts.py'
-        with open(filename, 'w') as f:
-            f.write(script_data)
-        cmd = ['scp'] + ssh_opts + [filename, f'{host}:/tmp/create_email_accounts.py']
-        subprocess.check_call(cmd, stderr=subprocess.DEVNULL)
-
-    try:
-        ssh(host, 'python', '/tmp/create_email_accounts.py')
-    finally:
-        ssh(host, 'rm', '/tmp/create_email_accounts.py')
 
 async def process(email_server, group_path, keycloak_client=None):
     group_members = await get_group_membership(group_path, rest_client=keycloak_client)
@@ -78,7 +58,7 @@ if changes:
     subprocess.call('/usr/bin/sudo /usr/sbin/postmap /etc/postfix/local_recipients', shell=True)
     subprocess.call('/usr/sbin/postfix reload', shell=True)
 '''
-    scp_and_run(email_server, script)
+    actions.util.scp_and_run(email_server, script, script_name='create_email_accounts.py')
 
 def listener(group_path, address=None, exchange=None, dedup=1, **kwargs):
     """Set up RabbitMQ listener"""

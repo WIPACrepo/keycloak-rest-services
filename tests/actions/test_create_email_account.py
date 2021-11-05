@@ -5,43 +5,17 @@ import subprocess
 
 #from krs.token import get_token
 from krs import users, groups, bootstrap, rabbitmq
+import actions.util
 from actions import create_email_account
 
 from ..util import keycloak_bootstrap, rabbitmq_bootstrap
+from .util import patch_ssh, TestException
 
 
-class TestException(Exception):
-    __test__ = False
+#@pytest.fixture
+#def patch_ssh(mocker):
+#    return mocker.patch('actions.create_email_account.scp_and_run')
 
-@pytest.fixture
-def patch_ssh(mocker):
-    return mocker.patch('actions.create_email_account.scp_and_run')
-
-def test_ssh(mocker):
-    cc = mocker.patch('subprocess.check_call')
-
-    create_email_account.ssh('test.test.test', 'arg1', 'arg2')
-
-    cc.assert_called_once()
-    assert 'test.test.test' in cc.call_args.args[0]
-    assert cc.call_args.args[0][-2:] == ['arg1', 'arg2']
-
-def test_scp_and_run(mocker):
-    cc = mocker.patch('subprocess.check_call')
-
-    create_email_account.scp_and_run('test.test.test', 'data data data')
-
-    assert cc.call_count == 3
-    assert cc.call_args_list[0].args[0][0] == 'scp'
-    assert cc.call_args_list[1].args[0][0] == 'ssh'
-    assert cc.call_args_list[2].args[0][0] == 'ssh'
-
-def test_scp_and_run_error(mocker):
-    cc = mocker.patch('subprocess.check_call')
-    cc.side_effect = TestException()
-
-    with pytest.raises(TestException):
-        create_email_account.scp_and_run('test.test.test', 'data data data')
 
 @pytest.mark.asyncio
 async def test_create(keycloak_bootstrap, patch_ssh):

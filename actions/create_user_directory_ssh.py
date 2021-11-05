@@ -14,7 +14,7 @@ This will create user dirs with directories like `/foo/bar/user1`.
 import os
 import logging
 import asyncio
-import getpass
+import json
 import pathlib
 import subprocess
 
@@ -22,29 +22,48 @@ from krs.groups import get_group_membership
 from krs.users import list_users
 from krs.token import get_rest_client
 from krs.rabbitmq import RabbitMQListener
-
-from .util import QUOTAS
+import actions.util
 
 
 logger = logging.getLogger('create_user_directory')
 
 
-async def process(group_path, root_dir, keycloak_client=None):
+async def process(server, group_path, root_dir, mode=0o755, keycloak_client=None):
     group_members = await get_group_membership(group_path, rest_client=keycloak_client)
     users = await list_users(rest_client=keycloak_client)
+
+    user_dirs = {}
     for username in group_members:
         user = users[username]
         if 'attributes' in user and 'uidNumber' in user['attributes'] and 'gidNumber' in user['attributes']:
-            path = root_dir / username
-            if not path.exists():
-                logger.info(f'creating user directory at {path}')
-                path.mkdir(mode=0o755, parents=True, exist_ok=True)
-                if getpass.getuser() == 'root':
-                    os.chown(path, int(user['attributes']['uidNumber']), int(user['attributes']['gidNumber']))
-                    if root_dir in QUOTAS:
-                        subprocess.check_call(QUOTAS[root_dir].format(username), shell=True)
-                else:
-                    logger.debug('skipping chown and quota because we are not root')
+            user_dirs[username] = {
+                'path': str(root_dir / username),
+                'uid': int(user['attributes']['uidNumber']),
+                'gid': int(user['attributes']['gidNumber']),
+            }
+
+    script = f'''import subprocess
+import os
+import getpass
+
+user_dirs = {json.dumps(user_dirs)}
+QUOTAS = {json.dumps(actions.util.QUOTAS)}
+
+existing = os.listdir('{root_dir}')
+is_root = getpass.getuser() == 'root'
+
+for username in set(user_dirs).difference(existing):
+    path = user_dirs[username]['path']
+    if not os.path.exists(path):
+        os.makedirs(path, mode={mode})
+        if is_root:
+            os.chown(path, user_dirs[username]['uid'], user_dirs[username]['gid'])
+            if root_dir in QUOTAS:
+                subprocess.check_call(QUOTAS[root_dir].format(username), shell=True)
+'''
+    actions.util.scp_and_run(server, script, script_name='create_directory.py')
+
+
 
 def listener(address=None, exchange=None, dedup=1, **kwargs):
     """Set up RabbitMQ listener"""
@@ -68,8 +87,10 @@ def listener(address=None, exchange=None, dedup=1, **kwargs):
 def main():
     import argparse
 
-    parser = argparse.ArgumentParser(description='Create home directories')
+    parser = argparse.ArgumentParser(description='Create user directories via ssh')
+    parser.add_argument('server', help='remote server')
     parser.add_argument('group_path', default='/posix', help='group path (/parentA/parentB/name)')
+    parser.add_argument('--mode', default=0o755, help='directory chmod mode (default: 755)')
     parser.add_argument('--root-dir', default='/', type=pathlib.Path, help='root directory to create home user directories in (default=/)')
     parser.add_argument('--log_level', default='info', choices=('debug', 'info', 'warning', 'error'), help='logging level')
     parser.add_argument('--listen', default=False, action='store_true', help='enable persistent RabbitMQ listener')
@@ -83,13 +104,15 @@ def main():
 
     if args['listen']:
         ret = listener(address=args['listen_address'], exchange=args['listen_exchange'],
-                       group_path=args['group_path'], root_dir=args['root_dir'],
+                       server=args['server'], group_path=args['group_path'],
+                       root_dir=args['root_dir'], mode=args['mode'],
                        keycloak_client=keycloak_client)
         loop = asyncio.get_event_loop()
         loop.create_task(ret.start())
         loop.run_forever()
     else:
-        asyncio.run(process(args['group_path'], args['root_dir'], keycloak_client=keycloak_client))
+        asyncio.run(process(args['server'], args['group_path'], args['root_dir'],
+                            mode=args['mode'], keycloak_client=keycloak_client))
 
 
 if __name__ == '__main__':
