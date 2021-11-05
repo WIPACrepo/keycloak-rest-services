@@ -83,6 +83,8 @@ def listener(address=None, exchange=None, dedup=1, **kwargs):
 
     return RabbitMQListener(action, **args)
 
+def auto_int(x):
+    return int(x, 0)
 
 def main():
     import argparse
@@ -90,7 +92,7 @@ def main():
     parser = argparse.ArgumentParser(description='Create user directories via ssh')
     parser.add_argument('server', help='remote server')
     parser.add_argument('group_path', default='/posix', help='group path (/parentA/parentB/name)')
-    parser.add_argument('--mode', default=0o755, help='directory chmod mode (default: 755)')
+    parser.add_argument('--mode', default=0o755, type=auto_int, help='directory chmod mode (default: 755)')
     parser.add_argument('--root-dir', default='/', type=pathlib.Path, help='root directory to create home user directories in (default=/)')
     parser.add_argument('--log_level', default='info', choices=('debug', 'info', 'warning', 'error'), help='logging level')
     parser.add_argument('--listen', default=False, action='store_true', help='enable persistent RabbitMQ listener')
