@@ -102,8 +102,8 @@ async def test_listener_create(keycloak_bootstrap, tmp_path, listener):
     }
     await groups.create_group('/posix', rest_client=keycloak_bootstrap)
     await users.create_user('testuser', first_name='first', last_name='last', email='foo@test', rest_client=keycloak_bootstrap)
+    await users.modify_user('testuser', attribs=attrs, rest_client=keycloak_bootstrap)
     await groups.add_user_group('/posix', 'testuser', rest_client=keycloak_bootstrap)
-    await users.modify_user('testuser', attribs=attrs, rest_client=keycloak_bootstrap) # triggers dir creation
 
     await asyncio.sleep(.25) # allow listener to run
 
@@ -118,8 +118,8 @@ async def test_listener_other(keycloak_bootstrap, tmp_path, listener):
     }
     await groups.create_group('/posix', rest_client=keycloak_bootstrap)
     await users.create_user('testuser', first_name='first', last_name='last', email='foo@test', rest_client=keycloak_bootstrap)
+    await users.modify_user('testuser', attribs=attrs, rest_client=keycloak_bootstrap)
     await groups.add_user_group('/posix', 'testuser', rest_client=keycloak_bootstrap)
-    await users.modify_user('testuser', attribs=attrs, rest_client=keycloak_bootstrap) # triggers dir creation
 
     await asyncio.sleep(.25) # allow listener to run
 
