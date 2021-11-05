@@ -11,12 +11,10 @@ Example::
 This will create user dirs with directories like `/foo/bar/user1`.
 
 """
-import os
-import logging
 import asyncio
 import json
+import logging
 import pathlib
-import subprocess
 
 from krs.groups import get_group_membership
 from krs.users import list_users
@@ -71,7 +69,6 @@ for username in set(user_dirs).difference(existing):
                 subprocess.check_call(QUOTAS[root_dir].format(user_dirs[username]['uid']), shell=True)
 '''
     actions.util.scp_and_run_sudo(server, script, script_name='create_directory.py')
-
 
 
 def listener(group_path, address=None, exchange=None, dedup=1, **kwargs):

@@ -9,9 +9,6 @@ Example::
 """
 import logging
 import asyncio
-import pathlib
-import tempfile
-import subprocess
 import json
 
 from krs.groups import get_group_membership
