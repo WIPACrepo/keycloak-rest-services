@@ -33,14 +33,16 @@ async def process(email_server, group_path, keycloak_client=None):
         }
 
     script = f'''import subprocess
+import logging
+logging.basicConfig(level={logger.getEffectiveLevel()})
+
 users = {json.dumps(users)}
 with open('/etc/postfix/local_recipients') as f:
     current_users = set([line.split()[0] for line in f.readlines() if line and 'OK' in line])
 
 changes = False
-for username in users:
-    if username in current_users:
-        continue
+for username in set(users)-current_users:
+    logging.info('Adding email for user ' + username)
     changes = True
     with open('/etc/postfix/canonical_sender', 'a') as f:
         f.write(username+'     '+users[username]['firstName']+'.'+users[username]['lastName']+'\n')
@@ -50,12 +52,13 @@ for username in users:
         f.write(username+'     OK\n')
 
 if changes:
-    subprocess.call('/usr/bin/sudo /usr/sbin/postmap /etc/postfix/canonical_recipient', shell=True)
-    subprocess.call('/usr/bin/sudo /usr/sbin/postmap /etc/postfix/canonical_sender', shell=True)
-    subprocess.call('/usr/bin/sudo /usr/sbin/postmap /etc/postfix/local_recipients', shell=True)
-    subprocess.call('/usr/bin/sudo /usr/sbin/postfix reload', shell=True)
+    logging.info('reloading postfix')
+    subprocess.check_call(['/usr/sbin/postmap', '/etc/postfix/canonical_recipient'])
+    subprocess.check_call(['/usr/sbin/postmap', '/etc/postfix/canonical_sender'])
+    subprocess.check_call(['/usr/sbin/postmap', '/etc/postfix/local_recipients'])
+    subprocess.check_call(['/usr/sbin/postfix', 'reload'])
 '''
-    actions.util.scp_and_run(email_server, script, script_name='create_email_accounts.py')
+    actions.util.scp_and_run_sudo(email_server, script, script_name='create_email_accounts.py')
 
 def listener(group_path, address=None, exchange=None, dedup=1, **kwargs):
     """Set up RabbitMQ listener"""
