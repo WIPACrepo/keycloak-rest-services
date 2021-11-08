@@ -1,3 +1,4 @@
+from collections import defaultdict
 import logging
 
 from tornado.web import HTTPError
@@ -75,10 +76,11 @@ class MyHandler(RestHandler):
             admin_groups = await krs.groups.list_groups(rest_client=self.krs_client)
         else:
             admin_groups = [g[:-7] for g in self.auth_data['groups'] if g.endswith('/_admin')]
-        insts = {}
+        insts = defaultdict(list)
         for group in admin_groups:
             val = group.strip('/').split('/')
+            logging.debug(f'eval group: {group} | val: {val}')
             if len(val) == 3 and val[0] == 'institutions':
-                insts[val[1]] = val[2]
+                insts[val[1]].append(val[2])
         logging.info(f'get_admin_instutitons: {insts}')
         return insts

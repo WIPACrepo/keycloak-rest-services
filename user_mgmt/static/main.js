@@ -105,6 +105,17 @@ var get_my_inst_admins = async function() {
     await keycloak.updateToken(5)
     let institutions = []
     for (const group of keycloak.tokenParsed.groups) {
+      if (group == '/admin') {
+        console.log("super admin - all insts")
+        institutions = [];
+        const ret = await get_all_inst_subgroups();
+        for (const exp in ret) {
+          for (const inst in ret[exp]) {
+            institutions.push('/institutions/'+exp+'/'+inst);
+          }
+        }
+        break;
+      }
       if (group.startsWith('/institutions')) {
         const parts = group.split('/')
         if (parts.length == 5 && parts[4] == '_admin') {
@@ -114,6 +125,8 @@ var get_my_inst_admins = async function() {
         }
       }
     }
+    institutions.sort();
+    console.log("get_my_inst_admins() - "+JSON.stringify(institutions))
     return institutions
   } catch (error) {
     console.log("error getting admin institutions from token")
@@ -128,6 +141,15 @@ var get_my_group_admins = async function() {
     await keycloak.updateToken(5)
     let groups = [];
     for (const group of keycloak.tokenParsed.groups) {
+      if (group == '/admin') {
+        console.log("super admin - all groups")
+        groups = [];
+        const ret = await get_all_groups();
+        for (const g in ret) {
+            groups.push(g);
+        }
+        break;
+      }
       if (!group.startsWith('/institutions')) {
         const parts = group.split('/')
         if (parts.length > 2 && parts[parts.length-1] == '_admin') {
@@ -151,6 +173,21 @@ var get_all_inst_subgroups = async function() {
     return resp.data
   } catch (error) {
     console.log("error getting all inst_subgroups")
+    console.log(error)
+    return {}
+  }
+};
+
+var get_all_groups = async function() {
+  if (!keycloak.authenticated)
+    return {}
+  try {
+    await keycloak.updateToken(5);
+    const resp = await axios.get('/api/groups', {
+      headers: {'Authorization': 'bearer '+keycloak.token}
+    })
+    return resp.data
+  } catch(error) {
     console.log(error)
     return {}
   }
@@ -248,18 +285,7 @@ Home = {
       return []
     },
     groups: async function() {
-      if (!keycloak.authenticated)
-        return {}
-      try {
-        await keycloak.updateToken(5);
-        const resp = await axios.get('/api/groups', {
-          headers: {'Authorization': 'bearer '+keycloak.token}
-        })
-        return resp.data
-      } catch(error) {
-        console.log(error)
-        return {}
-      }
+        return await get_all_groups();
     },
     validGroup: function() {
       try {

@@ -101,6 +101,19 @@ async def test_institution_users(server):
     assert ret == {'users': [], 'authorlist': []}
 
 @pytest.mark.asyncio
+async def test_institution_users_superadmin(server):
+    rest, krs_client, *_ = server
+    client = await rest('test', groups=['/admin'])
+
+    await krs.groups.create_group('/institutions', rest_client=krs_client)
+    await krs.groups.create_group('/institutions/IceCube', rest_client=krs_client)
+    await krs.groups.create_group('/institutions/IceCube/UW-Madison', rest_client=krs_client)
+    await krs.groups.create_group('/institutions/IceCube/UW-Madison/authorlist', rest_client=krs_client)
+
+    ret = await client.request('GET', '/api/experiments/IceCube/institutions/UW-Madison/users')
+    assert ret == {'users': [], 'authorlist': []}
+
+@pytest.mark.asyncio
 async def test_institution_adduser(server):
     rest, krs_client, *_ = server
     client = await rest('test')

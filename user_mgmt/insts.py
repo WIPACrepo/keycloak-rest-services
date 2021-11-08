@@ -288,7 +288,7 @@ class InstApprovals(MyHandler):
         if not insts:
             raise HTTPError(403, 'invalid authorization')
 
-        search = {'$or': [{'experiment': exp, 'institution': insts[exp]} for exp in insts]}
+        search = {'$or': [{'experiment': exp, 'institution': inst} for exp in insts for inst in insts[exp]]}
         ret = []
         async for row in self.db.inst_approvals.find(search, projection={'_id': False}):
             if 'newuser' in row:
@@ -314,7 +314,7 @@ class InstApprovalsActionApprove(MyHandler):
         ret = await self.db.inst_approvals.find_one({'id': approval_id})
         if not ret:
             raise HTTPError(404, 'no record for approval_id')
-        if not any(ret['experiment'] == exp and ret['institution'] == insts[exp] for exp in insts):
+        if not any(ret['experiment'] == exp and ret['institution'] in insts[exp] for exp in insts):
             raise HTTPError(403, 'invalid authorization')
 
         newuser = 'newuser' in ret and ret['newuser']
@@ -447,7 +447,7 @@ class InstApprovalsActionDeny(MyHandler):
         ret = await self.db.inst_approvals.find_one({'id': approval_id})
         if not ret:
             raise HTTPError(404, 'no record for approval_id')
-        if not any(ret['experiment'] == exp and ret['institution'] == insts[exp] for exp in insts):
+        if not any(ret['experiment'] == exp and ret['institution'] in insts[exp] for exp in insts):
             raise HTTPError(403, 'invalid authorization')
 
         newuser = 'newuser' in ret and ret['newuser']
