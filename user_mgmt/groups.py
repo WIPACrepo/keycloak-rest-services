@@ -61,7 +61,7 @@ class Group(MyHandler):
         if not any(group['path'].startswith(g) for g in admin_groups):
             raise HTTPError(403, 'invalid authorization')
 
-        ret = await krs.groups.get_group_membership(group['path'], rest_client=self.krs_client)
+        ret = await krs.groups.get_group_membership_by_id(group['id'], rest_client=self.krs_client)
         self.write(sorted(ret))
 
 

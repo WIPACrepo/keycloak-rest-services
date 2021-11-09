@@ -125,12 +125,12 @@ class InstitutionMultiUsers(MyHandler):
 
         # get main membership
         ret = {}
-        ret['users'] = await krs.groups.get_group_membership(inst_group, rest_client=self.krs_client)
+        ret['users'] = await krs.groups.get_group_membership_by_id(group_info['id'], rest_client=self.krs_client)
 
         # get child groups, like the author list
         for child in group_info['subGroups']:
             if not child['name'].startswith('_'):
-                ret[child['name']] = await krs.groups.get_group_membership(child['path'], rest_client=self.krs_client)
+                ret[child['name']] = await krs.groups.get_group_membership_by_id(child['id'], rest_client=self.krs_client)
 
         self.write(ret)
 
