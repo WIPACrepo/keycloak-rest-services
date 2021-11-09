@@ -785,12 +785,19 @@ Insts = {
         try {
           const inst_admins = await get_my_inst_admins();
           let institutions = []
+          await keycloak.updateToken(30);
+          let promises = [];
           for (const inst of inst_admins) {
             let parts = inst.split('/')
-            await keycloak.updateToken(5);
-            var ret = await axios.get('/api/experiments/'+parts[2]+'/institutions/'+parts[3]+'/users', {
+            promises.push(axios.get('/api/experiments/'+parts[2]+'/institutions/'+parts[3]+'/users', {
               headers: {'Authorization': 'bearer '+keycloak.token}
-            })
+            }));
+          }
+          let rets = await Promise.all(promises);
+          for (let i=0;i<inst_admins.length;i++) {
+            let inst = inst_admins[i];
+            let ret = rets[i];
+            let parts = inst.split('/')
             let entry = {
               experiment: parts[2],
               institution: parts[3],
@@ -801,6 +808,7 @@ Insts = {
             }
             institutions.push(entry)
           }
+
           return institutions
         } catch (error) {
           this.error = "Error getting institutions: "+error['message']
@@ -980,12 +988,22 @@ Groups = {
           })
           const all_groups = ret.data;
           let groups = []
+          let promises = [];
           for (const group of group_admins) {
             if (group in all_groups) {
               await keycloak.updateToken(5);
-              let ret = await axios.get('/api/groups/'+all_groups[group], {
+              promises.push(await axios.get('/api/groups/'+all_groups[group], {
                 headers: {'Authorization': 'bearer '+keycloak.token}
-              })
+              }));
+            }
+          }
+          let rets = await Promise.all(promises);
+          let j=0;
+          for (let i=0;i<group_admins.length;i++) {
+            const group = group_admins[i];
+            if (group in all_groups) {
+              const ret = rets[j];
+              j += 1;
               let entry = {
                 id: all_groups[group],
                 name: group,
