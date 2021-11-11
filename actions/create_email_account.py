@@ -45,11 +45,11 @@ for username in set(users)-current_users:
     logging.info('Adding email for user ' + username)
     changes = True
     with open('/etc/postfix/canonical_sender', 'a') as f:
-        f.write(username+'     '+users[username]['firstName']+'.'+users[username]['lastName']+'\n')
+        f.write(username+'     '+users[username]['firstName']+'.'+users[username]['lastName']+'\\n')
     with open('/etc/postfix/canonical_recipient', 'a') as f:
-        f.write(users[username]['firstName']+'.'+users[username]['lastName']+'     '+username+'\n')
+        f.write(users[username]['firstName']+'.'+users[username]['lastName']+'     '+username+'\\n')
     with open('/etc/postfix/local_recipients', 'a') as f:
-        f.write(username+'     OK\n')
+        f.write(username+'     OK\\n')
 
 if changes:
     logging.info('reloading postfix')
