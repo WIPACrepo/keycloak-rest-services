@@ -3,7 +3,7 @@ import asyncio
 import logging
 
 from krs.ldap import LDAP, get_ldap_members
-from krs.groups import create_group
+from krs.groups import create_group, add_user_group
 from krs.bootstrap import get_token
 from krs.token import get_rest_client
 

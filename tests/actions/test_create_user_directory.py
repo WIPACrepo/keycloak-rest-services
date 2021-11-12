@@ -127,6 +127,7 @@ async def test_listener_other(keycloak_bootstrap, tmp_path, listener):
     assert ret_path.is_dir()
 
     await users.create_user('testuser2', first_name='first', last_name='last', email='foo@test2', rest_client=keycloak_bootstrap)
+    await groups.add_user_group('/posix', 'testuser2', rest_client=keycloak_bootstrap)
 
     await asyncio.sleep(.25) # allow listener to run
 

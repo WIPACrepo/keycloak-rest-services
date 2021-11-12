@@ -215,7 +215,6 @@ class LDAP:
             raise Exception(f'Search users failed: {c.result["description"]}')
         cookie = c.result['controls']['1.2.840.113556.1.4.319']['value']['cookie']
 
-        ret = {}
         def process():
             for entry in c.entries:
                 entry = entry.entry_attributes_as_dict
@@ -223,9 +222,9 @@ class LDAP:
                     val = {k: (entry[k][0] if len(entry[k]) == 1 else entry[k]) for k in entry if k in attrs}
                 else:
                     val = {k: (entry[k][0] if len(entry[k]) == 1 else entry[k]) for k in entry}
-                #logger.debug('processing entry '+entry['cn'][0])
                 ret[entry['uid'][0]] = val
 
+        ret = {}
         process()
         while cookie:
             c.search(self.config['LDAP_USER_BASE'], '(uid=*)', attributes=ALL_ATTRIBUTES, paged_size=100, paged_cookie=cookie)
@@ -382,7 +381,6 @@ class LDAP:
             raise Exception(f'Search groups failed: {c.result["description"]}')
         cookie = c.result['controls']['1.2.840.113556.1.4.319']['value']['cookie']
 
-        ret = {}
         def process():
             for entry in c.entries:
                 entry = entry.entry_attributes_as_dict
@@ -390,9 +388,9 @@ class LDAP:
                     val = {k: (entry[k][0] if len(entry[k]) == 1 else entry[k]) for k in entry if k in attrs}
                 else:
                     val = {k: (entry[k][0] if len(entry[k]) == 1 else entry[k]) for k in entry}
-                #logger.debug('processing entry '+entry['cn'][0])
                 ret[entry['cn'][0]] = val
 
+        ret = {}
         process()
         while cookie:
             c.search(groupbase, '(cn=*)', attributes=ALL_ATTRIBUTES, paged_size=100, paged_cookie=cookie)
