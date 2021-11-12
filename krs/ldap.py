@@ -427,7 +427,7 @@ class LDAP:
         # define the connection
         c = Connection(s, auto_bind=True)
 
-        # search for the user
+        # search for the group
         ret = c.search(groupbase, f'(cn={groupname})', attributes=ALL_ATTRIBUTES)
         if not ret:
             raise KeyError(f'Group {groupname} not found')

@@ -25,10 +25,13 @@ async def test_create(keycloak_bootstrap, ldap_bootstrap):
     assert 'loginShell' in ret['attributes']
     assert ret['attributes']['loginShell'] != '/sbin/nologin'
 
-    ret = ldap_bootstrap.get_user('testuser')
-    assert 'homeDirectory' in ret
-    assert ret['homeDirectory'] == '/home/testuser'
-    assert 'posixAccount' in ret['objectClass']
+    ret2 = ldap_bootstrap.get_user('testuser')
+    assert 'homeDirectory' in ret2
+    assert ret2['homeDirectory'] == '/home/testuser'
+    assert 'posixAccount' in ret2['objectClass']
+
+    ret3 = ldap_bootstrap.get_group('testuser')
+    assert ret3['gidNumber'] == ret2['gidNumber'] == int(ret['attributes']['gidNumber'])
 
 @pytest.mark.asyncio
 async def test_not_in_group(keycloak_bootstrap, ldap_bootstrap):

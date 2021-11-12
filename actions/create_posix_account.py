@@ -59,6 +59,10 @@ async def process(group_path, keycloak_client=None, ldap_client=None):
             ldap_client.modify_user(username, attribs, objectClass='posixAccount')
             logger.info(f'added user {username} as a POSIX user with {max_id}:{max_id}')
 
+            # make posix group
+            ldap_client.create_group(username, gidNumber=max_id)
+            ldap_client.add_user_group(username, username)
+
     # remove users that lost POSIX access
     for username in ldapPosix.difference(ret):
         attribs = {
