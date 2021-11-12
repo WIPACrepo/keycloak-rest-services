@@ -10,9 +10,8 @@ def test_get_users_none(ldap_bootstrap):
         ldap_bootstrap.get_user('foo')
 
 def test_list_users_none(ldap_bootstrap):
-    # this raises because no user entries is conflated with a fatal operation
-    with pytest.raises(Exception):
-        ldap_bootstrap.list_users()
+    ret = ldap_bootstrap.list_users()
+    assert not ret
 
 def test_create_user(ldap_bootstrap):
     ldap_bootstrap.create_user(username='foo', firstName='foo', lastName='bar', email='foo@bar')

@@ -4,6 +4,7 @@
 
 import argparse
 import asyncio
+import logging
 import os
 import sys
 
@@ -13,6 +14,7 @@ from krs.groups import create_group
 from krs.token import get_rest_client
 
 from .institution_list import ICECUBE_INSTS
+from .icecube_ldap import import_ldap_groups
 
 sys.path.append(os.getcwd())
 
@@ -39,16 +41,20 @@ def main():
     parser = argparse.ArgumentParser(description='IceCube Keycloak setup')
     parser.add_argument('keycloak_url', help='Keycloak url')
     parser.add_argument('user_mgmt_url', help='User Management url')
+    parser.add_argument('--ldap_url', default='ldap-1.icecube.wisc.edu', help='LDAP url')
     parser.add_argument('--keycloak_realm', default='IceCube', help='Keycloak realm')
-    parser.add_argument('-u', '--username', default='admin', help='admin username')
-    parser.add_argument('-p', '--password', default='admin', help='admin password')
+    parser.add_argument('-u', '--username', default='admin', help='Keycloak admin username')
+    parser.add_argument('-p', '--password', default='admin', help='Keycloak admin password')
 
     args = parser.parse_args()
 
     os.environ['KEYCLOAK_REALM'] = args.keycloak_realm
     os.environ['KEYCLOAK_URL'] = args.keycloak_url
+    os.environ['LDAP_URL'] = args.ldap_url
     os.environ['USERNAME'] = args.username
     os.environ['PASSWORD'] = args.password
+
+    logging.basicConfig(level=logging.DEBUG)
 
     # set up realm and REST API
     secret = bootstrap()
@@ -73,6 +79,9 @@ def main():
             await create_group(groupname+'/_admin', rest_client=rest_client)
             await create_group(groupname+'/authorlist', rest_client=rest_client)
     asyncio.run(create_insts('/institutions/IceCube', ICECUBE_INSTS))
+
+    # sync ldap groups
+    asyncio.run(import_ldap_groups(rest_client))
 
     # set up user_mgmt app
     token = get_token()

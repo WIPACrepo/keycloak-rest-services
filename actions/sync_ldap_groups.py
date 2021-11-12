@@ -10,7 +10,7 @@ import string
 
 from krs.groups import list_groups, get_group_membership_by_id
 from krs.token import get_rest_client
-from krs.ldap import LDAP
+from krs.ldap import LDAP, get_ldap_members
 from krs.rabbitmq import RabbitMQListener
 
 
@@ -23,20 +23,6 @@ def flatten_group_name(path):
     path = path.replace('/', '-')
     path = ''.join(letter for letter in path if letter in ACCEPTABLE_LDAP_CN)
     return path
-
-def get_ldap_members(group):
-    if 'member' in group:
-        members = group['member']
-        if not isinstance(members, list):
-            members = [members]
-        users = [m.split(',', 1)[0].split('=', 1)[-1] for m in members if m != 'cn=empty-membership-placeholder']
-    elif 'memberUid' not in group:
-        users = []
-    elif isinstance(group['memberUid'], list):
-        users = group['memberUid']
-    else:
-        users = [group['memberUid']]
-    return users
 
 async def process(group_path, ldap_ou=None, posix=False, recursive=False, keycloak_client=None, ldap_client=None):
     ldap_groups = ldap_client.list_groups(groupbase=ldap_ou)

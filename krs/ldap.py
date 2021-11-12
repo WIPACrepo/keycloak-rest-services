@@ -29,6 +29,19 @@ class LDAP:
         rc = RestClient(base_url, keycloak_token)
         url = '/components'
 
+        ret = await rc.request('GET', url)
+        ldapComponentId = None
+        ldapAttrs = []
+        for comp in ret:
+            if 'providerId' in comp:
+                if comp['providerId'] == 'ldap':
+                    ldapComponentId = comp['id']
+                elif comp['providerId'] == 'user-attribute-ldap-mapper':
+                    ldapAttrs.append(comp['name'])
+        if ldapComponentId:
+            logger.warning('LDAP is already linked to Keycloak')
+            return
+
         # define LDAP provider
         args = {
             'name': 'ldap',
@@ -196,17 +209,32 @@ class LDAP:
         c = Connection(s, auto_bind=True)
 
         # search for the user
-        ret = c.search(self.config['LDAP_USER_BASE'], '(uid=*)', attributes=ALL_ATTRIBUTES)
-        if not ret:
-            raise Exception(f'Search users failed: {c.result["message"]}')
+        c.search(self.config['LDAP_USER_BASE'], '(uid=*)', attributes=ALL_ATTRIBUTES, paged_size=100)
+        if c.result['result']:
+            logger.debug(f'search result {c.result}')
+            raise Exception(f'Search users failed: {c.result["description"]}')
+        cookie = c.result['controls']['1.2.840.113556.1.4.319']['value']['cookie']
+
         ret = {}
-        for entry in c.entries:
-            entry = entry.entry_attributes_as_dict
-            if attrs:
-                val = {k: (entry[k][0] if len(entry[k]) == 1 else entry[k]) for k in entry if k in attrs}
-            else:
-                val = {k: (entry[k][0] if len(entry[k]) == 1 else entry[k]) for k in entry}
-            ret[entry['uid'][0]] = val
+        def process():
+            for entry in c.entries:
+                entry = entry.entry_attributes_as_dict
+                if attrs:
+                    val = {k: (entry[k][0] if len(entry[k]) == 1 else entry[k]) for k in entry if k in attrs}
+                else:
+                    val = {k: (entry[k][0] if len(entry[k]) == 1 else entry[k]) for k in entry}
+                #logger.debug('processing entry '+entry['cn'][0])
+                ret[entry['uid'][0]] = val
+
+        process()
+        while cookie:
+            c.search(self.config['LDAP_USER_BASE'], '(uid=*)', attributes=ALL_ATTRIBUTES, paged_size=100, paged_cookie=cookie)
+            if c.result['result']:
+                logger.debug(f'search result {c.result}')
+                raise Exception(f'Search users failed: {c.result["description"]}')
+            cookie = c.result['controls']['1.2.840.113556.1.4.319']['value']['cookie']
+            process()
+
         return ret
 
     def get_user(self, username):
@@ -347,18 +375,33 @@ class LDAP:
         # define the connection
         c = Connection(s, auto_bind=True)
 
-        # search for the group
-        ret = c.search(groupbase, '(cn=*)', attributes=ALL_ATTRIBUTES)
+        # paged search for the group
+        c.search(groupbase, '(cn=*)', attributes=ALL_ATTRIBUTES, paged_size=100)
         if c.result['result']:
-            raise Exception(f'Search groups failed: {c.result["message"]}')
+            logger.debug(f'search result {c.result}')
+            raise Exception(f'Search groups failed: {c.result["description"]}')
+        cookie = c.result['controls']['1.2.840.113556.1.4.319']['value']['cookie']
+
         ret = {}
-        for entry in c.entries:
-            entry = entry.entry_attributes_as_dict
-            if attrs:
-                val = {k: (entry[k][0] if len(entry[k]) == 1 else entry[k]) for k in entry if k in attrs}
-            else:
-                val = {k: (entry[k][0] if len(entry[k]) == 1 else entry[k]) for k in entry}
-            ret[entry['cn'][0]] = val
+        def process():
+            for entry in c.entries:
+                entry = entry.entry_attributes_as_dict
+                if attrs:
+                    val = {k: (entry[k][0] if len(entry[k]) == 1 else entry[k]) for k in entry if k in attrs}
+                else:
+                    val = {k: (entry[k][0] if len(entry[k]) == 1 else entry[k]) for k in entry}
+                #logger.debug('processing entry '+entry['cn'][0])
+                ret[entry['cn'][0]] = val
+
+        process()
+        while cookie:
+            c.search(groupbase, '(cn=*)', attributes=ALL_ATTRIBUTES, paged_size=100, paged_cookie=cookie)
+            if c.result['result']:
+                logger.debug(f'search result {c.result}')
+                raise Exception(f'Search groups failed: {c.result["description"]}')
+            cookie = c.result['controls']['1.2.840.113556.1.4.319']['value']['cookie']
+            process()
+
         return ret
 
     def get_group(self, groupname, groupbase=None):
@@ -529,3 +572,27 @@ class LDAP:
 
         # close the connection
         c.unbind()
+
+
+def get_ldap_members(group):
+    """
+    Get group members from raw LDAP group information
+
+    Args:
+        group (dict): LDAP group info
+
+    Returns:
+        list: uids
+    """
+    if 'member' in group:
+        members = group['member']
+        if not isinstance(members, list):
+            members = [members]
+        users = [m.split(',', 1)[0].split('=', 1)[-1] for m in members if m != 'cn=empty-membership-placeholder']
+    elif 'memberUid' not in group:
+        users = []
+    elif isinstance(group['memberUid'], list):
+        users = group['memberUid']
+    else:
+        users = [group['memberUid']]
+    return users
