@@ -4,7 +4,7 @@ Group actions against Keycloak.
 import asyncio
 import logging
 
-from .users import user_info
+from .users import user_info, _fix_attributes
 from .token import get_rest_client
 
 logger = logging.getLogger('krs.groups')
@@ -54,6 +54,7 @@ async def group_info(group_path, rest_client=None):
 
     if not ret:
         raise Exception(f'group "{group_path}" does not exist')
+    _fix_attributes(ret)
     return ret
 
 async def group_info_by_id(group_id, rest_client=None):
@@ -71,6 +72,7 @@ async def group_info_by_id(group_id, rest_client=None):
 
     if not ret:
         raise Exception(f'group "{group_id}" does not exist')
+    _fix_attributes(ret)
     return ret
 
 async def create_group(group_path, attrs=None, rest_client=None):
@@ -104,6 +106,30 @@ async def create_group(group_path, attrs=None, rest_client=None):
             group['attributes'] = {k: [attrs[k]] for k in attrs}
         await rest_client.request('POST', url, group)
         logger.info(f'group "{group_path}" created')
+
+async def modify_group(group_path, attrs={}, rest_client=None):
+    """
+    Modify attributes for a group.
+
+    Patches attributes with existing ones.  Use `None` to remove attr.
+
+    Args:
+        group_path (str): group path (/parent/parent/name)
+        attrs (dict): attributes to modify
+    """
+    groups = await list_groups(rest_client=rest_client)
+    if group_path in groups:
+        url = f'/groups/{groups[group_path]["id"]}'
+        ret = await rest_client.request('GET', url)
+        for k in attrs:
+            if attrs[k] is None:
+                ret['attributes'].pop(k, None)
+            else:
+                ret['attributes'][k] = [attrs[k]]
+        await rest_client.request('PUT', url, ret)
+        logger.info(f'group "{group_path}" modified')
+    else:
+        logger.info(f'group "{group_path}" does not exist')
 
 async def delete_group(group_path, rest_client=None):
     """

@@ -112,10 +112,13 @@ async def modify_user(username, attribs=None, rest_client=None):
     ret = await rest_client.request('GET', url)
 
     # update info
-    if 'attributes' in ret:
-        ret['attributes'].update(attribs)
-    else:
-        ret['attributes'] = attribs
+    if 'attributes' not in ret:
+        ret['attributes'] = {}
+    for k in attribs:
+        if attribs[k] is None:
+            ret['attributes'].pop(k, None)
+        else:
+            ret['attributes'][k] = [attribs[k]]
     await rest_client.request('PUT', url, ret)
 
 async def set_user_password(username, password=None, temporary=False, rest_client=None):
