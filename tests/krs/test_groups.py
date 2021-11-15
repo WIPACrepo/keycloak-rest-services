@@ -36,7 +36,37 @@ async def test_group_attrs(keycloak_bootstrap):
     ret = await groups.group_info('/testgroup', rest_client=keycloak_bootstrap)
     assert ret['name'] == 'testgroup'
     assert ret['path'] == '/testgroup'
-    assert ret['attributes'] == {'foo': ['bar']}
+    assert ret['attributes'] == {'foo': 'bar'}
+
+@pytest.mark.asyncio
+async def test_modify_group(keycloak_bootstrap):
+    await groups.create_group('/testgroup', rest_client=keycloak_bootstrap)
+    ret = await groups.group_info('/testgroup', rest_client=keycloak_bootstrap)
+    assert ret['attributes'] == {}
+
+    await groups.modify_group('/testgroup', {'baz': 'foo'}, rest_client=keycloak_bootstrap)
+    ret = await groups.group_info('/testgroup', rest_client=keycloak_bootstrap)
+    assert ret['attributes'] == {'baz': 'foo'}
+
+@pytest.mark.asyncio
+async def test_modify_group_with_attrs(keycloak_bootstrap):
+    await groups.create_group('/testgroup', attrs={'foo':'bar'}, rest_client=keycloak_bootstrap)
+    ret = await groups.group_info('/testgroup', rest_client=keycloak_bootstrap)
+    assert ret['attributes'] == {'foo': 'bar'}
+
+    await groups.modify_group('/testgroup', {'baz': 'foo'}, rest_client=keycloak_bootstrap)
+    ret = await groups.group_info('/testgroup', rest_client=keycloak_bootstrap)
+    assert ret['attributes'] == {'foo': 'bar', 'baz': 'foo'}
+
+@pytest.mark.asyncio
+async def test_modify_group_del_attr(keycloak_bootstrap):
+    await groups.create_group('/testgroup', attrs={'foo':'bar'}, rest_client=keycloak_bootstrap)
+    ret = await groups.group_info('/testgroup', rest_client=keycloak_bootstrap)
+    assert ret['attributes'] == {'foo': 'bar'}
+
+    await groups.modify_group('/testgroup', {'foo': None, 'baz': 'foo'}, rest_client=keycloak_bootstrap)
+    ret = await groups.group_info('/testgroup', rest_client=keycloak_bootstrap)
+    assert ret['attributes'] == {'baz': 'foo'}
 
 @pytest.mark.asyncio
 async def test_group_info_by_id(keycloak_bootstrap):
