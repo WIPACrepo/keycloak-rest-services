@@ -13,7 +13,7 @@ from krs.bootstrap import bootstrap, get_token, user_mgmt_app
 from krs.groups import create_group
 from krs.token import get_rest_client
 
-from .institution_list import ICECUBE_INSTS
+from .institution_list import ICECUBE_INSTS, GEN2_INSTS
 from .icecube_ldap import import_ldap_groups
 
 sys.path.append(os.getcwd())
