@@ -3,14 +3,24 @@ import asyncio
 import logging
 
 from krs.ldap import LDAP, get_ldap_members
-from krs.groups import create_group, add_user_group
+from krs.groups import create_group, modify_group, add_user_group
 from krs.bootstrap import get_token
 from krs.token import get_rest_client
+
+from .institution_list import ICECUBE_INSTS, GEN2_INSTS
 
 logger = logging.getLogger('import_ldap')
 
 
 IGNORE_LIST = set(['IceCube', 'wipac'])
+
+def get_attr_as_list(group, name, default=None):
+    if name not in group:
+        return default
+    val = group[name]
+    if isinstance(val, list):
+        return val
+    return [val]
 
 async def import_ldap_groups(keycloak_conn, ldap_setup=True, dryrun=False):
     ldap_conn = LDAP()
@@ -48,6 +58,51 @@ async def import_ldap_groups(keycloak_conn, ldap_setup=True, dryrun=False):
                 for member in members:
                     await add_user_group(f'/posix/{group_name}', member, rest_client=keycloak_conn)
 
+async def import_ldap_insts(keycloak_conn, base_group='/institutions/IceCube', INSTS=ICECUBE_INSTS, dryrun=False):
+    ldap_conn = LDAP()
+    ldap_users = ldap_conn.list_users()
+
+    # now handle institutions
+    keycloak_insts_by_o = {}
+    for name in INSTS:
+        if '_ldap_o' in INSTS[name]:
+            inst = INSTS[name].copy()
+            inst['name'] = name
+            keycloak_insts_by_o[inst['_ldap_o']] = inst
+        else:
+            logger.info(f'skipping Keycloak inst {name}')
+
+    inst_groups = ldap_conn.list_groups('ou=Institutions,dc=icecube,dc=wisc,dc=edu')
+    for inst_cn in sorted(inst_groups, key=lambda x: inst_groups[x]['o']):
+        inst = inst_groups[inst_cn]
+        inst_o = inst['o']
+
+        if inst_o in keycloak_insts_by_o:
+            keycloak_inst = keycloak_insts_by_o[inst_o]
+            logger.info(f'syncing inst {keycloak_inst["name"]}')
+            keycloak_group = f'{base_group}/{keycloak_inst["name"]}'
+
+            inst_security_contact = get_attr_as_list(inst, 'collaboratorSecurityContact', default=[])
+            inst_admin = get_attr_as_list(inst, 'institutionLeadUid', default=[])
+
+            attrs = {
+                'collaboratorSecurityContact': inst_security_contact,
+                'institutionLeadUid': inst_admin,
+            }
+            if not dryrun:
+                await modify_group(keycloak_group, attrs, rest_client=keycloak_conn)
+            for user in inst_admin:
+                logger.debug(f'adding admin user {user} to {keycloak_group}/_admin')
+                if not dryrun:
+                    await add_user_group(keycloak_group+'/_admin', user, rest_client=keycloak_conn)
+            inst_full_o = f'o={inst_o},ou=Institutions,dc=icecube,dc=wisc,dc=edu'
+            for user in ldap_users:
+                if ldap_users[user].get('o', None) == inst_full_o:
+                    logger.debug(f'adding user {user} to {keycloak_group}')
+                    if not dryrun:
+                        await add_user_group(keycloak_group, user, rest_client=keycloak_conn)
+        else:
+            logger.info(f'skipping LDAP inst {inst["o"]}')
 
 def main():
     parser = argparse.ArgumentParser(description='IceCube Keycloak setup')
@@ -59,6 +114,9 @@ def main():
 
     rest_client = get_rest_client()
     asyncio.run(import_ldap_groups(rest_client, ldap_setup=False, dryrun=args.dryrun))
+    asyncio.run(import_ldap_insts(rest_client, dryrun=args.dryrun))
+    asyncio.run(import_ldap_insts(rest_client, base_group='/institutions/IceCube-Gen2', INSTS=ICECUBE_INSTS, dryrun=args.dryrun))
+    asyncio.run(import_ldap_insts(rest_client, base_group='/institutions/IceCube-Gen2', INSTS=GEN2_INSTS, dryrun=args.dryrun))
 
 
 if __name__ == '__main__':

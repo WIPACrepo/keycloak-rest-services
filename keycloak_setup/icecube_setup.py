@@ -75,10 +75,19 @@ def main():
     async def create_insts(base, inst_list):
         for name in inst_list:
             groupname = base+'/'+name
-            await create_group(groupname, attrs=inst_list[name], rest_client=rest_client)
+            authorlists = inst_list[name].pop('authorlists', None)
+            attrs = {k: inst_list[name][k] for k in inst_list[name] if not k.startswith('_')}
+            await create_group(groupname, attrs=attrs, rest_client=rest_client)
             await create_group(groupname+'/_admin', rest_client=rest_client)
-            await create_group(groupname+'/authorlist', rest_client=rest_client)
+            if authorlists:
+                for name in authorlists:
+                    attrs2 = {'cite': authorlists[name]}
+                    await create_group(f'{groupname}/authorlist-{name}', attrs2, rest_client=rest_client)
+            elif attrs['authorlist']:
+                await create_group(groupname+'/authorlist', rest_client=rest_client)
     asyncio.run(create_insts('/institutions/IceCube', ICECUBE_INSTS))
+    asyncio.run(create_insts('/institutions/IceCube-Gen2', ICECUBE_INSTS))
+    asyncio.run(create_insts('/institutions/IceCube-Gen2', GEN2_INSTS))
 
     # sync ldap groups
     asyncio.run(import_ldap_groups(rest_client))
