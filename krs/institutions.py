@@ -152,7 +152,7 @@ async def create_inst(experiment, institution, attrs=None, rest_client=None):
     elif attrs['authorlist']:
         await groups.create_group(f'{group_path}/authorlist', rest_client=rest_client)
 
-async def modify_inst(experiment, institution, attrs={}, rest_client=None):
+async def modify_inst(experiment, institution, attrs, rest_client=None):
     """
     Modify attributes for an institution.
 
