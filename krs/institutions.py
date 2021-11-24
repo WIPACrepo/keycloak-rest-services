@@ -6,7 +6,7 @@ from enum import Enum
 import json
 import logging
 
-from .users import user_info, _fix_attributes
+from .users import _fix_attributes
 from . import groups
 from .token import get_rest_client
 
@@ -49,7 +49,7 @@ async def list_insts(experiment=None, filter_func=None, rest_client=None):
                 for subg in g['subGroups']:
                     if subg['name'].startswith('authorlist-'):
                         _fix_attributes(subg)
-                        authorlists[subg['name'].replace('authorlist-','')] = subg['attributes'].get('cite','')
+                        authorlists[subg['name'].replace('authorlist-', '')] = subg['attributes'].get('cite', '')
                 if authorlists:
                     g['attributes']['authorlists'] = authorlists
                 if callable(filter_func) and not filter_func(g['path'], g['attributes']):
@@ -57,7 +57,7 @@ async def list_insts(experiment=None, filter_func=None, rest_client=None):
                 ret[g['path']] = g['attributes']
     add_groups(group_hierarchy)
 
-    return {k:ret[k] for k in sorted(ret)}
+    return {k: ret[k] for k in sorted(ret)}
 
 class InstitutionAttrsMismatchError(RuntimeError):
     pass
@@ -110,7 +110,7 @@ def validate_attrs(attrs):
     if isinstance(attrs['region'], Region):
         attrs['region'] = attrs['region'].value
     else:
-        Region(attrs['region']) # this will raise a ValueError if not a Region
+        Region(attrs['region'])  # this will raise a ValueError if not a Region
     if 'authorlist' not in attrs:
         attrs['authorlist'] = False
     if 'has_mou' not in attrs:
@@ -165,10 +165,10 @@ async def modify_inst(experiment, institution, attrs={}, rest_client=None):
         institution (str): institution name
         attrs (dict): attributes to modify
     """
-    authorlists = attrs.pop('authorlists', None)
+    attrs.pop('authorlists', None)
 
     existing_attrs = await inst_info(experiment, institution, rest_client=rest_client)
-    existing_authorlists = existing_attrs.pop('authorlsits', None)
+    existing_attrs.pop('authorlsits', None)
 
     new_attrs = existing_attrs.copy()
     new_attrs.update(attrs)
