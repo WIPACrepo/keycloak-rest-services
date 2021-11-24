@@ -11,6 +11,7 @@ import sys
 # local imports
 from krs.bootstrap import bootstrap, get_token, user_mgmt_app
 from krs.groups import create_group
+from krs.institutions import create_inst
 from krs.token import get_rest_client
 
 from .institution_list import ICECUBE_INSTS, GEN2_INSTS
@@ -72,22 +73,13 @@ def main():
     asyncio.run(create_subgroups('', GROUPS))
 
     # set up institutions
-    async def create_insts(base, inst_list):
+    async def create_insts(exp, inst_list):
         for name in inst_list:
-            groupname = base+'/'+name
-            authorlists = inst_list[name].pop('authorlists', None)
             attrs = {k: inst_list[name][k] for k in inst_list[name] if not k.startswith('_')}
-            await create_group(groupname, attrs=attrs, rest_client=rest_client)
-            await create_group(groupname+'/_admin', rest_client=rest_client)
-            if authorlists:
-                for name in authorlists:
-                    attrs2 = {'cite': authorlists[name]}
-                    await create_group(f'{groupname}/authorlist-{name}', attrs2, rest_client=rest_client)
-            elif attrs['authorlist']:
-                await create_group(groupname+'/authorlist', rest_client=rest_client)
-    asyncio.run(create_insts('/institutions/IceCube', ICECUBE_INSTS))
-    asyncio.run(create_insts('/institutions/IceCube-Gen2', ICECUBE_INSTS))
-    asyncio.run(create_insts('/institutions/IceCube-Gen2', GEN2_INSTS))
+            await create_inst(exp, name, attrs, rest_client)
+    asyncio.run(create_insts('IceCube', ICECUBE_INSTS))
+    asyncio.run(create_insts('IceCube-Gen2', ICECUBE_INSTS))
+    asyncio.run(create_insts('IceCube-Gen2', GEN2_INSTS))
 
     # sync ldap groups
     asyncio.run(import_ldap_groups(rest_client))
