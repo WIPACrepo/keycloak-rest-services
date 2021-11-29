@@ -4,19 +4,16 @@ from collections import defaultdict
 from xml.etree import ElementTree
 from html import unescape
 import logging
-from pprint import pprint
 
 import requests
 
-from krs.ldap import LDAP, get_ldap_members
-from krs.users import list_users
-from krs.groups import create_group, modify_group, add_user_group
-from krs.bootstrap import get_token
+from krs.users import list_users, modify_user
+from krs.groups import add_user_group
 from krs.token import get_rest_client
 
 from .institution_list import ICECUBE_INSTS, GEN2_INSTS
 
-logger = logging.getLogger('import_ldap')
+logger = logging.getLogger('import_authorlist')
 
 
 IGNORE_LIST = set(['IceCube', 'wipac'])
@@ -46,9 +43,10 @@ async def import_authorlist_insts(keycloak_conn, base_group='/institutions/IceCu
             author_users.append({
                 'first': el.find('{http://xmlns.com/foaf/0.1/}givenName').text,
                 'last': el.find('{http://xmlns.com/foaf/0.1/}familyName').text,
+                'author': el.find('{http://inspirehep.net/info/HepNames/tools/authors_xml/}authorNamePaper').text,
                 'insts': [e.attrib['organizationid'] for e in aff if 'connection' not in e.attrib],
                 'thanks': [e.attrib['organizationid'] for e in aff if 'connection' in e.attrib],
-                'email':  [e.text for e in ids if e.attrib['source'] == 'INTERNAL'],
+                'email': [e.text for e in ids if e.attrib['source'] == 'INTERNAL'],
             })
 
     authors_by_inst = defaultdict(list)
@@ -97,6 +95,8 @@ async def import_authorlist_insts(keycloak_conn, base_group='/institutions/IceCu
             logger.info(f'adding {user["first"]} {user["last"]}: {keycloak_user["username"]} to {inst}')
             if not dryrun:
                 await add_user_group(group_name, keycloak_user['username'], rest_client=keycloak_conn)
+                attrs = {'author_name': user['author']}
+                await modify_user(keycloak_user['username'], attrs, rest_client=keycloak_conn)
 
 def main():
     parser = argparse.ArgumentParser(description='IceCube Keycloak setup')
@@ -108,8 +108,8 @@ def main():
 
     rest_client = get_rest_client()
     asyncio.run(import_authorlist_insts(rest_client, dryrun=args.dryrun))
-    #asyncio.run(import_authorlist_insts(rest_client, base_group='/institutions/IceCube-Gen2', INSTS=ICECUBE_INSTS, dryrun=args.dryrun))
-    #asyncio.run(import_authorlist_insts(rest_client, base_group='/institutions/IceCube-Gen2', INSTS=GEN2_INSTS, dryrun=args.dryrun))
+    asyncio.run(import_authorlist_insts(rest_client, base_group='/institutions/IceCube-Gen2', INSTS=ICECUBE_INSTS, dryrun=args.dryrun))
+    asyncio.run(import_authorlist_insts(rest_client, base_group='/institutions/IceCube-Gen2', INSTS=GEN2_INSTS, dryrun=args.dryrun))
 
 
 if __name__ == '__main__':
