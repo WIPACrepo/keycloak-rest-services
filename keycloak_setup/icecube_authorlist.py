@@ -92,7 +92,7 @@ async def import_authorlist_insts(keycloak_conn, base_group='/institutions/IceCu
                 logger.warning(f'unknown user {user["first"]} {user["last"]} in {inst}')
                 continue
 
-            logger.info(f'adding {user["first"]} {user["last"]}: {keycloak_user["username"]} to {inst}')
+            logger.info(f'adding {user["first"]} {user["last"]}: {keycloak_user["username"]} to {inst}')  # lgtm [py/clear-text-logging-sensitive-data]
             if not dryrun:
                 await add_user_group(group_name, keycloak_user['username'], rest_client=keycloak_conn)
                 attrs = {'author_name': user['author']}
