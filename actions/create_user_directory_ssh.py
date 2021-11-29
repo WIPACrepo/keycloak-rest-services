@@ -67,7 +67,7 @@ for username in set(user_dirs).difference(existing):
             os.chown(path, user_dirs[username]['uid'], user_dirs[username]['gid'])
             if root_dir in QUOTAS:
                 logging.debug('Setting quota on directory ' + path)
-                subprocess.check_call(QUOTAS[root_dir].format(user_dirs[username]['uid']), shell=True)
+                subprocess.check_call(QUOTAS[root_dir].format(**user_dirs[username]), shell=True)
 '''
     actions.util.scp_and_run_sudo(server, script, script_name='create_directory.py')
 

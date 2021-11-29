@@ -45,11 +45,15 @@ async def process(group_path, root_dir, keycloak_client=None):
                 logger.info(f'Creating directory {path}')
                 path.mkdir(mode=0o755, parents=True, exist_ok=True)
                 if is_root:
-                    logging.debug(f'Changing ownership of {path} to {user["attributes"]["uid"]}:{user["attributes"]["gid"]}')
+                    logging.debug(f'Changing ownership of {path} to {user["attributes"]["uidNumber"]}:{user["attributes"]["gidNumber"]}')
                     os.chown(path, int(user['attributes']['uidNumber']), int(user['attributes']['gidNumber']))
                     if root_dir in QUOTAS:
                         logging.debug(f'Setting quota on directory {path}')
-                        subprocess.check_call(QUOTAS[root_dir].format(int(user['attributes']['uidNumber'])), shell=True)
+                        attrs = {
+                            'uid': user['attributes']['uidNumber'],
+                            'gid': user['attributes']['gidNumber'],
+                        }
+                        subprocess.check_call(QUOTAS[root_dir].format(**attrs), shell=True)
 
 def listener(group_path, address=None, exchange=None, dedup=1, **kwargs):
     """Set up RabbitMQ listener"""
