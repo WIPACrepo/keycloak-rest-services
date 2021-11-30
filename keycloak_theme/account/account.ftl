@@ -26,6 +26,16 @@
             </div>
         </#if>
 
+        <div class="form-group ${messagesPerField.printIfExists('email','has-error')}">
+            <div class="col-sm-2 col-md-2">
+                <label for="email" class="control-label">${msg("email")}</label> <span class="required">*</span>
+            </div>
+
+            <div class="col-sm-10 col-md-10">
+                <input type="text" class="form-control" id="email" name="email" value="${(account.email!'')}"/>
+            </div>
+        </div>
+
         <div class="form-group ${messagesPerField.printIfExists('firstName','has-error')}">
             <div class="col-sm-2 col-md-2">
                 <label for="firstName" class="control-label">${msg("firstName")}</label> <span class="required">*</span>
