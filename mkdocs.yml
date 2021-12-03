@@ -3,6 +3,7 @@ copyright: Copyright &copy; 2021
 nav:
   - "Home": index.md
   - "New User Registration": new_user.md
+  - "User Login": user_login.md
   - "Institution Actions":
     - "Change Institution": inst_move.md
     - "Join Institution": inst_join.md
