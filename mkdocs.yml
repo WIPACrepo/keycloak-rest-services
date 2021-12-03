@@ -4,6 +4,8 @@ nav:
   - "Home": index.md
   - "New User Registration": new_user.md
   - "User Login": user_login.md
+  - "User Profile": user_profile.md
+  - "Password Reset": pwd_reset.md
   - "Institution Actions":
     - "Change Institution": inst_move.md
     - "Join Institution": inst_join.md
