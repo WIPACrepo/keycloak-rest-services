@@ -120,7 +120,7 @@ class LDAP:
                     'always.read.value.from.ldap': ['true'],
                     'read.only': ['false'],
                     'user.model.attribute': ['firstName'],
-                    'ldap.attribute': ['cn'],
+                    'ldap.attribute': ['givenName'],
                 }
             }
             await rc.request('POST', url, args)

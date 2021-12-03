@@ -23,6 +23,9 @@ def _fix_attributes(user):
             if len(user['attributes'][k]) == 1:
                 user['attributes'][k] = user['attributes'][k][0]
 
+class UserDoesNotExist(Exception):
+    pass
+
 async def list_users(max_users=10000, rest_client=None):
     """
     List users in Keycloak.
@@ -52,7 +55,7 @@ async def user_info(username, rest_client=None):
     ret = await rest_client.request('GET', url)
 
     if not ret:
-        raise Exception(f'user "{username}" does not exist')
+        raise UserDoesNotExist(f'user "{username}" does not exist')
     _fix_attributes(ret[0])
     return ret[0]
 
@@ -117,6 +120,8 @@ async def modify_user(username, attribs=None, rest_client=None):
     for k in attribs:
         if attribs[k] is None:
             ret['attributes'].pop(k, None)
+        elif isinstance(attribs[k], list):
+            ret['attributes'][k] = attribs[k]
         else:
             ret['attributes'][k] = [attribs[k]]
     await rest_client.request('PUT', url, ret)

@@ -393,7 +393,7 @@ def add_custom_theme(realm=None, token=None):
     r.raise_for_status()
     main_config = r.json()
 
-    # make sure rabbitmq is in the config listeners
+    # make sure theme is selected
     if main_config.get('loginTheme', '') == 'custom':
         print('custom theme already registered')
     else:
@@ -424,9 +424,9 @@ def bootstrap():
 
     client_secret = create_service_role(cfg['KEYCLOAK_CLIENT_ID'], realm=cfg['KEYCLOAK_REALM'], token=token)
 
-    add_rabbitmq_listener(realm=cfg['KEYCLOAK_REALM'], token=token)
+    # add_rabbitmq_listener(realm=cfg['KEYCLOAK_REALM'], token=token)
 
-    add_custom_theme(realm=cfg['KEYCLOAK_REALM'], token=token)
+    # add_custom_theme(realm=cfg['KEYCLOAK_REALM'], token=token)
 
     print(f'\nclient_id={cfg["KEYCLOAK_CLIENT_ID"]}')
     print(f'client_secret={client_secret}')
