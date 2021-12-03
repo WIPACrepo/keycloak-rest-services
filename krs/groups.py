@@ -124,6 +124,8 @@ async def modify_group(group_path, attrs={}, rest_client=None):
         for k in attrs:
             if attrs[k] is None:
                 ret['attributes'].pop(k, None)
+            elif isinstance(attrs[k], list):
+                ret['attributes'][k] = attrs[k]
             else:
                 ret['attributes'][k] = [attrs[k]]
         await rest_client.request('PUT', url, ret)

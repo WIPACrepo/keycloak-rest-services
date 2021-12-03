@@ -23,7 +23,7 @@ def get_token(url, client_id, client_secret):
     req = r.json()
     return req['access_token']
 
-def get_rest_client():
+def get_rest_client(retries=None, timeout=10):
     config = from_environment({
         'KEYCLOAK_REALM': None,
         'KEYCLOAK_URL': None,
@@ -34,10 +34,13 @@ def get_rest_client():
         client_id=config['KEYCLOAK_CLIENT_ID'],
         client_secret=config['KEYCLOAK_CLIENT_SECRET'],
     )
+    kwargs = {'timeout': timeout}
+    if retries:
+        kwargs['retries'] = retries
     return RestClient(
         f'{config["KEYCLOAK_URL"]}/auth/admin/realms/{config["KEYCLOAK_REALM"]}',
         token=token_func,
-        timeout=10,
+        **kwargs
     )
 
 

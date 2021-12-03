@@ -301,6 +301,7 @@ ICECUBE_INSTS = {
     "Lausanne": {
         "name": "École Polytechnique Fédérale",
         "cite": "Laboratory for High Energy Physics, École Polytechnique Fédérale, CH-1015 Lausanne, Switzerland",
+        "abbreviation": "EPFL",
         "is_US": False,
         "region": _EUROPE,
         "_ldap_o": "epfl",

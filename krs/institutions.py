@@ -143,6 +143,7 @@ async def create_inst(experiment, institution, attrs=None, rest_client=None):
 
     group_path = f'/institutions/{experiment}/{institution}'
     await groups.create_group(group_path, attrs=attrs, rest_client=rest_client)
+    await groups.create_group(f'{group_path}/_admin', attrs=attrs, rest_client=rest_client)
 
     if authorlists:
         for name in authorlists:

@@ -3,7 +3,8 @@ import asyncio
 import logging
 
 from krs.ldap import LDAP, get_ldap_members
-from krs.groups import create_group, modify_group, add_user_group
+from krs.users import UserDoesNotExist
+from krs.groups import list_groups, create_group, modify_group, add_user_group
 from krs.bootstrap import get_token
 from krs.token import get_rest_client
 
@@ -27,11 +28,13 @@ async def import_ldap_groups(keycloak_conn, ldap_setup=True, dryrun=False):
 
     if ldap_setup:
         # start with LDAP setup
-        ldap_conn.keycloak_ldap_link(get_token())
-        ldap_conn.force_keycloak_sync()
+        await ldap_conn.keycloak_ldap_link(get_token())
+        await ldap_conn.force_keycloak_sync(keycloak_client=keycloak_conn)
 
     ldap_users = ldap_conn.list_users()
     ldap_groups = ldap_conn.list_groups()
+
+    keycloak_groups = await list_groups(rest_client=keycloak_conn)
 
     for group_name in sorted(ldap_groups):
         members = get_ldap_members(ldap_groups[group_name])
@@ -41,6 +44,8 @@ async def import_ldap_groups(keycloak_conn, ldap_setup=True, dryrun=False):
             logger.info(f'skipping ignored group {group_name}')
         elif not members:
             logger.info(f'skipping empty group {group_name}')
+        elif f'/posix/{group_name}' in keycloak_groups:
+            logger.info(f'skipping existing group {group_name}')
         elif group_name in ldap_users:
             # this is a user group
             if members == [group_name]:
@@ -50,13 +55,19 @@ async def import_ldap_groups(keycloak_conn, ldap_setup=True, dryrun=False):
                 if not dryrun:
                     await create_group(f'/posix/{group_name}', {'gidNumber': gidNumber}, rest_client=keycloak_conn)
                     for member in members:
-                        await add_user_group(f'/posix/{group_name}', member, rest_client=keycloak_conn)
+                        try:
+                            await add_user_group(f'/posix/{group_name}', member, rest_client=keycloak_conn)
+                        except UserDoesNotExist:
+                            logger.info(f'skipping user {member} for group /posix/{group_name} - user does not exist')
         else:
             logger.info(f'creating non-user group /posix/{group_name} with members {members}')
             if not dryrun:
                 await create_group(f'/posix/{group_name}', {'gidNumber': gidNumber}, rest_client=keycloak_conn)
                 for member in members:
-                    await add_user_group(f'/posix/{group_name}', member, rest_client=keycloak_conn)
+                    try:
+                        await add_user_group(f'/posix/{group_name}', member, rest_client=keycloak_conn)
+                    except UserDoesNotExist:
+                        logger.info(f'skipping user {member} for group /posix/{group_name} - user does not exist')
 
 async def import_ldap_insts(keycloak_conn, base_group='/institutions/IceCube', INSTS=ICECUBE_INSTS, dryrun=False):
     ldap_conn = LDAP()
@@ -90,6 +101,7 @@ async def import_ldap_insts(keycloak_conn, base_group='/institutions/IceCube', I
                 'institutionLeadUid': inst_admin,
             }
             if not dryrun:
+                logger.info(f'modify inst with attrs {attrs}')
                 await modify_group(keycloak_group, attrs, rest_client=keycloak_conn)
             for user in inst_admin:
                 logger.debug(f'adding admin user {user} to {keycloak_group}/_admin')
