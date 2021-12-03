@@ -22,6 +22,10 @@ def keycloak_bootstrap(monkeypatch):
     secret = bootstrap.bootstrap()
     monkeypatch.setenv('KEYCLOAK_CLIENT_SECRET', secret)
 
+    # make sure rabbitmq is set up for tests
+    tok = bootstrap.get_token()
+    bootstrap.add_rabbitmq_listener(realm=os.environ['KEYCLOAK_REALM'], token=tok)
+
     token = partial(get_token, os.environ['KEYCLOAK_URL'],
             client_id='testclient',
             client_secret=secret,
