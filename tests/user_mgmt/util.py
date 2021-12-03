@@ -14,6 +14,7 @@ import krs.bootstrap
 import krs.users
 import krs.groups
 import krs.apps
+import krs.email
 
 from ..util import keycloak_bootstrap
 
@@ -74,3 +75,7 @@ async def mongo_client():
         await ret.user_registrations.drop()
         await ret.inst_approvals.drop()
         await ret.group_approvals.drop()
+
+@pytest.fixture
+def email_patch(mocker):
+    return mocker.patch('krs.email.send_email')

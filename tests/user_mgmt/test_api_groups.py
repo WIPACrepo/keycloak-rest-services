@@ -7,7 +7,7 @@ import krs.users
 import krs.groups
 
 from ..util import keycloak_bootstrap
-from .util import port, server, mongo_client
+from .util import port, server, mongo_client, email_patch
 
 
 @pytest.mark.asyncio
@@ -16,12 +16,12 @@ async def test_groups(server):
     client = await rest('test')
 
     await krs.groups.create_group('/foo', rest_client=krs_client)
-    
+
     ret = await client.request('GET', '/api/groups')
     assert ret == {} # /foo is not self-administrered yet
 
     await krs.groups.create_group('/foo/_admin', rest_client=krs_client)
-    
+
     ret = await client.request('GET', '/api/groups')
     assert list(ret.keys()) == ['/foo']
 
@@ -145,7 +145,7 @@ async def test_group_approvals_get(server, mongo_client):
     assert ret[0]['username'] == 'test'
 
 @pytest.mark.asyncio
-async def test_group_approvals_actions_approve(server, mongo_client):
+async def test_group_approvals_actions_approve(server, mongo_client, email_patch):
     rest, krs_client, *_ = server
 
     await krs.groups.create_group('/foo', rest_client=krs_client)
@@ -177,11 +177,13 @@ async def test_group_approvals_actions_approve(server, mongo_client):
     ret = await mongo_client.group_approvals.find().to_list(10)
     assert len(ret) == 0
 
+    email_patch.assert_called()
+
     ret = await krs.groups.get_group_membership('/foo', rest_client=krs_client)
     assert 'test' in ret
 
 @pytest.mark.asyncio
-async def test_group_approvals_actions_deny(server, mongo_client):
+async def test_group_approvals_actions_deny(server, mongo_client, email_patch):
     rest, krs_client, *_ = server
 
     await krs.groups.create_group('/foo', rest_client=krs_client)
@@ -212,6 +214,8 @@ async def test_group_approvals_actions_deny(server, mongo_client):
 
     ret = await mongo_client.group_approvals.find().to_list(10)
     assert len(ret) == 0
+
+    email_patch.assert_called()
 
     ret = await krs.groups.get_group_membership('/foo', rest_client=krs_client)
     assert 'test' not in ret

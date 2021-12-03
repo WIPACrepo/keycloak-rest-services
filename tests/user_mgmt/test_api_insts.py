@@ -5,9 +5,10 @@ from rest_tools.client import AsyncSession
 
 import krs.users
 import krs.groups
+import krs.email
 
 from ..util import keycloak_bootstrap
-from .util import port, server, mongo_client
+from .util import port, server, mongo_client, email_patch
 
 
 @pytest.mark.asyncio
@@ -293,7 +294,7 @@ async def test_inst_approvals_get(server, mongo_client):
     assert ret[0]['username'] == 'test'
 
 @pytest.mark.asyncio
-async def test_inst_approvals_actions_approve(server, mongo_client):
+async def test_inst_approvals_actions_approve(server, mongo_client, email_patch):
     rest, krs_client, *_ = server
 
     await krs.groups.create_group('/institutions', rest_client=krs_client)
@@ -318,6 +319,8 @@ async def test_inst_approvals_actions_approve(server, mongo_client):
     assert len(ret) == 1
     assert ret[0]['id'] == approval_id
 
+    email_patch.assert_not_called()
+
     ret = await krs.groups.get_group_membership('/institutions/IceCube/UW-Madison', rest_client=krs_client)
     assert 'test' not in ret
 
@@ -327,11 +330,13 @@ async def test_inst_approvals_actions_approve(server, mongo_client):
     ret = await mongo_client.inst_approvals.find().to_list(10)
     assert len(ret) == 0
 
+    email_patch.assert_called()
+
     ret = await krs.groups.get_group_membership('/institutions/IceCube/UW-Madison', rest_client=krs_client)
     assert 'test' in ret
 
 @pytest.mark.asyncio
-async def test_inst_approvals_actions_approve_gen2(server, mongo_client):
+async def test_inst_approvals_actions_approve_gen2(server, mongo_client, email_patch):
     rest, krs_client, *_ = server
 
     await krs.groups.create_group('/institutions', rest_client=krs_client)
@@ -355,13 +360,15 @@ async def test_inst_approvals_actions_approve_gen2(server, mongo_client):
     ret = await mongo_client.inst_approvals.find().to_list(10)
     assert len(ret) == 0
 
+    email_patch.assert_called()
+
     ret = await krs.groups.get_group_membership('/institutions/IceCube/UW-Madison', rest_client=krs_client)
     assert 'test' in ret
     ret = await krs.groups.get_group_membership('/institutions/IceCube-Gen2/UW-Madison', rest_client=krs_client)
     assert 'test' in ret
 
 @pytest.mark.asyncio
-async def test_inst_approvals_actions_approve_posix(server, mongo_client):
+async def test_inst_approvals_actions_approve_posix(server, mongo_client, email_patch):
     rest, krs_client, *_ = server
 
     await krs.groups.create_group('/institutions', rest_client=krs_client)
@@ -390,13 +397,15 @@ async def test_inst_approvals_actions_approve_posix(server, mongo_client):
     ret = await mongo_client.inst_approvals.find().to_list(10)
     assert len(ret) == 0
 
+    email_patch.assert_called()
+
     ret = await krs.groups.get_group_membership('/institutions/IceCube/UW-Madison', rest_client=krs_client)
     assert 'flast' in ret
     ret = await krs.groups.get_group_membership('/posix', rest_client=krs_client)
     assert 'flast' in ret
 
 @pytest.mark.asyncio
-async def test_inst_approvals_actions_deny(server, mongo_client):
+async def test_inst_approvals_actions_deny(server, mongo_client, email_patch):
     rest, krs_client, *_ = server
 
     await krs.groups.create_group('/institutions', rest_client=krs_client)
@@ -421,6 +430,8 @@ async def test_inst_approvals_actions_deny(server, mongo_client):
     assert len(ret) == 1
     assert ret[0]['id'] == approval_id
 
+    email_patch.assert_not_called()
+
     ret = await krs.groups.get_group_membership('/institutions/IceCube/UW-Madison', rest_client=krs_client)
     assert 'test' not in ret
 
@@ -429,6 +440,8 @@ async def test_inst_approvals_actions_deny(server, mongo_client):
 
     ret = await mongo_client.inst_approvals.find().to_list(10)
     assert len(ret) == 0
+
+    email_patch.assert_called()
 
     ret = await krs.groups.get_group_membership('/institutions/IceCube/UW-Madison', rest_client=krs_client)
     assert 'test' not in ret

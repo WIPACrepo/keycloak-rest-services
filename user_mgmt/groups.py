@@ -204,7 +204,7 @@ class GroupApprovalsActionApprove(MyHandler):
             except Exception:
                 raise HTTPError(400, 'invalid username')
             krs.email.send_email(
-                recipient={'name': f'{args["first_name"]} {args["last_name"]}', 'email': args['email']},
+                recipient={'name': f'{args["firstName"]} {args["lastName"]}', 'email': args['email']},
                 subject='IceCube Group Request Approved',
                 content=f'''IceCube Group Request Approved
 
@@ -243,7 +243,7 @@ class GroupApprovalsActionDeny(MyHandler):
             except Exception:
                 raise HTTPError(400, 'invalid username')
             krs.email.send_email(
-                recipient={'name': f'{args["first_name"]} {args["last_name"]}', 'email': args['email']},
+                recipient={'name': f'{args["firstName"]} {args["lastName"]}', 'email': args['email']},
                 subject='IceCube Group Request Denied',
                 content=f'''IceCube Group Request Denied
 

@@ -465,8 +465,8 @@ class InstApprovalsActionDeny(MyHandler):
             if newuser:
                 args = {
                     "username": user_data['username'],
-                    "first_name": user_data['first_name'],
-                    "last_name": user_data['last_name'],
+                    "firstName": user_data['first_name'],
+                    "lastName": user_data['last_name'],
                     "email": user_data['external_email'],
                 }
             else:
@@ -475,7 +475,7 @@ class InstApprovalsActionDeny(MyHandler):
                 except Exception:
                     raise HTTPError(400, 'invalid username')
             krs.email.send_email(
-                recipient={'name': f'{args["first_name"]} {args["last_name"]}', 'email': args['email']},
+                recipient={'name': f'{args["firstName"]} {args["lastName"]}', 'email': args['email']},
                 subject='IceCube Account Request Denied',
                 content=f'''IceCube Account Request Denied
 
