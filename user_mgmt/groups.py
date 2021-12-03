@@ -197,7 +197,21 @@ class GroupApprovalsActionApprove(MyHandler):
         # clean up approval
         await self.db.group_approvals.delete_one({'id': approval_id})
 
-        # TODO: send email
+        # send email
+        try:
+            try:
+                args = await krs.users.user_info(ret['username'], rest_client=self.krs_client)
+            except Exception:
+                raise HTTPError(400, 'invalid username')
+            krs.email.send_email(
+                recipient={'name': f'{args["first_name"]} {args["last_name"]}', 'email': args['email']},
+                subject='IceCube Group Request Approved',
+                content=f'''IceCube Group Request Approved
+
+Your group request for {ret["group"]} has been approved.
+''')
+        except Exception:
+            logging.warning('failed to send email for group approval', exc_info=True)
 
         self.write({})
 
@@ -222,6 +236,20 @@ class GroupApprovalsActionDeny(MyHandler):
         audit_logger.info(f'{self.auth_data["username"]} is denying request {approval_id}')
         await self.db.group_approvals.delete_one({'id': approval_id})
 
-        # TODO: send email
+        # send email
+        try:
+            try:
+                args = await krs.users.user_info(ret['username'], rest_client=self.krs_client)
+            except Exception:
+                raise HTTPError(400, 'invalid username')
+            krs.email.send_email(
+                recipient={'name': f'{args["first_name"]} {args["last_name"]}', 'email': args['email']},
+                subject='IceCube Group Request Denied',
+                content=f'''IceCube Group Request Denied
+
+Your group request for {ret["group"]} has been denied.
+''')
+        except Exception:
+            logging.warning('failed to send email for group deny', exc_info=True)
 
         self.write({})

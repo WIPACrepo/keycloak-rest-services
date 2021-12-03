@@ -1,5 +1,15 @@
 site_name: IceCube Account Workflow
 copyright: Copyright &copy; 2021
+nav:
+  - "Home": index.md
+  - "New User Registration": new_user.md
+  - "Institution Actions":
+    - "Change Institution": inst_move.md
+    - "Join Institution": inst_join.md
+    - "Leave Institution": inst_leave.md
+  - "Group Actions":
+    - "Join Group": group_join.md
+    - "Leave Group": group_leave.md
 theme:
   name: material
   favicon: images/logo.png
@@ -22,6 +32,7 @@ theme:
 extra_css:
   - stylesheets/extra.css
 markdown_extensions:
+  - admonition
   - pymdownx.highlight
   - pymdownx.inlinehilite
   - pymdownx.caret
