@@ -13,6 +13,9 @@ nav:
   - "Group Actions":
     - "Join Group": group_join.md
     - "Leave Group": group_leave.md
+  - "Administrators":
+    - Institutions: admin_insts.md
+    - Groups: admin_groups.md
 theme:
   name: material
   favicon: images/logo.png
