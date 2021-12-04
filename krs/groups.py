@@ -180,9 +180,9 @@ async def get_group_membership_by_id(group_id, rest_client=None):
     start = 0
     inc = 50
     ret = []
-    data = True
+    data = [0]*inc
 
-    while data:
+    while len(data) == inc:
         url = f'/groups/{group_id}/members?briefRepresentation=true&max={inc}&first={start}'
         start += inc
         data = await rest_client.request('GET', url)
