@@ -36,7 +36,7 @@ async def process(group_path, keycloak_client=None, ldap_client=None):
     ret = await get_group_membership(group_path, rest_client=keycloak_client)
 
     # add new users
-    for username in ret:
+    for username in sorted(ret):
         if username in users and 'uidNumber' in users[username]:
             if 'loginShell' in user and user['loginShell'] and user['loginShell'] == '/sbin/nologin':
                 # add back an existing account access
@@ -64,7 +64,7 @@ async def process(group_path, keycloak_client=None, ldap_client=None):
             ldap_client.add_user_group(username, username)
 
     # remove users that lost POSIX access
-    for username in ldapPosix.difference(ret):
+    for username in sorted(ldapPosix.difference(ret)):
         attribs = {
             'loginShell': '/sbin/nologin',
         }

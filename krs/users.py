@@ -26,19 +26,25 @@ def _fix_attributes(user):
 class UserDoesNotExist(Exception):
     pass
 
-async def list_users(max_users=10000, rest_client=None):
+async def list_users(rest_client=None):
     """
     List users in Keycloak.
 
     Returns:
         dict: username: user info
     """
-    url = f'/users?max={max_users}'
-    data = await rest_client.request('GET', url)
+    start = 0
+    inc = 50
     ret = {}
-    for u in data:
-        _fix_attributes(u)
-        ret[u['username']] = u
+    data = [0]*inc
+
+    while len(data) == inc:
+        url = f'/users?max={inc}&first={start}'
+        data = await rest_client.request('GET', url)
+        start += inc
+        for u in data:
+            _fix_attributes(u)
+            ret[u['username']] = u
     return ret
 
 async def user_info(username, rest_client=None):

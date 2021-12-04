@@ -201,8 +201,19 @@ async def get_user_groups(username, rest_client=None):
         list: group paths
     """
     info = await user_info(username, rest_client=rest_client)
+    return await get_user_groups_by_id(info['id'], rest_client=rest_client)
 
-    url = f'/users/{info["id"]}/groups'
+async def get_user_groups_by_id(user_id, rest_client=None):
+    """
+    Get the groups a user has membership in.
+
+    Args:
+        user_id (str): user id of user
+
+    Returns:
+        list: group paths
+    """
+    url = f'/users/{user_id}/groups'
     data = await rest_client.request('GET', url)
 
     ret = []
@@ -223,7 +234,7 @@ async def add_user_group(group_path, username, rest_client=None):
         raise Exception(f'group "{group_path}" does not exist')
 
     info = await user_info(username, rest_client=rest_client)
-    membership = await get_user_groups(username, rest_client=rest_client)
+    membership = await get_user_groups_by_id(info['id'], rest_client=rest_client)
 
     if group_path in membership:
         logger.info(f'user "{username}" already a member of group "{group_path}"')
@@ -258,7 +269,7 @@ async def remove_user_group(group_path, username, rest_client=None):
         raise Exception(f'group "{group_path}" does not exist')
 
     info = await user_info(username, rest_client=rest_client)
-    membership = await get_user_groups(username, rest_client=rest_client)
+    membership = await get_user_groups_by_id(info['id'], rest_client=rest_client)
 
     if group_path not in membership:
         logger.info(f'user "{username}" not a member of group "{group_path}"')

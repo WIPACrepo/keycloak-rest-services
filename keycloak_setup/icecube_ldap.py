@@ -4,7 +4,7 @@ import logging
 
 from krs.ldap import LDAP, get_ldap_members
 from krs.users import UserDoesNotExist
-from krs.groups import list_groups, create_group, modify_group, add_user_group
+from krs.groups import list_groups, create_group, modify_group, add_user_group, remove_user_group
 from krs.bootstrap import get_token
 from krs.token import get_rest_client
 
@@ -43,8 +43,15 @@ async def import_ldap_groups(keycloak_conn, ldap_setup=True, dryrun=False):
             await create_group('/posix', rest_client=keycloak_conn)
     if not dryrun:
         for member in ldap_users:
-            if 'uidNumber' in ldap_users[member]:
-                await add_user_group('/posix', member, rest_client=keycloak_conn)
+            try:
+                if 'loginShell' in ldap_users[member] and ldap_users[member]['loginShell'] != '/sbin/nologin':
+                    logger.info(f'add {member} to /posix')
+                    await add_user_group('/posix', member, rest_client=keycloak_conn)
+                else:
+                    logger.info(f'remove {member} from /posix')
+                    await remove_user_group('/posix', member, rest_client=keycloak_conn)
+            except UserDoesNotExist:
+                logger.info(f'skipping user {member} for group /posix - user does not exist')
 
     for group_name in sorted(ldap_groups):
         members = get_ldap_members(ldap_groups[group_name])
