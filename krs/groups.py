@@ -169,18 +169,25 @@ async def get_group_membership_by_id(group_id, rest_client=None):
     """
     Get the membership list of a group.
 
+    This is a paginated request that is fairly slow when linked with LDAP.
+
     Args:
         group_id (str): group id
 
     Returns:
         list: usernames
     """
-    url = f'/groups/{group_id}/members'
-    data = await rest_client.request('GET', url)
-
+    start = 0
+    inc = 50
     ret = []
-    for user in data:
-        ret.append(user['username'])
+    data = True
+
+    while data:
+        url = f'/groups/{group_id}/members?briefRepresentation=true&max={inc}&first={start}'
+        start += inc
+        data = await rest_client.request('GET', url)
+        for user in data:
+            ret.append(user['username'])
     return ret
 
 async def get_user_groups(username, rest_client=None):
