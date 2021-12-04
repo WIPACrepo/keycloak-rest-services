@@ -43,8 +43,8 @@ async def import_ldap_groups(keycloak_conn, ldap_setup=True, dryrun=False):
             await create_group('/posix', rest_client=keycloak_conn)
     if not dryrun:
         for member in ldap_users:
-            await add_user_group('/posix', member, rest_client=keycloak_conn)
-    return
+            if 'uidNumber' in ldap_users[member]:
+                await add_user_group('/posix', member, rest_client=keycloak_conn)
 
     for group_name in sorted(ldap_groups):
         members = get_ldap_members(ldap_groups[group_name])
@@ -136,7 +136,6 @@ def main():
 
     rest_client = get_rest_client()
     asyncio.run(import_ldap_groups(rest_client, ldap_setup=False, dryrun=args.dryrun))
-    return
     asyncio.run(import_ldap_insts(rest_client, dryrun=args.dryrun))
     asyncio.run(import_ldap_insts(rest_client, base_group='/institutions/IceCube-Gen2', INSTS=ICECUBE_INSTS, dryrun=args.dryrun))
     asyncio.run(import_ldap_insts(rest_client, base_group='/institutions/IceCube-Gen2', INSTS=GEN2_INSTS, dryrun=args.dryrun))
