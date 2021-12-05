@@ -58,5 +58,5 @@ class KeycloakGroupCache:
             self._group_members.clear()
         else:
             for k in list(self._group_members):
-                if path.startswith(k):
+                if k.startswith(path):
                     del self._group_members[k]

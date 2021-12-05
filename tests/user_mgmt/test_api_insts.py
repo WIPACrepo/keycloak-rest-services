@@ -12,11 +12,16 @@ from .util import port, server, mongo_client, email_patch
 
 
 @pytest.mark.asyncio
-async def test_experiments(server):
+async def test_experiments_empty(server):
     rest, krs_client, *_ = server
     client = await rest('test')
     ret = await client.request('GET', '/api/experiments')
     assert ret == []
+
+@pytest.mark.asyncio
+async def test_experiments(server):
+    rest, krs_client, *_ = server
+    client = await rest('test')
 
     await krs.groups.create_group('/institutions', rest_client=krs_client)
     await krs.groups.create_group('/institutions/IceCube', rest_client=krs_client)
@@ -25,7 +30,7 @@ async def test_experiments(server):
     assert ret == ['IceCube']
 
 @pytest.mark.asyncio
-async def test_institutions(server):
+async def test_institutions_empty(server):
     rest, krs_client, *_ = server
     client = await rest('test')
 
@@ -35,13 +40,20 @@ async def test_institutions(server):
     ret = await client.request('GET', '/api/experiments/IceCube/institutions')
     assert ret == []
 
+@pytest.mark.asyncio
+async def test_institutions(server):
+    rest, krs_client, *_ = server
+    client = await rest('test')
+
+    await krs.groups.create_group('/institutions', rest_client=krs_client)
+    await krs.groups.create_group('/institutions/IceCube', rest_client=krs_client)
     await krs.groups.create_group('/institutions/IceCube/UW-Madison', rest_client=krs_client)
 
     ret = await client.request('GET', '/api/experiments/IceCube/institutions')
     assert ret == ['UW-Madison']
 
 @pytest.mark.asyncio
-async def test_institution_subgroups(server):
+async def test_institution_subgroups_empty(server):
     rest, krs_client, *_ = server
     client = await rest('test')
 
@@ -52,6 +64,14 @@ async def test_institution_subgroups(server):
     ret = await client.request('GET', '/api/experiments/IceCube/institutions/UW-Madison')
     assert ret == {'subgroups':[]}
 
+@pytest.mark.asyncio
+async def test_institution_subgroups(server):
+    rest, krs_client, *_ = server
+    client = await rest('test')
+
+    await krs.groups.create_group('/institutions', rest_client=krs_client)
+    await krs.groups.create_group('/institutions/IceCube', rest_client=krs_client)
+    await krs.groups.create_group('/institutions/IceCube/UW-Madison', rest_client=krs_client)
     await krs.groups.create_group('/institutions/IceCube/UW-Madison/authorlist', rest_client=krs_client)
 
     ret = await client.request('GET', '/api/experiments/IceCube/institutions/UW-Madison')

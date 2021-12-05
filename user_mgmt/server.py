@@ -13,12 +13,12 @@ import motor.motor_asyncio
 
 import krs.token
 
+from .cache import KeycloakGroupCache
 from .insts import (AllExperiments, Experiments, MultiInstitutions, Institution,
                     InstitutionMultiUsers, InstitutionUser,
                     InstApprovals, InstApprovalsActionApprove, InstApprovalsActionDeny)
 from .groups import (MultiGroups, Group, GroupUser, GroupApprovals,
                      GroupApprovalsActionApprove, GroupApprovalsActionDeny)
-
 
 class Error(RequestHandler):
     def prepare(self):
@@ -73,6 +73,7 @@ def create_server():
         token=token_func,
         timeout=10,
     )
+    kwargs['group_cache'] = KeycloakGroupCache(krs_client=kwargs['krs_client'])
 
     main_args = {
         'keycloak_url': config['KEYCLOAK_URL'],

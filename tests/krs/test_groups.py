@@ -6,12 +6,12 @@ from krs import groups, users
 from ..util import keycloak_bootstrap
 
 @pytest.mark.asyncio
-async def test_list_groups(keycloak_bootstrap):
-    # first test with no groups
+async def test_list_groups_empty(keycloak_bootstrap):
     ret = await groups.list_groups(rest_client=keycloak_bootstrap)
     assert ret == {}
 
-    # now test group hierarchy
+@pytest.mark.asyncio
+async def test_list_groups(keycloak_bootstrap):
     await groups.create_group('/testgroup', rest_client=keycloak_bootstrap)
     await groups.create_group('/testgroup/testgroup2', rest_client=keycloak_bootstrap)
     ret = await groups.list_groups(rest_client=keycloak_bootstrap)

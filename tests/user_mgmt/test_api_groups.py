@@ -11,7 +11,7 @@ from .util import port, server, mongo_client, email_patch
 
 
 @pytest.mark.asyncio
-async def test_groups(server):
+async def test_groups_empty(server):
     rest, krs_client, *_ = server
     client = await rest('test')
 
@@ -20,13 +20,19 @@ async def test_groups(server):
     ret = await client.request('GET', '/api/groups')
     assert ret == {} # /foo is not self-administrered yet
 
+@pytest.mark.asyncio
+async def test_groups(server):
+    rest, krs_client, *_ = server
+    client = await rest('test')
+
+    await krs.groups.create_group('/foo', rest_client=krs_client)
     await krs.groups.create_group('/foo/_admin', rest_client=krs_client)
 
     ret = await client.request('GET', '/api/groups')
     assert list(ret.keys()) == ['/foo']
 
 @pytest.mark.asyncio
-async def test_group_members(server):
+async def test_group_members_empty(server):
     rest, krs_client, *_ = server
     await krs.groups.create_group('/foo', rest_client=krs_client)
     await krs.groups.create_group('/foo/_admin', rest_client=krs_client)
@@ -42,6 +48,16 @@ async def test_group_members(server):
     ret = await client2.request('GET', f'/api/groups/{group_id}')
     assert ret == [] # no members
 
+@pytest.mark.asyncio
+async def test_group_members(server):
+    rest, krs_client, *_ = server
+    await krs.groups.create_group('/foo', rest_client=krs_client)
+    await krs.groups.create_group('/foo/_admin', rest_client=krs_client)
+
+    group_id = (await krs.groups.group_info('/foo', rest_client=krs_client))['id']
+
+    client = await rest('test')
+    client2 = await rest('test2', ['/foo/_admin'])
     await krs.groups.add_user_group('/foo', 'test', rest_client=krs_client)
 
     ret = await client2.request('GET', f'/api/groups/{group_id}')

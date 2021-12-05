@@ -5,15 +5,13 @@ from tornado.web import HTTPError
 from tornado.escape import json_decode, json_encode
 from rest_tools.server import RestHandler
 
-from .cache import KeycloakGroupCache
-
 
 class MyHandler(RestHandler):
-    def initialize(self, db=None, krs_client=None, **kwargs):
+    def initialize(self, db=None, krs_client=None, group_cache=None, **kwargs):
         super().initialize(**kwargs)
         self.db = db
         self.krs_client = krs_client
-        self.group_cache = KeycloakGroupCache(krs_client=krs_client)
+        self.group_cache = group_cache
 
     def write(self, chunk):
         """
