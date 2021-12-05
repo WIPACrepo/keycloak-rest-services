@@ -3,6 +3,7 @@ import logging
 from cachetools import TTLCache
 
 from krs.groups import list_groups, group_info, group_info_by_id, get_group_membership_by_id
+from krs.institutions import list_insts
 
 
 logger = logging.getLogger('cache')
@@ -25,11 +26,18 @@ class KeycloakGroupCache:
         self._group_members = TTLCache(10000000, ttl)  # group memberships
 
     async def list_groups(self):
-        if 'list' not in self._group_list:
+        if 'groups' not in self._group_list:
             logger.info('list_groups() is not cached')
             ret = await list_groups(rest_client=self._krs_client)
-            self._group_list['list'] = ret
-        return self._group_list['list']
+            self._group_list['groups'] = ret
+        return self._group_list['groups']
+
+    async def list_institutions(self):
+        if 'inst' not in self._group_list:
+            logger.info('list_institutions() is not cached')
+            ret = await list_insts(rest_client=self._krs_client)
+            self._group_list['inst'] = ret
+        return self._group_list['inst']
 
     async def get_group_id(self, group_path):
         if group_path not in self._group_ids:

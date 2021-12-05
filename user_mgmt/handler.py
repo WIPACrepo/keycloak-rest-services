@@ -73,14 +73,16 @@ class MyHandler(RestHandler):
 
     async def get_admin_institutions(self):
         if '/admin' in self.auth_data['groups']:  # super admin - all institutions
-            admin_groups = await self.group_cache.list_groups()
+            admin_groups = await self.group_cache.list_institutions()
+            splitters = (g.split('/') for g in admin_groups)
+            insts = {parts[2]: parts[3] for parts in splitters}
         else:
             admin_groups = [g[:-7] for g in self.auth_data['groups'] if g.endswith('/_admin')]
-        insts = defaultdict(list)
-        for group in admin_groups:
-            val = group.strip('/').split('/')
-            logging.debug(f'eval group: {group} | val: {val}')
-            if len(val) == 3 and val[0] == 'institutions':
-                insts[val[1]].append(val[2])
+            insts = defaultdict(list)
+            for group in admin_groups:
+                val = group.strip('/').split('/')
+                logging.debug(f'eval group: {group} | val: {val}')
+                if len(val) == 3 and val[0] == 'institutions':
+                    insts[val[1]].append(val[2])
         logging.info(f'get_admin_instutitons: {insts}')
         return insts
