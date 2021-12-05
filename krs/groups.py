@@ -48,14 +48,7 @@ async def group_info(group_path, rest_client=None):
         raise Exception(f'group "{group_path}" does not exist')
 
     group_id = groups[group_path]['id']
-
-    url = f'/groups/{group_id}'
-    ret = await rest_client.request('GET', url)
-
-    if not ret:
-        raise Exception(f'group "{group_path}" does not exist')
-    _fix_attributes(ret)
-    return ret
+    return await group_info_by_id(group_id, rest_client=rest_client)
 
 async def group_info_by_id(group_id, rest_client=None):
     """

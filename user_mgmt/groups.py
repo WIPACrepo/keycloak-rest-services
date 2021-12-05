@@ -34,7 +34,7 @@ class MultiGroups(MyHandler):
     @catch_error
     async def get(self):
         """Get a list of all groups."""
-        ret = await krs.groups.list_groups(rest_client=self.krs_client)
+        ret = await self.group_cache.list_groups()
         self.write(get_administered_groups(ret))
 
 
@@ -51,7 +51,7 @@ class Group(MyHandler):
             list: usernames
         """
         try:
-            group = await krs.groups.group_info_by_id(group_id, rest_client=self.krs_client)
+            group = await self.group_cache.get_group_info_from_id(group_id)
         except Exception:
             raise HTTPError(404, 'group does not exist')
 
@@ -61,7 +61,7 @@ class Group(MyHandler):
         if not any(group['path'].startswith(g) for g in admin_groups):
             raise HTTPError(403, 'invalid authorization')
 
-        ret = await krs.groups.get_group_membership(group['path'], rest_client=self.krs_client)
+        ret = await self.group_cache.get_members(group['path'])
         self.write(sorted(ret))
 
 
@@ -79,7 +79,7 @@ class GroupUser(MyHandler):
             username (str): username of new member
         """
         try:
-            group = await krs.groups.group_info_by_id(group_id, rest_client=self.krs_client)
+            group = await self.group_cache.get_group_info_from_id(group_id)
         except Exception:
             raise HTTPError(404, 'group does not exist')
 
@@ -95,6 +95,7 @@ class GroupUser(MyHandler):
             raise HTTPError(404, 'username does not exist')
 
         await krs.groups.add_user_group(group['path'], username, rest_client=self.krs_client)
+        self.group_cache.invalidate(group['path'])
         self.write({})
 
     @authenticated
@@ -110,7 +111,7 @@ class GroupUser(MyHandler):
             username (str): username of new member
         """
         try:
-            group = await krs.groups.group_info_by_id(group_id, rest_client=self.krs_client)
+            group = await self.group_cache.get_group_info_from_id(group_id)
         except Exception:
             raise HTTPError(404, 'group does not exist')
 
@@ -126,6 +127,7 @@ class GroupUser(MyHandler):
             raise HTTPError(404, 'username does not exist')
 
         await krs.groups.remove_user_group(group['path'], username, rest_client=self.krs_client)
+        self.group_cache.invalidate(group['path'])
         self.write({})
 
 
@@ -147,7 +149,7 @@ class GroupApprovals(MyHandler):
         if approval_data['group'].rsplit('/')[-1].startswith('_'):
             raise HTTPError(400, 'bad group request')
 
-        ret = await krs.groups.list_groups(rest_client=self.krs_client)
+        ret = await self.group_cache.list_groups()
         groups = get_administered_groups(ret)
         if approval_data['group'] not in groups:
             logging.info(f'{approval_data}\n{groups}')
@@ -193,6 +195,7 @@ class GroupApprovalsActionApprove(MyHandler):
 
         # add user to group
         await krs.groups.add_user_group(ret['group'], ret['username'], rest_client=self.krs_client)
+        self.group_cache.invalidate(ret['group'])
 
         # clean up approval
         await self.db.group_approvals.delete_one({'id': approval_id})

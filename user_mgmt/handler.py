@@ -5,13 +5,15 @@ from tornado.web import HTTPError
 from tornado.escape import json_decode, json_encode
 from rest_tools.server import RestHandler
 
-import krs.groups
+from .cache import KeycloakGroupCache
+
 
 class MyHandler(RestHandler):
     def initialize(self, db=None, krs_client=None, **kwargs):
         super().initialize(**kwargs)
         self.db = db
         self.krs_client = krs_client
+        self.group_cache = KeycloakGroupCache(krs_client=krs_client)
 
     def write(self, chunk):
         """
@@ -60,7 +62,7 @@ class MyHandler(RestHandler):
 
     async def get_admin_groups(self):
         if '/admin' in self.auth_data['groups']:  # super admin - all groups
-            admin_groups = await krs.groups.list_groups(rest_client=self.krs_client)
+            admin_groups = await self.group_cache.list_groups()
         else:
             admin_groups = [g[:-7] for g in self.auth_data['groups'] if g.endswith('/_admin')]
         groups = set()
@@ -73,7 +75,7 @@ class MyHandler(RestHandler):
 
     async def get_admin_institutions(self):
         if '/admin' in self.auth_data['groups']:  # super admin - all institutions
-            admin_groups = await krs.groups.list_groups(rest_client=self.krs_client)
+            admin_groups = await self.group_cache.list_groups()
         else:
             admin_groups = [g[:-7] for g in self.auth_data['groups'] if g.endswith('/_admin')]
         insts = defaultdict(list)

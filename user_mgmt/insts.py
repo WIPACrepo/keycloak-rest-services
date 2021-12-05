@@ -23,7 +23,7 @@ class Experiments(MyHandler):
     @catch_error
     async def get(self):
         """Get a list of experiments"""
-        ret = await krs.groups.list_groups(rest_client=self.krs_client)
+        ret = await self.group_cache.list_groups()
         exps = set()
         for group in ret:
             val = group.strip('/').split('/')
@@ -42,7 +42,7 @@ class MultiInstitutions(MyHandler):
         Args:
             experiment (str): experiment name
         """
-        ret = await krs.groups.list_groups(rest_client=self.krs_client)
+        ret = await self.group_cache.list_groups()
         insts = set()
         for group in ret:
             val = group.strip('/').split('/')
@@ -84,7 +84,7 @@ class AllExperiments(MyHandler):
         Returns:
             dict: {experiment: {institution: dict}
         """
-        ret = await krs.groups.list_groups(rest_client=self.krs_client)
+        ret = await self.group_cache.list_groups()
 
         exps = {}
         for group in ret:
@@ -125,12 +125,12 @@ class InstitutionMultiUsers(MyHandler):
 
         # get main membership
         ret = {}
-        ret['users'] = await krs.groups.get_group_membership_by_id(group_info['id'], rest_client=self.krs_client)
+        ret['users'] = await self.group_cache.get_members(inst_group)
 
         # get child groups, like the author list
         for child in group_info['subGroups']:
             if not child['name'].startswith('_'):
-                ret[child['name']] = await krs.groups.get_group_membership_by_id(child['id'], rest_client=self.krs_client)
+                ret[child['name']] = await self.group_cache.get_members(child['path'])
 
         self.write(ret)
 
@@ -178,6 +178,7 @@ class InstitutionUser(MyHandler):
                 await krs.groups.add_user_group(f'{inst_group}/{name}', username, rest_client=self.krs_client)
             else:
                 await krs.groups.remove_user_group(f'{inst_group}/{name}', username, rest_client=self.krs_client)
+        self.group_cache.invalidate(inst_group)
 
         self.write({})
 
@@ -214,6 +215,7 @@ class InstitutionUser(MyHandler):
         await krs.groups.remove_user_group(inst_group, username, rest_client=self.krs_client)
         for name in child_groups:
             await krs.groups.remove_user_group(f'{inst_group}/{name}', username, rest_client=self.krs_client)
+        self.group_cache.invalidate(inst_group)
 
         self.write({})
 
@@ -349,28 +351,32 @@ class InstApprovalsActionApprove(MyHandler):
         await krs.groups.add_user_group(inst_group, ret['username'], rest_client=self.krs_client)
         if 'authorlist' in ret and ret['authorlist']:
             await krs.groups.add_user_group(inst_group+'/authorlist', ret['username'], rest_client=self.krs_client)
+        self.group_cache.invalidate(inst_group)
 
         # also add to gen2 institution
         if ret['experiment'] == 'IceCube':
             gen2_inst_group = f'/institutions/IceCube-Gen2/{ret["institution"]}'
-            ret2 = await krs.groups.list_groups(rest_client=self.krs_client)
+            ret2 = await self.group_cache.list_groups()
             if gen2_inst_group in ret2:
                 await krs.groups.add_user_group(gen2_inst_group, ret['username'], rest_client=self.krs_client)
                 if 'authorlist' in ret and ret['authorlist']:
                     await krs.groups.add_user_group(gen2_inst_group+'/authorlist', ret['username'], rest_client=self.krs_client)
+                self.group_cache.invalidate(gen2_inst_group)
 
         if 'remove_institution' in ret and ret['remove_institution']:
             inst_group = f'/institutions/{ret["experiment"]}/{ret["remove_institution"]}'
             await krs.groups.remove_user_group(inst_group, ret['username'], rest_client=self.krs_client)
             await krs.groups.remove_user_group(inst_group+'/authorlist', ret['username'], rest_client=self.krs_client)
+            self.group_cache.invalidate(inst_group)
 
             # also remove gen2 institution
             if ret['experiment'] == 'IceCube':
                 gen2_inst_group = f'/institutions/IceCube-Gen2/{ret["remove_institution"]}'
-                ret2 = await krs.groups.list_groups(rest_client=self.krs_client)
+                ret2 = await self.group_cache.list_groups()
                 if gen2_inst_group in ret2:
                     await krs.groups.remove_user_group(gen2_inst_group, ret['username'], rest_client=self.krs_client)
                     await krs.groups.remove_user_group(gen2_inst_group+'/authorlist', ret['username'], rest_client=self.krs_client)
+                    self.group_cache.invalidate(gen2_inst_group)
 
         await self.db.inst_approvals.delete_one({'id': approval_id})
 
