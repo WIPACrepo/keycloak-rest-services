@@ -24,7 +24,7 @@ def get_administered_groups(ret):
             groups[group[:-7]] = ret[group[:-7]]['id']
     # get sub-groups of administered groups
     for group in ret:
-        if (not group.rsplit('/')[-1].startswith('_')) and any(group.startswith(g) for g in groups):
+        if (not group.rsplit('/')[-1].startswith('_')) and any(len(group) > len(g) and group[len(g)] == '/' and group.startswith(g) for g in groups):
             groups[group] = ret[group]['id']
     return groups
 
