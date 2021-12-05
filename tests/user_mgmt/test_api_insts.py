@@ -130,6 +130,7 @@ async def test_institution_users_superadmin(server):
     await krs.groups.create_group('/institutions/IceCube', rest_client=krs_client)
     await krs.groups.create_group('/institutions/IceCube/UW-Madison', rest_client=krs_client)
     await krs.groups.create_group('/institutions/IceCube/UW-Madison/authorlist', rest_client=krs_client)
+    await krs.groups.create_group('/institutions/IceCube/UW-RiverFalls', rest_client=krs_client)
 
     ret = await client.request('GET', '/api/experiments/IceCube/institutions/UW-Madison/users')
     assert ret == {'users': [], 'authorlist': []}
