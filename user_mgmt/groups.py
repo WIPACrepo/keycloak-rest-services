@@ -15,6 +15,12 @@ from .handler import MyHandler
 audit_logger = logging.getLogger('audit')
 
 
+def is_authorized_group(group, auth_groups):
+    if group in auth_groups:
+        return True
+    # sub-groups of auth_groups are authorized as well
+    return any(len(group) > len(g) and group[len(g)] == '/' and group.startswith(g) for g in auth_groups)
+
 def get_administered_groups(ret):
     groups = {}
     for group in ret:
@@ -24,7 +30,7 @@ def get_administered_groups(ret):
             groups[group[:-7]] = ret[group[:-7]]['id']
     # get sub-groups of administered groups
     for group in ret:
-        if (not group.rsplit('/')[-1].startswith('_')) and any(len(group) > len(g) and group[len(g)] == '/' and group.startswith(g) for g in groups):
+        if (not group.rsplit('/')[-1].startswith('_')) and is_authorized_group(group, groups):
             groups[group] = ret[group]['id']
     return groups
 
@@ -58,7 +64,7 @@ class Group(MyHandler):
         if group['name'].startswith('_'):
             raise HTTPError(400, 'bad group request')
         admin_groups = await self.get_admin_groups()
-        if not any(group['path'].startswith(g) for g in admin_groups):
+        if not is_authorized_group(group['path'], admin_groups):
             raise HTTPError(403, 'invalid authorization')
 
         ret = await self.group_cache.get_members(group['path'])
@@ -86,7 +92,7 @@ class GroupUser(MyHandler):
         if group['name'].startswith('_'):
             raise HTTPError(400, 'bad group request')
         admin_groups = await self.get_admin_groups()
-        if not any(group['path'].startswith(g) for g in admin_groups):
+        if not is_authorized_group(group['path'], admin_groups):
             raise HTTPError(403, 'invalid authorization')
 
         try:
@@ -118,7 +124,7 @@ class GroupUser(MyHandler):
         if group['name'].startswith('_'):
             raise HTTPError(400, 'bad group request')
         admin_groups = await self.get_admin_groups()
-        if not any(group['path'].startswith(g) for g in admin_groups):
+        if not is_authorized_group(group['path'], admin_groups):
             raise HTTPError(403, 'invalid authorization')
 
         try:
@@ -188,7 +194,7 @@ class GroupApprovalsActionApprove(MyHandler):
         ret = await self.db.group_approvals.find_one({'id': approval_id})
         if not ret:
             raise HTTPError(404, 'no record for approval_id')
-        if not any(ret['group'].startswith(g) for g in admin_groups):
+        if not is_authorized_group(ret['group'], admin_groups):
             raise HTTPError(403, 'invalid authorization')
 
         audit_logger.info(f'{self.auth_data["username"]} is approving request {approval_id}')
@@ -233,7 +239,7 @@ class GroupApprovalsActionDeny(MyHandler):
         ret = await self.db.group_approvals.find_one({'id': approval_id})
         if not ret:
             raise HTTPError(404, 'no record for approval_id')
-        if not any(ret['group'].startswith(g) for g in admin_groups):
+        if not is_authorized_group(ret['group'], admin_groups):
             raise HTTPError(403, 'invalid authorization')
 
         audit_logger.info(f'{self.auth_data["username"]} is denying request {approval_id}')
