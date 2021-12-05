@@ -1,3 +1,5 @@
+import string
+
 import pytest
 from rest_tools.client import AsyncSession
 
@@ -36,6 +38,26 @@ async def test_get_group_info_from_id(keycloak_bootstrap):
 
     ret = await cache.get_group_info_from_id(grp['id'])
     assert ret == grp
+
+@pytest.mark.asyncio
+async def test_get_members_large(keycloak_bootstrap):
+    users = string.ascii_lowercase
+    groups = string.ascii_lowercase
+    for u in users:
+        await krs.users.create_user(u, 'first', 'last', f'{u}@email', rest_client=keycloak_bootstrap)
+    for g in groups:
+        await krs.groups.create_group(f'/{g}', rest_client=keycloak_bootstrap)
+        for u in users:
+            await krs.groups.add_user_group(f'/{g}', u, rest_client=keycloak_bootstrap)
+
+    cache = user_mgmt.cache.KeycloakGroupCache(krs_client=keycloak_bootstrap)
+    for g in groups:
+        ret = await cache.get_members(f'/{g}')
+        assert ret == list(users)
+
+    await krs.groups.remove_user_group('/a', 'a', rest_client=keycloak_bootstrap)
+    ret = await cache.get_members('/a')
+    assert ret == list(users)
 
 @pytest.mark.asyncio
 async def test_invalidate_one(keycloak_bootstrap):
