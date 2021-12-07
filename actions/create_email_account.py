@@ -20,13 +20,15 @@ import actions.util
 logger = logging.getLogger('create_email_account')
 
 
-async def process(email_server, group_path, keycloak_client=None):
+async def process(email_server, group_path, dryrun=False, keycloak_client=None):
     group_members = await get_group_membership(group_path, rest_client=keycloak_client)
     all_users = await list_users(rest_client=keycloak_client)
 
     users = {}
     for username in group_members:
         user = all_users[username]
+        if user.get('attributes', {}).get('noIceCubeEmail', False) == 'True':
+            continue
         users[username] = {
             'firstName': user['firstName'],
             'lastName': user['lastName'],
@@ -39,19 +41,21 @@ logging.basicConfig(level={logger.getEffectiveLevel()})
 users = {json.dumps(users)}
 with open('/etc/postfix/local_recipients') as f:
     current_users = set([line.split()[0] for line in f.readlines() if line and 'OK' in line])
+dryrun = {dryrun}
 
 changes = False
-for username in set(users)-current_users:
+for username in sorted(set(users)-current_users):
     logging.info('Adding email for user ' + username)
     changes = True
-    with open('/etc/postfix/canonical_sender', 'a') as f:
-        f.write(username+'     '+users[username]['firstName']+'.'+users[username]['lastName']+'\\n')
-    with open('/etc/postfix/canonical_recipient', 'a') as f:
-        f.write(users[username]['firstName']+'.'+users[username]['lastName']+'     '+username+'\\n')
-    with open('/etc/postfix/local_recipients', 'a') as f:
-        f.write(username+'     OK\\n')
+    if not dryrun:
+        with open('/etc/postfix/canonical_sender', 'a') as f:
+            f.write(username+'     '+users[username]['firstName']+'.'+users[username]['lastName']+'\\n')
+        with open('/etc/postfix/canonical_recipient', 'a') as f:
+            f.write(users[username]['firstName']+'.'+users[username]['lastName']+'     '+username+'\\n')
+        with open('/etc/postfix/local_recipients', 'a') as f:
+            f.write(username+'     OK\\n')
 
-if changes:
+if changes and not dryrun:
     logging.info('reloading postfix')
     subprocess.check_call(['/usr/sbin/postmap', '/etc/postfix/canonical_recipient'])
     subprocess.check_call(['/usr/sbin/postmap', '/etc/postfix/canonical_sender'])
@@ -89,6 +93,7 @@ def main():
     parser.add_argument('--listen', default=False, action='store_true', help='enable persistent RabbitMQ listener')
     parser.add_argument('--listen-address', help='RabbitMQ address, including user/pass')
     parser.add_argument('--listen-exchange', help='RabbitMQ exchange name')
+    parser.add_argument('--dryrun', action='store_true', help='dry run')
     args = vars(parser.parse_args())
 
     logging.basicConfig(level=getattr(logging, args['log_level'].upper()))
@@ -103,7 +108,8 @@ def main():
         loop.create_task(ret.start())
         loop.run_forever()
     else:
-        asyncio.run(process(args['email_server'], args['group_path'], keycloak_client=keycloak_client))
+        asyncio.run(process(args['email_server'], args['group_path'],
+                            dryrun=args['dryrun'], keycloak_client=keycloak_client))
 
 
 if __name__ == '__main__':

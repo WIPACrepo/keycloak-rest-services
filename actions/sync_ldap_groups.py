@@ -17,15 +17,16 @@ from krs.rabbitmq import RabbitMQListener
 logger = logging.getLogger('sync_ldap_groups')
 
 
-ACCEPTABLE_LDAP_CN = string.ascii_letters+string.digits+'-'
+ACCEPTABLE_LDAP_CN = string.ascii_letters+string.digits+'-_'
 
 def flatten_group_name(path):
     path = path.replace('/', '-')
     path = ''.join(letter for letter in path if letter in ACCEPTABLE_LDAP_CN)
     return path
 
-async def process(group_path, ldap_ou=None, posix=False, recursive=False, keycloak_client=None, ldap_client=None):
+async def process(group_path, ldap_ou=None, posix=False, recursive=False, dryrun=False, keycloak_client=None, ldap_client=None):
     ldap_groups = ldap_client.list_groups(groupbase=ldap_ou)
+    ldap_users = ldap_client.list_users()
 
     if posix:
         # get highest gid in ldap
@@ -42,7 +43,7 @@ async def process(group_path, ldap_ou=None, posix=False, recursive=False, keyclo
 
     ret = await list_groups(rest_client=keycloak_client)
     groups = []
-    for p in ret:
+    for p in sorted(ret):
         if not p.startswith(group_path+'/'):
             continue
         elif ret[p]['name'].startswith('_'):
@@ -60,24 +61,29 @@ async def process(group_path, ldap_ou=None, posix=False, recursive=False, keyclo
             if posix:
                 max_gid += 1
                 kwargs['gidNumber'] = max_gid
-            ldap_client.create_group(ldap_cn, groupbase=ldap_ou, **kwargs)
+            if not dryrun:
+                ldap_client.create_group(ldap_cn, groupbase=ldap_ou, **kwargs)
 
         keycloak_members = await get_group_membership_by_id(group['id'], rest_client=keycloak_client)
         logger.debug(f'  keycloak_members: {keycloak_members}')
         ldap_members = get_ldap_members(ldap_groups[ldap_cn] if ldap_cn in ldap_groups else {})
         logger.debug(f'  ldap_members: {ldap_members}')
+        ldap_members = set(ldap_members).intersection(ldap_users)
+        logger.debug(f'  ldap_members_users: {ldap_members}')
 
         add_members = set(keycloak_members) - set(ldap_members)
         if add_members:
             logger.info(f'adding members to group {ldap_cn}: {add_members}')
-            for member in add_members:
-                ldap_client.add_user_group(member, ldap_cn, groupbase=ldap_ou)
+            if not dryrun:
+                for member in add_members:
+                    ldap_client.add_user_group(member, ldap_cn, groupbase=ldap_ou)
 
         remove_members = set(ldap_members) - set(keycloak_members)
         if remove_members:
             logger.info(f'removing members from group {ldap_cn}: {remove_members}')
-            for member in remove_members:
-                ldap_client.remove_user_group(member, ldap_cn, groupbase=ldap_ou)
+            if not dryrun:
+                for member in remove_members:
+                    ldap_client.remove_user_group(member, ldap_cn, groupbase=ldap_ou)
 
 def listener(group_path, address=None, exchange=None, dedup=1, **kwargs):
     """Set up RabbitMQ listener"""
@@ -110,6 +116,7 @@ def main():
     parser.add_argument('--listen', default=False, action='store_true', help='enable persistent RabbitMQ listener')
     parser.add_argument('--listen-address', help='RabbitMQ address, including user/pass')
     parser.add_argument('--listen-exchange', help='RabbitMQ exchange name')
+    parser.add_argument('--dryrun', action='store_true', help='dry run')
     args = vars(parser.parse_args())
 
     logging.basicConfig(level=getattr(logging, args['log_level'].upper()))
@@ -128,6 +135,7 @@ def main():
     else:
         asyncio.run(process(args['group_path'], ldap_ou=args['ldap_ou'],
                             posix=args['posix'], recursive=args['recursive'],
+                            dryrun=args['dryrun'],
                             keycloak_client=keycloak_client,
                             ldap_client=ldap_client))
 

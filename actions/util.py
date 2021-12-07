@@ -14,6 +14,17 @@ QUOTAS = {
     '/mnt/lfs7/user_test': '/usr/bin/lfs setquota -g {gid} --block-softlimit 2000000 --block-hardlimit 2250000 /mnt/lfs7',
 }
 
+INGORE_DIR_ROLES = {
+    # production dirs
+    '/mnt/homework/homework': {'appAccount'},
+    '/mnt/homework/public_html': {'roleAccount', 'appAccount', 'thirdPartyAccount'},
+    '/mnt/homework/private_cvmfs': {'roleAccount', 'appAccount', 'thirdPartyAccount'},
+    '/mnt/lfs7/user': {'roleAccount', 'appAccount', 'thirdPartyAccount'},
+    # testing dirs
+    '/mnt/homework/homework_test': {'appAccount'},
+    '/mnt/lfs7/user_test': {'roleAccount', 'appAccount', 'thirdPartyAccount'},
+}
+
 ssh_opts = ['-o', 'UserKnownHostsFile=/dev/null', '-o', 'StrictHostKeyChecking=no']
 
 def ssh(host, *args):

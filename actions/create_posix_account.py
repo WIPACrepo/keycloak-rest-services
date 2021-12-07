@@ -1,8 +1,9 @@
 """
 Creates a POSIX user account in LDAP for anyone in the specified Keycloak group.
 """
-import logging
 import asyncio
+import logging
+import time
 
 from krs.groups import get_group_membership
 from krs.token import get_rest_client
@@ -11,6 +12,15 @@ from krs.rabbitmq import RabbitMQListener
 
 
 logger = logging.getLogger('create_posix_account')
+
+
+SHADOW_ATTRIBS = {
+    'shadowInactive': 90,
+    'shadowMax': 181,
+    'shadowMin': 0,
+    'shadowWarning': 30,
+}
+
 
 async def process(group_path, keycloak_client=None, dryrun=False, ldap_client=None):
     # get highest uid, gid in ldap
@@ -59,6 +69,13 @@ async def process(group_path, keycloak_client=None, dryrun=False, ldap_client=No
             }
             if not dryrun:
                 ldap_client.modify_user(username, attribs, objectClass='posixAccount')
+                attribs = SHADOW_ATTRIBS.copy()
+                unix_days = int(time.time()/86400)
+                attribs.update({
+                    'shadowExpire': unix_days+SHADOW_ATTRIBS['shadowMax'],
+                    'shadowLastChange': unix_days,
+                })
+                ldap_client.modify_user(username, attribs, objectClass='shadowAccount')
                 # make posix group
                 ldap_client.create_group(username, gidNumber=max_id)
                 ldap_client.add_user_group(username, username)

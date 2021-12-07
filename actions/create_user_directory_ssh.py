@@ -26,18 +26,22 @@ import actions.util
 logger = logging.getLogger('create_user_directory_ssh')
 
 
-async def process(server, group_path, root_dir, mode=0o755, keycloak_client=None):
+async def process(server, group_path, root_dir, mode=0o755, dryrun=False, keycloak_client=None):
+    skip_roles = actions.util.INGORE_DIR_ROLES.get(str(root_dir), [])
     group_members = await get_group_membership(group_path, rest_client=keycloak_client)
     users = await list_users(rest_client=keycloak_client)
 
     user_dirs = {}
     for username in group_members:
-        user = users[username]
-        if 'attributes' in user and 'uidNumber' in user['attributes'] and 'gidNumber' in user['attributes']:
+        attrs = users[username].get('attributes', {})
+        if any(attrs.get(r, False) == 'True' for r in skip_roles):
+            logger.debug(f'skipping user {username} for ignored role')
+            continue
+        if 'uidNumber' in attrs and 'gidNumber' in attrs:
             user_dirs[username] = {
                 'path': str(root_dir / username),
-                'uid': int(user['attributes']['uidNumber']),
-                'gid': int(user['attributes']['gidNumber']),
+                'uid': int(attrs['uidNumber']),
+                'gid': int(attrs['gidNumber']),
             }
 
     script = f'''import subprocess
@@ -49,6 +53,7 @@ logging.basicConfig(level={logger.getEffectiveLevel()})
 root_dir = '{root_dir}'
 user_dirs = {json.dumps(user_dirs)}
 QUOTAS = {json.dumps(actions.util.QUOTAS)}
+dryrun = {dryrun}
 
 existing = os.listdir(root_dir)
 is_root = getpass.getuser() == 'root'
@@ -56,18 +61,21 @@ if not is_root:
     logging.debug('Running as user ' + getpass.getuser())
     logging.debug('Will not chown or set quota')
 
-for username in set(user_dirs).difference(existing):
+for username in sorted(set(user_dirs).difference(existing)):
     path = user_dirs[username]['path']
     if not os.path.exists(path):
         logging.info('Creating directory ' + path)
-        os.makedirs(path, mode={mode})
+        if not dryrun:
+            os.makedirs(path, mode={mode})
         if is_root:
             logging.debug('Changing ownership of %s to %d:%d', path,
                           user_dirs[username]['uid'], user_dirs[username]['gid'])
-            os.chown(path, user_dirs[username]['uid'], user_dirs[username]['gid'])
+            if not dryrun:
+                os.chown(path, user_dirs[username]['uid'], user_dirs[username]['gid'])
             if root_dir in QUOTAS:
                 logging.debug('Setting quota on directory ' + path)
-                subprocess.check_call(QUOTAS[root_dir].format(**user_dirs[username]), shell=True)
+                if not dryrun:
+                    subprocess.check_call(QUOTAS[root_dir].format(**user_dirs[username]), shell=True)
 '''
     actions.util.scp_and_run_sudo(server, script, script_name='create_directory.py')
 
@@ -105,6 +113,7 @@ def main():
     parser.add_argument('--listen', default=False, action='store_true', help='enable persistent RabbitMQ listener')
     parser.add_argument('--listen-address', help='RabbitMQ address, including user/pass')
     parser.add_argument('--listen-exchange', help='RabbitMQ exchange name')
+    parser.add_argument('--dryrun', action='store_true', help='dry run')
     args = vars(parser.parse_args())
 
     logging.basicConfig(level=getattr(logging, args['log_level'].upper()))
@@ -121,7 +130,8 @@ def main():
         loop.run_forever()
     else:
         asyncio.run(process(args['server'], args['group_path'], args['root_dir'],
-                            mode=args['mode'], keycloak_client=keycloak_client))
+                            mode=args['mode'], dryrun=args['dryrun'],
+                            keycloak_client=keycloak_client))
 
 
 if __name__ == '__main__':
