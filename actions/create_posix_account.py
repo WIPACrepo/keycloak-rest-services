@@ -12,7 +12,7 @@ from krs.rabbitmq import RabbitMQListener
 
 logger = logging.getLogger('create_posix_account')
 
-async def process(group_path, keycloak_client=None, ldap_client=None):
+async def process(group_path, keycloak_client=None, dryrun=False, ldap_client=None):
     # get highest uid, gid in ldap
     max_uid = 0
     max_gid = 0
@@ -43,7 +43,8 @@ async def process(group_path, keycloak_client=None, ldap_client=None):
                 attribs = {
                     'loginShell': '/bin/bash',
                 }
-                ldap_client.modify_user(username, attribs)
+                if not dryrun:
+                    ldap_client.modify_user(username, attribs)
                 logger.info(f're-enabled user {username} as a POSIX user')
         else:
             # new uid/gid
@@ -56,23 +57,25 @@ async def process(group_path, keycloak_client=None, ldap_client=None):
                 'homeDirectory': f'/home/{username}',
                 'loginShell': shell,
             }
-            ldap_client.modify_user(username, attribs, objectClass='posixAccount')
+            if not dryrun:
+                ldap_client.modify_user(username, attribs, objectClass='posixAccount')
+                # make posix group
+                ldap_client.create_group(username, gidNumber=max_id)
+                ldap_client.add_user_group(username, username)
             logger.info(f'added user {username} as a POSIX user with {max_id}:{max_id}')
-
-            # make posix group
-            ldap_client.create_group(username, gidNumber=max_id)
-            ldap_client.add_user_group(username, username)
 
     # remove users that lost POSIX access
     for username in sorted(ldapPosix.difference(ret)):
         attribs = {
             'loginShell': '/sbin/nologin',
         }
-        ldap_client.modify_user(username, attribs)
+        if not dryrun:
+            ldap_client.modify_user(username, attribs)
         logger.info(f'disabled user {username} as a POSIX user')
 
     # sync with Keycloak
-    await ldap_client.force_keycloak_sync(keycloak_client=keycloak_client)
+    if not dryrun:
+        await ldap_client.force_keycloak_sync(keycloak_client=keycloak_client)
 
 def listener(group_path, address=None, exchange=None, dedup=1, **kwargs):
     """Set up RabbitMQ listener"""
@@ -102,6 +105,7 @@ def main():
     parser.add_argument('--listen', default=False, action='store_true', help='enable persistent RabbitMQ listener')
     parser.add_argument('--listen-address', help='RabbitMQ address, including user/pass')
     parser.add_argument('--listen-exchange', help='RabbitMQ exchange name')
+    parser.add_argument('--dryrun', action='store_true', help='dry run')
     args = vars(parser.parse_args())
 
     logging.basicConfig(level=getattr(logging, args['log_level'].upper()))
@@ -116,7 +120,7 @@ def main():
         loop.create_task(ret.start())
         loop.run_forever()
     else:
-        asyncio.run(process(args['group_path'], keycloak_client=keycloak_client, ldap_client=ldap_client))
+        asyncio.run(process(args['group_path'], keycloak_client=keycloak_client, dryrun=args['dryrun'], ldap_client=ldap_client))
 
 
 if __name__ == '__main__':

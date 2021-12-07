@@ -57,7 +57,7 @@ async def user_info(username, rest_client=None):
     Returns:
         dict: user info
     """
-    url = f'/users?username={username}'
+    url = f'/users?exact=true&username={username}'
     ret = await rest_client.request('GET', url)
 
     if not ret:
