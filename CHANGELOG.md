@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.1.0 (2021-12-07)
+### Feature
+* Cleanups for action scripts to match historical usage. ready for prod. ([`ecf230c`](https://github.com/WIPACrepo/keycloak-rest-services/commit/ecf230cd99a0ed909781a86a0898075507d71d12))
+
 ## v1.0.56 (2021-12-07)
 
 
