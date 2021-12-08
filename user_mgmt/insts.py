@@ -267,7 +267,7 @@ class InstApprovals(MyHandler):
             for _ in range(100):
                 username = gen_username(number)
                 try:
-                    await krs.users.user_info(username)
+                    await krs.users.user_info(username, rest_client=self.krs_client)
                 except krs.users.UserDoesNotExist:
                     break  # username is available
                 # username in use, try again
