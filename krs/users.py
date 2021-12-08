@@ -26,7 +26,7 @@ def _fix_attributes(user):
 class UserDoesNotExist(Exception):
     pass
 
-async def list_users(rest_client=None):
+async def list_users(search=None, rest_client=None):
     """
     List users in Keycloak.
 
@@ -39,7 +39,9 @@ async def list_users(rest_client=None):
     data = [0]*inc
 
     while len(data) == inc:
-        url = f'/users?max={inc}&first={start}'
+        url = f'/users?&max={inc}&first={start}'
+        if search:
+            url += f'&search={search}'
         data = await rest_client.request('GET', url)
         start += inc
         for u in data:
@@ -185,6 +187,7 @@ def main():
     parser = argparse.ArgumentParser(description='Keycloak user management')
     subparsers = parser.add_subparsers()
     parser_list = subparsers.add_parser('list', help='list users')
+    parser_list.add_argument('--search', default=None, help='search string')
     parser_list.set_defaults(func=list_users)
     parser_info = subparsers.add_parser('info', help='user info')
     parser_info.add_argument('username', help='user name')
