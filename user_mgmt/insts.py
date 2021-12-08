@@ -255,7 +255,25 @@ class InstApprovals(MyHandler):
             data = self.json_filter(req_fields, opt_fields)
 
             # make ascii username
-            username = unidecode.unidecode(data['first_name'][0]+data['last_name']).replace("'", '')
+            def gen_username(number):
+                ret = unidecode.unidecode(data['first_name'][0] + data['last_name']).replace("'", '').lower()
+                if len(ret) > 16:
+                    ret = ret[:16]
+                if number > 0:
+                    ret += str(number)
+                return ret
+
+            number = 0
+            for _ in range(100):
+                username = gen_username(number)
+                try:
+                    await krs.users.user_info(username, rest_client=self.krs_client)
+                except krs.users.UserDoesNotExist:
+                    break  # username is available
+                # username in use, try again
+                number += 1
+            else:
+                raise HTTPError(500, 'cannot generate unique username')
 
             user_data = {
                 'id': uuid.uuid1().hex,
