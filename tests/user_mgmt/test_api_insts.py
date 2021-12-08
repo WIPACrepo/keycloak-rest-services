@@ -201,8 +201,8 @@ async def test_inst_approvals_register(server, mongo_client):
     data = {
         'experiment': 'IceCube',
         'institution': 'UW-Madison',
-        'first_name': 'first',
-        'last_name': 'last',
+        'first_name': 'First',
+        'last_name': 'Last',
         'email': 'test@test',
     }
     r = await asyncio.wrap_future(session.post(address+'/api/inst_approvals', json=data))
@@ -213,6 +213,7 @@ async def test_inst_approvals_register(server, mongo_client):
     ret = await mongo_client.user_registrations.find().to_list(10)
     assert len(ret) == 1
     assert ret[0]['first_name'] == data['first_name']
+    assert ret[0]['username'] == 'flast'
 
     ret = await mongo_client.inst_approvals.find().to_list(10)
     assert len(ret) == 1
