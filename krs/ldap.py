@@ -141,6 +141,20 @@ class LDAP:
             }
             await rc.request('POST', url, args)
 
+        if 'fullname' not in ldapAttrs:
+            args = {
+                'name': 'fullname',
+                'providerID': 'full-name-ldap-mapper',
+                'providerType': 'org.keycloak.storage.ldap.mappers.LDAPStorageMapper',
+                'parentId': ldapComponentId,
+                'config': {
+                    'read.only': ['false'],
+                    'write.only': ['true'],
+                    'ldap.attribute': ['cn'],
+                }
+            }
+            await rc.request('POST', url, args)
+
         if 'email' not in ldapAttrs:
             args = {
                 'name': 'email',
