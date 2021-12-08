@@ -203,6 +203,7 @@ def main():
     parser_set_password = subparsers.add_parser('set_password', help='set a user\'s password')
     parser_set_password.add_argument('username', help='user name')
     parser_set_password.add_argument('--password', default=None, help='password')
+    parser_set_password.add_argument('--temporary', default=False, action='store_true', help='is password temporary?')
     parser_set_password.set_defaults(func=set_user_password)
     parser_delete = subparsers.add_parser('delete', help='delete a user')
     parser_delete.add_argument('username', help='user name')
