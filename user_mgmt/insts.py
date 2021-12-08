@@ -352,7 +352,6 @@ class InstApprovalsActionApprove(MyHandler):
                 "email": user_data['external_email'],
                 "attribs": {
                     "author_name": user_data['author_name'],
-                    "homeDirectory": "",
                 },
             }
             await krs.users.create_user(rest_client=self.krs_client, **args)
