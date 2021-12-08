@@ -29,10 +29,7 @@ async def process(email_server, group_path, dryrun=False, keycloak_client=None):
         user = all_users[username]
         if user.get('attributes', {}).get('noIceCubeEmail', False) == 'True':
             continue
-        users[username] = {
-            'firstName': user['firstName'],
-            'lastName': user['lastName'],
-        }
+        users[username] = user['firstName'].lower()+'.'+user['lastName'].lower()
 
     script = f'''import subprocess
 import logging
@@ -49,9 +46,9 @@ for username in sorted(set(users)-current_users):
     changes = True
     if not dryrun:
         with open('/etc/postfix/canonical_sender', 'a') as f:
-            f.write(username+'     '+users[username]['firstName']+'.'+users[username]['lastName']+'\\n')
+            f.write(username+'     '+users[username]+'\\n')
         with open('/etc/postfix/canonical_recipient', 'a') as f:
-            f.write(users[username]['firstName']+'.'+users[username]['lastName']+'     '+username+'\\n')
+            f.write(users[username]+'     '+username+'\\n')
         with open('/etc/postfix/local_recipients', 'a') as f:
             f.write(username+'     OK\\n')
 

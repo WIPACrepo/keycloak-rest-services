@@ -14,7 +14,7 @@ from .util import patch_ssh_sudo, TestException
 
 @pytest.mark.asyncio
 async def test_create(keycloak_bootstrap, patch_ssh_sudo):
-    await users.create_user('testuser', first_name='first', last_name='last', email='foo@test', rest_client=keycloak_bootstrap)
+    await users.create_user('testuser', first_name='First', last_name='Last', email='foo@test', rest_client=keycloak_bootstrap)
     await groups.create_group('/email', rest_client=keycloak_bootstrap)
     await groups.add_user_group('/email', 'testuser', rest_client=keycloak_bootstrap)
 
@@ -23,7 +23,7 @@ async def test_create(keycloak_bootstrap, patch_ssh_sudo):
     patch_ssh_sudo.assert_called_once()
     assert patch_ssh_sudo.call_args.args[0] == 'test.test.test'
 
-    user_dict = {'testuser': {'firstName': 'first', 'lastName': 'last'}}
+    user_dict = {'testuser': {'canonical': 'first.last'}}
     assert json.loads(patch_ssh_sudo.call_args.args[1].split('\n')[4].split('=',1)[-1]) == user_dict
 
 @pytest.mark.asyncio
@@ -63,7 +63,7 @@ async def listener(keycloak_bootstrap, rabbitmq_bootstrap, tmp_path):
 
 @pytest.mark.asyncio
 async def test_listener_create(keycloak_bootstrap, tmp_path, listener, patch_ssh_sudo):
-    await users.create_user('testuser', first_name='first', last_name='last', email='foo@test', rest_client=keycloak_bootstrap)
+    await users.create_user('testuser', first_name='First', last_name='Last', email='foo@test', rest_client=keycloak_bootstrap)
     await groups.create_group('/email', rest_client=keycloak_bootstrap)
     await groups.add_user_group('/email', 'testuser', rest_client=keycloak_bootstrap)
 
@@ -72,5 +72,5 @@ async def test_listener_create(keycloak_bootstrap, tmp_path, listener, patch_ssh
     patch_ssh_sudo.assert_called_once()
     assert patch_ssh_sudo.call_args.args[0] == 'test.test.test'
 
-    user_dict = {'testuser': {'firstName': 'first', 'lastName': 'last'}}
+    user_dict = {'testuser': {'canonical': 'first.last'}}
     assert json.loads(patch_ssh_sudo.call_args.args[1].split('\n')[4].split('=',1)[-1]) == user_dict
