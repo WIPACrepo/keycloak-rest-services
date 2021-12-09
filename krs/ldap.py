@@ -4,7 +4,6 @@ from ldap3 import Server, Connection, ALL, ALL_ATTRIBUTES, MODIFY_ADD, MODIFY_RE
 from rest_tools.client import RestClient
 from rest_tools.server import from_environment
 
-
 logger = logging.getLogger('krs.ldap')
 
 class LDAP:
@@ -87,7 +86,7 @@ class LDAP:
             if 'providerId' in comp:
                 if comp['providerId'] == 'ldap':
                     ldapComponentId = comp['id']
-                elif comp['providerId'] == 'user-attribute-ldap-mapper':
+                elif comp['providerId'].endswith('ldap-mapper'):
                     ldapAttrs.append(comp['name'])
         if not ldapComponentId:
             raise RuntimeError('LDAP provider not registered in Keycloak')
@@ -144,13 +143,13 @@ class LDAP:
         if 'fullname' not in ldapAttrs:
             args = {
                 'name': 'fullname',
-                'providerID': 'full-name-ldap-mapper',
+                'providerId': 'full-name-ldap-mapper',
                 'providerType': 'org.keycloak.storage.ldap.mappers.LDAPStorageMapper',
                 'parentId': ldapComponentId,
                 'config': {
                     'read.only': ['false'],
                     'write.only': ['true'],
-                    'ldap.attribute': ['cn'],
+                    'ldap.full.name.attribute': ['cn'],
                 }
             }
             await rc.request('POST', url, args)
