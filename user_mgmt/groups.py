@@ -164,6 +164,19 @@ class GroupApprovals(MyHandler):
 
         await self.db.group_approvals.insert_one(approval_data)
 
+        # send email to admins
+        await self.send_admin_email(approval_data['group'], f'''IceCube Group Request
+
+A request for membership to {approval_data["group"]}
+has been made by user {approval_data["username"]}.
+
+Please approve or deny this request by going to:
+  https://user-management.icecube.aq/groups
+
+Documentation is located at:
+  https://docs.icecube.aq/Madison-account/user-workflow/admin_groups/
+''')
+
         self.set_status(201)
         self.write({'id': approval_data['id']})
 

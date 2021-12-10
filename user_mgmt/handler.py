@@ -5,6 +5,9 @@ from tornado.web import HTTPError
 from tornado.escape import json_decode, json_encode
 from rest_tools.server import RestHandler
 
+import krs.email
+from krs.users import user_info
+
 
 class MyHandler(RestHandler):
     def initialize(self, db=None, krs_client=None, group_cache=None, **kwargs):
@@ -57,6 +60,33 @@ class MyHandler(RestHandler):
         if extra_fields:
             raise HTTPError(400, f'invalid fields: {extra_fields}', reason='extra invalid fields in request')
         return data
+
+    async def get_admins(self, group_path):
+        ret = await self.group_cache.get_members(group_path+'/_admin')
+        users = {}
+        for username in ret:
+            ret2 = await user_info(username, rest_client=self.krs_client)
+            users[username] = ret2
+        logging.info(f'get_admins: {users}')
+        return users
+
+    async def send_admin_email(self, group_path, body):
+        subject = 'IceCube Account '
+        if group_path.startswith('/institutions'):
+            subject += 'Institution'
+        else:
+            subject += 'Group'
+        subject += ' Request'
+
+        try:
+            admin_users = await self.get_admins(group_path)
+            for user in admin_users.values():
+                krs.email.send_email(
+                    recipient={'name': f'{user["firstName"]} {user["lastName"]}', 'email': user['email']},
+                    subject=subject,
+                    content=body)
+        except Exception:
+            logging.warning(f'failed to send email for approval to {group_path}', exc_info=True)
 
     async def get_admin_groups(self):
         if '/admin' in self.auth_data['groups']:  # super admin - all groups

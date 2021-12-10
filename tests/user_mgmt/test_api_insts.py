@@ -186,7 +186,7 @@ async def test_institution_removeuser(server):
     assert ret == {'users': [], 'authorlist': []}
 
 @pytest.mark.asyncio
-async def test_inst_approvals_register(server, mongo_client):
+async def test_inst_approvals_register(server, mongo_client, email_patch):
     _, krs_client, address, *_ = server
     session = AsyncSession(retries=0)
 
@@ -210,6 +210,8 @@ async def test_inst_approvals_register(server, mongo_client):
     ret = r.json()
     approval_id = ret['id']
 
+    email_patch.assert_not_called()
+
     ret = await mongo_client.user_registrations.find().to_list(10)
     assert len(ret) == 1
     assert ret[0]['first_name'] == data['first_name']
@@ -222,7 +224,43 @@ async def test_inst_approvals_register(server, mongo_client):
     assert ret[0]['institution'] == data['institution']
 
 @pytest.mark.asyncio
-async def test_inst_approvals_second(server, mongo_client):
+async def test_inst_approvals_register_with_admins(server, mongo_client, email_patch):
+    rest, krs_client, address, *_ = server
+    session = AsyncSession(retries=0)
+
+    await krs.groups.create_group('/institutions', rest_client=krs_client)
+    await krs.groups.create_group('/institutions/IceCube', rest_client=krs_client)
+    await krs.groups.create_group('/institutions/IceCube/UW-Madison', rest_client=krs_client)
+
+    client2 = await rest('test2', groups=['/institutions/IceCube/UW-Madison/_admin'])
+
+    data = {
+        'experiment': 'IceCube',
+        'institution': 'UW-Madison',
+        'first_name': 'First',
+        'last_name': 'Last',
+        'email': 'test@test',
+    }
+    r = await asyncio.wrap_future(session.post(address+'/api/inst_approvals', json=data))
+    r.raise_for_status()
+    ret = r.json()
+    approval_id = ret['id']
+
+    email_patch.assert_called()
+
+    ret = await mongo_client.user_registrations.find().to_list(10)
+    assert len(ret) == 1
+    assert ret[0]['first_name'] == data['first_name']
+    assert ret[0]['username'] == 'flast'
+
+    ret = await mongo_client.inst_approvals.find().to_list(10)
+    assert len(ret) == 1
+    assert ret[0]['id'] == approval_id
+    assert ret[0]['experiment'] == data['experiment']
+    assert ret[0]['institution'] == data['institution']
+
+@pytest.mark.asyncio
+async def test_inst_approvals_second(server, mongo_client, email_patch):
     rest, krs_client, *_ = server
 
     await krs.groups.create_group('/institutions', rest_client=krs_client)
@@ -241,6 +279,8 @@ async def test_inst_approvals_second(server, mongo_client):
     ret = await client.request('POST', '/api/inst_approvals', data)
     approval_id = ret['id']
 
+    email_patch.assert_not_called()
+
     ret = await mongo_client.user_registrations.find().to_list(10)
     assert len(ret) == 0
 
@@ -252,7 +292,38 @@ async def test_inst_approvals_second(server, mongo_client):
     assert ret[0]['username'] == 'test'
 
 @pytest.mark.asyncio
-async def test_inst_approvals_move(server, mongo_client):
+async def test_inst_approvals_second_with_admin(server, mongo_client, email_patch):
+    rest, krs_client, *_ = server
+
+    await krs.groups.create_group('/institutions', rest_client=krs_client)
+    await krs.groups.create_group('/institutions/IceCube', rest_client=krs_client)
+    await krs.groups.create_group('/institutions/IceCube/UW-Madison', rest_client=krs_client)
+
+    client = await rest('test')
+    client2 = await rest('test2', groups=['/institutions/IceCube/UW-Madison/_admin'])
+    client2 = await rest('test3', groups=['/institutions/IceCube/UW-Madison/_admin'])
+
+    data = {
+        'experiment': 'IceCube',
+        'institution': 'UW-Madison',
+    }
+    ret = await client.request('POST', '/api/inst_approvals', data)
+    approval_id = ret['id']
+
+    assert email_patch.call_count == 2
+
+    ret = await mongo_client.user_registrations.find().to_list(10)
+    assert len(ret) == 0
+
+    ret = await mongo_client.inst_approvals.find().to_list(10)
+    assert len(ret) == 1
+    assert ret[0]['id'] == approval_id
+    assert ret[0]['experiment'] == data['experiment']
+    assert ret[0]['institution'] == data['institution']
+    assert ret[0]['username'] == 'test'
+
+@pytest.mark.asyncio
+async def test_inst_approvals_move(server, mongo_client, email_patch):
     rest, krs_client, *_ = server
 
     await krs.groups.create_group('/institutions', rest_client=krs_client)
@@ -272,6 +343,44 @@ async def test_inst_approvals_move(server, mongo_client):
     }
     ret = await client.request('POST', '/api/inst_approvals', data)
     approval_id = ret['id']
+
+    email_patch.assert_not_called()
+
+    ret = await mongo_client.user_registrations.find().to_list(10)
+    assert len(ret) == 0
+
+    ret = await mongo_client.inst_approvals.find().to_list(10)
+    assert len(ret) == 1
+    assert ret[0]['id'] == approval_id
+    assert ret[0]['experiment'] == data['experiment']
+    assert ret[0]['institution'] == data['institution']
+    assert ret[0]['remove_institution'] == data['remove_institution']
+    assert ret[0]['username'] == 'test'
+
+@pytest.mark.asyncio
+async def test_inst_approvals_move_with_admin(server, mongo_client, email_patch):
+    rest, krs_client, *_ = server
+
+    await krs.groups.create_group('/institutions', rest_client=krs_client)
+    await krs.groups.create_group('/institutions/IceCube', rest_client=krs_client)
+    await krs.groups.create_group('/institutions/IceCube/OldInst', rest_client=krs_client)
+    await krs.groups.create_group('/institutions/IceCube/UW-Madison', rest_client=krs_client)
+
+    client = await rest('test', groups=['/institutions/IceCube/OldInst'])
+    client2 = await rest('test2', groups=['/institutions/IceCube/UW-Madison/_admin'])
+
+    with pytest.raises(Exception):
+        await client.request('POST', '/api/inst_approvals')
+
+    data = {
+        'experiment': 'IceCube',
+        'institution': 'UW-Madison',
+        'remove_institution': 'OldInst',
+    }
+    ret = await client.request('POST', '/api/inst_approvals', data)
+    approval_id = ret['id']
+
+    email_patch.assert_called()
 
     ret = await mongo_client.user_registrations.find().to_list(10)
     assert len(ret) == 0

@@ -100,7 +100,7 @@ async def test_group_members_delete(server):
     assert ret == []
 
 @pytest.mark.asyncio
-async def test_group_approvals(server, mongo_client):
+async def test_group_approvals(server, mongo_client, email_patch):
     rest, krs_client, *_ = server
 
     await krs.groups.create_group('/foo', rest_client=krs_client)
@@ -126,6 +126,44 @@ async def test_group_approvals(server, mongo_client):
     }
     ret = await client.request('POST', '/api/group_approvals', data)
     approval_id = ret['id']
+
+    email_patch.assert_not_called()
+
+    ret = await mongo_client.group_approvals.find().to_list(10)
+    assert len(ret) == 1
+    assert ret[0]['id'] == approval_id
+    assert ret[0]['group'] == data['group']
+
+@pytest.mark.asyncio
+async def test_group_approvals_with_admin(server, mongo_client, email_patch):
+    rest, krs_client, *_ = server
+
+    await krs.groups.create_group('/foo', rest_client=krs_client)
+    await krs.groups.create_group('/foo/_admin', rest_client=krs_client)
+    await krs.groups.create_group('/bar', rest_client=krs_client)
+
+    client = await rest('test')
+    client2 = await rest('test2', groups=['/foo/_admin'])
+
+    # missing group key
+    with pytest.raises(Exception):
+        await client.request('POST', '/api/group_approvals')
+
+    # try to join a non-self-administered group
+    data = {
+        'group': '/bar',
+    }
+    with pytest.raises(Exception):
+        await client.request('POST', '/api/group_approvals', data)
+
+    # try to join a proper self-administered group
+    data = {
+        'group': '/foo',
+    }
+    ret = await client.request('POST', '/api/group_approvals', data)
+    approval_id = ret['id']
+
+    email_patch.assert_called()
 
     ret = await mongo_client.group_approvals.find().to_list(10)
     assert len(ret) == 1

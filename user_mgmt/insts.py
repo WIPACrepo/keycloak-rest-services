@@ -266,10 +266,12 @@ class InstApprovals(MyHandler):
             number = 0
             for _ in range(100):
                 username = gen_username(number)
-                try:
-                    await krs.users.user_info(username, rest_client=self.krs_client)
-                except krs.users.UserDoesNotExist:
-                    break  # username is available
+                ret = await self.db.inst_approvals.find_one({"username": username})
+                if not ret:
+                    try:
+                        await krs.users.user_info(username, rest_client=self.krs_client)
+                    except krs.users.UserDoesNotExist:
+                        break  # username is available
                 # username in use, try again
                 number += 1
             else:
@@ -296,6 +298,20 @@ class InstApprovals(MyHandler):
 
         approval_data['id'] = uuid.uuid1().hex
         await self.db.inst_approvals.insert_one(approval_data)
+
+        # send email to admins
+        inst_group = f'/institutions/{approval_data["experiment"]}/{approval_data["institution"]}'
+        await self.send_admin_email(inst_group, f'''IceCube Institution Request
+
+A request for membership to {approval_data["experiment"]}/{approval_data["institution"]}
+has been made by user {approval_data["username"]}.
+
+Please approve or deny this request by going to:
+  https://user-management.icecube.aq/institutions
+
+Documentation is located at:
+  https://docs.icecube.aq/Madison-account/user-workflow/admin_insts/
+''')
 
         self.set_status(201)
         self.write({'id': approval_data['id']})
