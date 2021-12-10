@@ -394,7 +394,7 @@ async def test_inst_approvals_move_with_admin(server, mongo_client, email_patch)
     assert ret[0]['username'] == 'test'
 
 @pytest.mark.asyncio
-async def test_inst_approvals_get(server, mongo_client):
+async def test_inst_approvals_get(server, mongo_client, email_patch):
     rest, krs_client, *_ = server
 
     await krs.groups.create_group('/institutions', rest_client=krs_client)
@@ -410,6 +410,8 @@ async def test_inst_approvals_get(server, mongo_client):
     }
     ret = await client.request('POST', '/api/inst_approvals', data)
     approval_id = ret['id']
+
+    email_patch.assert_called()
 
     # no auth
     with pytest.raises(Exception):
@@ -441,6 +443,9 @@ async def test_inst_approvals_actions_approve(server, mongo_client, email_patch)
     }
     ret = await client.request('POST', '/api/inst_approvals', data)
     approval_id = ret['id']
+
+    email_patch.assert_called()
+    email_patch.reset_mock()
 
     # no auth
     with pytest.raises(Exception):
@@ -486,6 +491,9 @@ async def test_inst_approvals_actions_approve_gen2(server, mongo_client, email_p
     ret = await client.request('POST', '/api/inst_approvals', data)
     approval_id = ret['id']
 
+    email_patch.assert_called()
+    email_patch.reset_mock()
+
     await client2.request('POST', f'/api/inst_approvals/{approval_id}/actions/approve')
 
     ret = await mongo_client.inst_approvals.find().to_list(10)
@@ -523,6 +531,9 @@ async def test_inst_approvals_actions_approve_posix(server, mongo_client, email_
     ret = r.json()
     approval_id = ret['id']
 
+    email_patch.assert_called()
+    email_patch.reset_mock()
+
     await client2.request('POST', f'/api/inst_approvals/{approval_id}/actions/approve')
 
     ret = await mongo_client.inst_approvals.find().to_list(10)
@@ -552,6 +563,9 @@ async def test_inst_approvals_actions_deny(server, mongo_client, email_patch):
     }
     ret = await client.request('POST', '/api/inst_approvals', data)
     approval_id = ret['id']
+
+    email_patch.assert_called()
+    email_patch.reset_mock()
 
     # no auth
     with pytest.raises(Exception):
