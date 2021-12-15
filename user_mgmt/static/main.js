@@ -318,15 +318,24 @@ Home = {
 
       // now submit
       if (this.valid) {
+        let data = {
+          experiment: this.experiment,
+          institution: this.institution,
+        }
+        let confirm_msg = 'Are you sure you want to '
+        if (this.remove_institution != '') {
+          data.remove_institution = this.remove_institution
+          confirm_msg += 'change institutions from '+this.remove_institution+' to '+this.institution+'?'
+        } else {
+          confirm_msg += 'join the institution '+this.institution+'?'
+        }
+        if (!window.confirm(confirm_msg)) {
+          return;
+        }
+
         this.errMessage = 'Submission processing';
         try {
           await keycloak.updateToken(5);
-          let data = {
-            experiment: this.experiment,
-            institution: this.institution,
-          }
-          if (this.remove_institution != '')
-            data.remove_institution = this.remove_institution
           const resp = await axios.post('/api/inst_approvals', data, {
             headers: {'Authorization': 'bearer '+keycloak.token}
           });
@@ -355,6 +364,11 @@ Home = {
     },
     submit_group: async function(e) {
       if (this.validGroup) {
+        let confirm_msg = 'Are you sure you want to join the group '+this.group+'?'
+        if (!window.confirm(confirm_msg)) {
+          return;
+        }
+
         this.errMessage = 'Submission processing';
         try {
           await keycloak.updateToken(5);
@@ -388,6 +402,11 @@ Home = {
       }
     },
     leave_inst_action: async function(exp, inst) {
+      let confirm_msg = 'Are you sure you want to leave the institution '+this.inst+'?'
+      if (!window.confirm(confirm_msg)) {
+        return;
+      }
+
       try {
         await keycloak.updateToken(5);
         const username = await get_username();
@@ -425,6 +444,11 @@ Home = {
       }
     },
     leave_subgroup_action: async function(exp, inst, sub) {
+      let confirm_msg = 'Are you sure you want to leave the institution '+inst+' group '+sub+'?'
+      if (!window.confirm(confirm_msg)) {
+        return;
+      }
+
       try {
         await keycloak.updateToken(5);
         const username = await get_username();
@@ -457,6 +481,11 @@ Home = {
       }
     },
     leave_group_action: async function(group_id) {
+      let confirm_msg = 'Are you sure you want to leave the group '+this.group+'?'
+      if (!window.confirm(confirm_msg)) {
+        return;
+      }
+
       try {
         await keycloak.updateToken(5);
         const username = await get_username();
@@ -819,11 +848,21 @@ Insts = {
     }
   },
   methods: {
-    approve: async function(approval_id) {
+    approve: async function(approval) {
+      let confirm_msg = 'Are you sure you want to approve the request for ';
+      if ('first_name' in approval && 'last_name' in approval) {
+        confirm_msg += approval['first_name']+' '+approval['last_name']+'?'
+      } else {
+        confirm_msg += approval['username']+'?'
+      }
+      if (!window.confirm(confirm_msg)) {
+        return;
+      }
+
       try {
         await keycloak.updateToken(5);
         var token = keycloak.token;
-        await axios.post('/api/inst_approvals/'+approval_id+'/actions/approve', {}, {
+        await axios.post('/api/inst_approvals/'+approval['id']+'/actions/approve', {}, {
           headers: {'Authorization': 'bearer '+token}
         });
         this.error = ""
@@ -832,11 +871,21 @@ Insts = {
         this.error = "Error approving: "+error['message']
       }
     },
-    deny: async function(approval_id) {
+    deny: async function(approval) {
+      let confirm_msg = 'Are you sure you want to deny the request for ';
+      if ('first_name' in approval && 'last_name' in approval) {
+        confirm_msg += approval['first_name']+' '+approval['last_name']+'?'
+      } else {
+        confirm_msg += approval['username']+'?'
+      }
+      if (!window.confirm(confirm_msg)) {
+        return;
+      }
+
       try {
         await keycloak.updateToken(5);
         var token = keycloak.token;
-        await axios.post('/api/inst_approvals/'+approval_id+'/actions/deny', {}, {
+        await axios.post('/api/inst_approvals/'+approval['id']+'/actions/deny', {}, {
           headers: {'Authorization': 'bearer '+token}
         });
         this.error = ""
@@ -846,11 +895,17 @@ Insts = {
       }
     },
     add: async function(inst, name, username) {
+      if (username == '') {
+        this.error = "Error adding user: did not enter user name"
+        return
+      }
+
+      let confirm_msg = 'Are you sure you want to add the user '+username+' to '+inst.institution+'?';
+      if (!window.confirm(confirm_msg)) {
+        return;
+      }
+
       try {
-        if (username == '') {
-          this.error = "Error adding user: did not enter user name"
-          return
-        }
         await keycloak.updateToken(5);
         var token = keycloak.token;
         let data = {}
@@ -873,6 +928,16 @@ Insts = {
       }
     },
     remove: async function(inst, name, username) {
+      if (username == '') {
+        this.error = "Error removing user: did not enter user name"
+        return
+      }
+
+      let confirm_msg = 'Are you sure you want to remove the user '+username+' from '+inst.institution+'?';
+      if (!window.confirm(confirm_msg)) {
+        return;
+      }
+
       try {
         await keycloak.updateToken(5);
         var token = keycloak.token;
@@ -915,8 +980,8 @@ Insts = {
           <span class="username">{{ approval['username'] }}</span>
           <span class="name" v-if="'first_name' in approval">{{ approval['first_name'] }} {{ approval['last_name'] }}</span>
           <span class="author" v-if="'authorlist' in approval">Author</span>
-          <button @click="approve(approval['id'])">Approve</button>
-          <button @click="deny(approval['id'])">Deny</button>
+          <button @click="approve(approval)">Approve</button>
+          <button @click="deny(approval)">Deny</button>
         </div>
       </div>
     </div>
@@ -1022,11 +1087,21 @@ Groups = {
     }
   },
   methods: {
-    approve: async function(approval_id) {
+    approve: async function(approval) {
+      let confirm_msg = 'Are you sure you want to approve the request for ';
+      if ('first_name' in approval && 'last_name' in approval) {
+        confirm_msg += approval['first_name']+' '+approval['last_name']+'?'
+      } else {
+        confirm_msg += approval['username']+'?'
+      }
+      if (!window.confirm(confirm_msg)) {
+        return;
+      }
+
       try {
         await keycloak.updateToken(5);
         var token = keycloak.token;
-        await axios.post('/api/group_approvals/'+approval_id+'/actions/approve', {}, {
+        await axios.post('/api/group_approvals/'+approval['id']+'/actions/approve', {}, {
           headers: {'Authorization': 'bearer '+token}
         });
         this.error = ""
@@ -1035,11 +1110,21 @@ Groups = {
         this.error = "Error approving: "+error['message']
       }
     },
-    deny: async function(approval_id) {
+    deny: async function(approval) {
+      let confirm_msg = 'Are you sure you want to deny the request for ';
+      if ('first_name' in approval && 'last_name' in approval) {
+        confirm_msg += approval['first_name']+' '+approval['last_name']+'?'
+      } else {
+        confirm_msg += approval['username']+'?'
+      }
+      if (!window.confirm(confirm_msg)) {
+        return;
+      }
+
       try {
         await keycloak.updateToken(5);
         var token = keycloak.token;
-        await axios.post('/api/group_approvals/'+approval_id+'/actions/deny', {}, {
+        await axios.post('/api/group_approvals/'+approval['id']+'/actions/deny', {}, {
           headers: {'Authorization': 'bearer '+token}
         });
         this.error = ""
@@ -1048,7 +1133,12 @@ Groups = {
         this.error = "Error denying: "+error['message']
       }
     },
-    add: async function(group_id, username) {
+    add: async function(group, username) {
+      let confirm_msg = 'Are you sure you want to add the user '+username+' to '+group['name']+'?';
+      if (!window.confirm(confirm_msg)) {
+        return;
+      }
+
       try {
         if (username == '') {
           this.error = "Error adding user: did not enter user name"
@@ -1056,7 +1146,7 @@ Groups = {
         }
         await keycloak.updateToken(5);
         var token = keycloak.token;
-        await axios.put('/api/groups/'+group_id+'/'+username, {}, {
+        await axios.put('/api/groups/'+group['id']+'/'+username, {}, {
           headers: {'Authorization': 'bearer '+keycloak.token}
         })
         this.error = ""
@@ -1065,11 +1155,16 @@ Groups = {
         this.error = "Error adding user: "+error['message']
       }
     },
-    remove: async function(group_id, username) {
+    remove: async function(group, username) {
+      let confirm_msg = 'Are you sure you want to remove the user '+username+' from '+group['name']+'?';
+      if (!window.confirm(confirm_msg)) {
+        return;
+      }
+
       try {
         await keycloak.updateToken(5);
         var token = keycloak.token;
-        await axios.delete('/api/groups/'+group_id+'/'+username, {
+        await axios.delete('/api/groups/'+group['id']+'/'+username, {
           headers: {'Authorization': 'bearer '+keycloak.token}
         })
         this.error = ""
@@ -1090,8 +1185,8 @@ Groups = {
         <div class="user indent" v-for="approval in group['members']">
           <span class="username">{{ approval['username'] }}</span>
           <span class="name" v-if="'first_name' in approval">{{ approval['first_name'] }} {{ approval['last_name'] }}</span>
-          <button @click="approve(approval['id'])">Approve</button>
-          <button @click="deny(approval['id'])">Deny</button>
+          <button @click="approve(approval)">Approve</button>
+          <button @click="deny(approval)">Deny</button>
         </div>
       </div>
     </div>
@@ -1104,12 +1199,12 @@ Groups = {
       <div class="double_indent" v-if="group['members'].length > 0">
         <div class="user" v-for="user in group['members']">
           <span class="username">{{ user }}</span>
-          <button @click="remove(group['id'], user)">Remove</button>
+          <button @click="remove(group, user)">Remove</button>
         </div>
       </div>
       <div class="double_indent" v-else>No members</div>
       <div class="double_indent add">
-        <addgroupuser :addFunc="add" :group="group['id']"></addgroupuser>
+        <addgroupuser :addFunc="add" :group="group"></addgroupuser>
       </div>
     </div>
   </div>

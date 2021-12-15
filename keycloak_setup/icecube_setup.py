@@ -48,7 +48,7 @@ def main():
     parser = argparse.ArgumentParser(description='IceCube Keycloak setup')
     parser.add_argument('keycloak_url', help='Keycloak url')
     parser.add_argument('user_mgmt_url', help='User Management url')
-    parser.add_argument('--ldap_url', default='ldap-1.icecube.wisc.edu', help='LDAP url')
+    parser.add_argument('--ldap_url', default=None, help='LDAP url')
     parser.add_argument('--ldap_setup', default=False, action='store_true', help='setup LDAP')
     parser.add_argument('--ldap_admin_user', default='admin', help='LDAP admin username')
     parser.add_argument('--ldap_admin_password', default='admin', help='LDAP admin password')
@@ -60,9 +60,10 @@ def main():
 
     os.environ['KEYCLOAK_REALM'] = args.keycloak_realm
     os.environ['KEYCLOAK_URL'] = args.keycloak_url
-    os.environ['LDAP_URL'] = args.ldap_url
-    os.environ['LDAP_ADMIN_USER'] = args.ldap_admin_user
-    os.environ['LDAP_ADMIN_PASSWORD'] = args.ldap_admin_password
+    if args.ldap_url:
+        os.environ['LDAP_URL'] = args.ldap_url
+        os.environ['LDAP_ADMIN_USER'] = args.ldap_admin_user
+        os.environ['LDAP_ADMIN_PASSWORD'] = args.ldap_admin_password
     os.environ['USERNAME'] = args.username
     os.environ['PASSWORD'] = args.password
 
@@ -92,11 +93,12 @@ def main():
     asyncio.run(create_insts('IceCube-Gen2', ICECUBE_INSTS))
     asyncio.run(create_insts('IceCube-Gen2', GEN2_INSTS))
 
-    # sync ldap groups
-    asyncio.run(import_ldap_groups(rest_client, ldap_setup=args.ldap_setup))
-    asyncio.run(import_ldap_insts(rest_client))
-    asyncio.run(import_ldap_insts(rest_client, base_group='/institutions/IceCube-Gen2', INSTS=ICECUBE_INSTS))
-    asyncio.run(import_ldap_insts(rest_client, base_group='/institutions/IceCube-Gen2', INSTS=GEN2_INSTS))
+    if args.ldap_url:
+        # sync ldap groups
+        asyncio.run(import_ldap_groups(rest_client, ldap_setup=args.ldap_setup))
+        asyncio.run(import_ldap_insts(rest_client))
+        asyncio.run(import_ldap_insts(rest_client, base_group='/institutions/IceCube-Gen2', INSTS=ICECUBE_INSTS))
+        asyncio.run(import_ldap_insts(rest_client, base_group='/institutions/IceCube-Gen2', INSTS=GEN2_INSTS))
 
     # set up user_mgmt app
     token = get_token()
