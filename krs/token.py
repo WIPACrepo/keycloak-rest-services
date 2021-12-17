@@ -9,8 +9,8 @@ from rest_tools.server import from_environment
 from rest_tools.client import RestClient
 
 
-def get_token(url, client_id, client_secret):
-    url = f'{url}/auth/realms/master/protocol/openid-connect/token'
+def get_token(url, client_id, client_secret, client_realm='master'):
+    url = f'{url}/auth/realms/{client_realm}/protocol/openid-connect/token'
     args = {
         'grant_type': 'client_credentials',
         'client_id': client_id,
@@ -29,10 +29,12 @@ def get_rest_client(retries=None, timeout=10):
         'KEYCLOAK_URL': None,
         'KEYCLOAK_CLIENT_ID': 'rest-access',
         'KEYCLOAK_CLIENT_SECRET': None,
+        'KEYCLOAK_CLIENT_REALM': 'master',
     })
     token_func = partial(get_token, config["KEYCLOAK_URL"],
         client_id=config['KEYCLOAK_CLIENT_ID'],
         client_secret=config['KEYCLOAK_CLIENT_SECRET'],
+        client_realm=config['KEYCLOAK_CLIENT_REALM'],
     )
     kwargs = {'timeout': timeout}
     if retries:
