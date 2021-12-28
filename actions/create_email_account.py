@@ -30,13 +30,13 @@ async def process(email_server, group_path, dryrun=False, keycloak_client=None):
         attrs = user.get('attributes', {})
         if attrs.get('noIceCubeEmail', False) == 'True':
             continue
-        if (not attrs.get('uid', False)) or (not attrs.get('gid', False)):
-            logger.info(f'user {username} is not a posix user, skipping')
+        if 'uidNumber' not in attrs or 'gidNumber' not in attrs:
+            logger.debug(f'user {username} is not a posix user, skipping')
             continue
         users[username] = {
             'canonical': user['firstName'].lower()+'.'+user['lastName'].lower(),
-            'uid': int(attrs['uid']),
-            'gid': int(attrs['gid']),
+            'uid': int(attrs['uidNumber']),
+            'gid': int(attrs['gidNumber']),
         }
 
     script = f'''import subprocess
