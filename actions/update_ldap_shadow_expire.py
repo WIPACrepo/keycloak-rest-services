@@ -5,8 +5,7 @@ import asyncio
 import logging
 import string
 
-from krs.token import get_rest_client
-from krs.ldap import LDAP, get_ldap_members
+from krs.ldap import LDAP
 from krs.rabbitmq import RabbitMQListener
 
 
