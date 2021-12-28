@@ -14,7 +14,7 @@ from .util import patch_ssh_sudo, TestException
 
 @pytest.mark.asyncio
 async def test_create(keycloak_bootstrap, patch_ssh_sudo):
-    await users.create_user('testuser', first_name='First', last_name='Last', email='foo@test', attribs={'uid':1000, 'gid':1000}, rest_client=keycloak_bootstrap)
+    await users.create_user('testuser', first_name='First', last_name='Last', email='foo@test', attribs={'uidNumber':1000, 'gidNumber':1000}, rest_client=keycloak_bootstrap)
     await groups.create_group('/email', rest_client=keycloak_bootstrap)
     await groups.add_user_group('/email', 'testuser', rest_client=keycloak_bootstrap)
 
@@ -63,7 +63,7 @@ async def listener(keycloak_bootstrap, rabbitmq_bootstrap, tmp_path):
 
 @pytest.mark.asyncio
 async def test_listener_create(keycloak_bootstrap, tmp_path, listener, patch_ssh_sudo):
-    await users.create_user('testuser', first_name='First', last_name='Last', email='foo@test', attribs={'uid':1000, 'gid':1000}, rest_client=keycloak_bootstrap)
+    await users.create_user('testuser', first_name='First', last_name='Last', email='foo@test', attribs={'uidNumber':1000, 'gidNumber':1000}, rest_client=keycloak_bootstrap)
     await groups.create_group('/email', rest_client=keycloak_bootstrap)
     await groups.add_user_group('/email', 'testuser', rest_client=keycloak_bootstrap)
 
