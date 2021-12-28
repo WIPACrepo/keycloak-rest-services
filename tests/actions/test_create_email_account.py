@@ -14,7 +14,7 @@ from .util import patch_ssh_sudo, TestException
 
 @pytest.mark.asyncio
 async def test_create(keycloak_bootstrap, patch_ssh_sudo):
-    await users.create_user('testuser', first_name='First', last_name='Last', email='foo@test', rest_client=keycloak_bootstrap)
+    await users.create_user('testuser', first_name='First', last_name='Last', email='foo@test', attribs={'uid':1000, 'gid':1000}, rest_client=keycloak_bootstrap)
     await groups.create_group('/email', rest_client=keycloak_bootstrap)
     await groups.add_user_group('/email', 'testuser', rest_client=keycloak_bootstrap)
 
@@ -23,8 +23,8 @@ async def test_create(keycloak_bootstrap, patch_ssh_sudo):
     patch_ssh_sudo.assert_called_once()
     assert patch_ssh_sudo.call_args.args[0] == 'test.test.test'
 
-    user_dict = {'testuser': 'first.last'}
-    assert json.loads(patch_ssh_sudo.call_args.args[1].split('\n')[4].split('=',1)[-1]) == user_dict
+    user_dict = {'testuser': {'canonical': 'first.last', 'uid': 1000, 'gid': 1000}}
+    assert json.loads(patch_ssh_sudo.call_args.args[1].split('\n')[5].split('=',1)[-1]) == user_dict
 
 @pytest.mark.asyncio
 async def test_create_error_ssh(keycloak_bootstrap, patch_ssh_sudo):
@@ -48,7 +48,7 @@ async def test_create_not_in_group(keycloak_bootstrap, patch_ssh_sudo):
     assert patch_ssh_sudo.call_args.args[0] == 'test.test.test'
 
     user_dict = {}
-    assert json.loads(patch_ssh_sudo.call_args.args[1].split('\n')[4].split('=',1)[-1]) == user_dict
+    assert json.loads(patch_ssh_sudo.call_args.args[1].split('\n')[5].split('=',1)[-1]) == user_dict
 
 
 @pytest.fixture
@@ -63,7 +63,7 @@ async def listener(keycloak_bootstrap, rabbitmq_bootstrap, tmp_path):
 
 @pytest.mark.asyncio
 async def test_listener_create(keycloak_bootstrap, tmp_path, listener, patch_ssh_sudo):
-    await users.create_user('testuser', first_name='First', last_name='Last', email='foo@test', rest_client=keycloak_bootstrap)
+    await users.create_user('testuser', first_name='First', last_name='Last', email='foo@test', attribs={'uid':1000, 'gid':1000}, rest_client=keycloak_bootstrap)
     await groups.create_group('/email', rest_client=keycloak_bootstrap)
     await groups.add_user_group('/email', 'testuser', rest_client=keycloak_bootstrap)
 
@@ -72,5 +72,5 @@ async def test_listener_create(keycloak_bootstrap, tmp_path, listener, patch_ssh
     patch_ssh_sudo.assert_called_once()
     assert patch_ssh_sudo.call_args.args[0] == 'test.test.test'
 
-    user_dict = {'testuser': 'first.last'}
-    assert json.loads(patch_ssh_sudo.call_args.args[1].split('\n')[4].split('=',1)[-1]) == user_dict
+    user_dict = {'testuser': {'canonical': 'first.last', 'uid': 1000, 'gid': 1000}}
+    assert json.loads(patch_ssh_sudo.call_args.args[1].split('\n')[5].split('=',1)[-1]) == user_dict

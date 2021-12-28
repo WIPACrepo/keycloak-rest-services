@@ -27,12 +27,21 @@ async def process(email_server, group_path, dryrun=False, keycloak_client=None):
     users = {}
     for username in group_members:
         user = all_users[username]
-        if user.get('attributes', {}).get('noIceCubeEmail', False) == 'True':
+        attrs = user.get('attributes', {})
+        if attrs.get('noIceCubeEmail', False) == 'True':
             continue
-        users[username] = user['firstName'].lower()+'.'+user['lastName'].lower()
+        if (not attrs.get('uid', False)) or (not attrs.get('gid', False)):
+            logger.info(f'user {username} is not a posix user, skipping')
+            continue
+        users[username] = {
+            'canonical': user['firstName'].lower()+'.'+user['lastName'].lower(),
+            'uid': int(attrs['uid']),
+            'gid': int(attrs['gid']),
+        }
 
     script = f'''import subprocess
 import logging
+import os
 logging.basicConfig(level={logger.getEffectiveLevel()})
 
 users = {json.dumps(users)}
@@ -40,17 +49,34 @@ with open('/etc/postfix/local_recipients') as f:
     current_users = set([line.split()[0] for line in f.readlines() if line and 'OK' in line])
 dryrun = {dryrun}
 
+is_root = getpass.getuser() == 'root'
+if not is_root:
+    logging.debug('Running as user ' + getpass.getuser())
+    logging.debug('Will not chown')
+
 changes = False
 for username in sorted(set(users)-current_users):
     logging.info('Adding email for user ' + username)
     changes = True
+    user = users[username]
     if not dryrun:
         with open('/etc/postfix/canonical_sender', 'a') as f:
-            f.write(username+'     '+users[username]+'\\n')
+            f.write(username+'     '+user['canonical']+'\\n')
         with open('/etc/postfix/canonical_recipient', 'a') as f:
-            f.write(users[username]+'     '+username+'\\n')
+            f.write(user['canonical']+'     '+username+'\\n')
         with open('/etc/postfix/local_recipients', 'a') as f:
             f.write(username+'     OK\\n')
+
+    path = '/mnt/mail/'+username
+    if not os.path.exists(path):
+        logging.debug('Creating directory ' + path)
+        if not dryrun:
+            os.makedirs(path, mode=0o755)
+        if is_root:
+            logging.debug('Changing ownership of %s to %d:%d', path,
+                          user['uid'], user['gid'])
+            if not dryrun:
+                os.chown(path, user['uid'], user['gid'])
 
 if changes and not dryrun:
     logging.info('reloading postfix')
