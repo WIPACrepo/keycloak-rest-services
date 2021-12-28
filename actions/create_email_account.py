@@ -40,6 +40,7 @@ async def process(email_server, group_path, dryrun=False, keycloak_client=None):
         }
 
     script = f'''import subprocess
+import getpass
 import logging
 import os
 logging.basicConfig(level={logger.getEffectiveLevel()})

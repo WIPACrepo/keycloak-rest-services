@@ -24,7 +24,7 @@ async def test_create(keycloak_bootstrap, patch_ssh_sudo):
     assert patch_ssh_sudo.call_args.args[0] == 'test.test.test'
 
     user_dict = {'testuser': {'canonical': 'first.last', 'uid': 1000, 'gid': 1000}}
-    assert json.loads(patch_ssh_sudo.call_args.args[1].split('\n')[5].split('=',1)[-1]) == user_dict
+    assert json.loads(patch_ssh_sudo.call_args.args[1].split('\n')[6].split('=',1)[-1]) == user_dict
 
 @pytest.mark.asyncio
 async def test_create_error_ssh(keycloak_bootstrap, patch_ssh_sudo):
@@ -48,7 +48,7 @@ async def test_create_not_in_group(keycloak_bootstrap, patch_ssh_sudo):
     assert patch_ssh_sudo.call_args.args[0] == 'test.test.test'
 
     user_dict = {}
-    assert json.loads(patch_ssh_sudo.call_args.args[1].split('\n')[5].split('=',1)[-1]) == user_dict
+    assert json.loads(patch_ssh_sudo.call_args.args[1].split('\n')[6].split('=',1)[-1]) == user_dict
 
 
 @pytest.fixture
@@ -73,4 +73,4 @@ async def test_listener_create(keycloak_bootstrap, tmp_path, listener, patch_ssh
     assert patch_ssh_sudo.call_args.args[0] == 'test.test.test'
 
     user_dict = {'testuser': {'canonical': 'first.last', 'uid': 1000, 'gid': 1000}}
-    assert json.loads(patch_ssh_sudo.call_args.args[1].split('\n')[5].split('=',1)[-1]) == user_dict
+    assert json.loads(patch_ssh_sudo.call_args.args[1].split('\n')[6].split('=',1)[-1]) == user_dict
