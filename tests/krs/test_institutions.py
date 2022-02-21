@@ -66,7 +66,7 @@ async def test_list_insts_flat_whitelist(keycloak_bootstrap):
     with pytest.raises(institutions.InstitutionAttrsMismatchError):
         await institutions.list_insts_flat(rest_client=keycloak_bootstrap)
     ret = await institutions.list_insts_flat(attr_whitelist=['foo'], rest_client=keycloak_bootstrap)
-    assert ret == {'Test': {'foo': 'bar'}, 'Test2': {'bar': 'baz'}}
+    assert ret == {'Test': {'foo': 'bar'}, 'Test2': {}}
 
 @pytest.mark.asyncio
 async def test_list_insts_filter(keycloak_bootstrap):
