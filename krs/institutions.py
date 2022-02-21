@@ -77,7 +77,7 @@ async def list_insts_flat(experiment=None, filter_func=None, remove_empty=True, 
     """
     raw = await list_insts(experiment, filter_func=filter_func, rest_client=rest_client)
     ret = {}
-    for path in raw:
+    for path in sorted(raw):
         inst_key = path.split('/')[-1]
         attrs = raw[path]
         if remove_empty and not attrs:
