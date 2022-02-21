@@ -62,13 +62,14 @@ async def list_insts(experiment=None, filter_func=None, rest_client=None):
 class InstitutionAttrsMismatchError(RuntimeError):
     pass
 
-async def list_insts_flat(experiment=None, filter_func=None, attr_whitelist=None, rest_client=None):
+async def list_insts_flat(experiment=None, filter_func=None, remove_empty=True, attr_whitelist=None, rest_client=None):
     """
     List institution names in Keycloak, removing overlaps from multiple experiments.
 
     Args:
         experiment (str): experiment name (default: list all experiments)
         filter_func (callable): given a group path and set of attrs, a callable to return true/false
+        remove_empty (bool): remove institutions with no attributes
         attr_whitelist (iterable): whitelist of attributes (default: all)
 
     Returns:
@@ -79,7 +80,7 @@ async def list_insts_flat(experiment=None, filter_func=None, attr_whitelist=None
     for path in raw:
         inst_key = path.split('/')[-1]
         attrs = raw[path]
-        if not attrs:
+        if remove_empty and not attrs:
             logger.info(f'ignoring inst {path} with no attrs')
             continue
         if attr_whitelist:
