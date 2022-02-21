@@ -62,24 +62,34 @@ async def list_insts(experiment=None, filter_func=None, rest_client=None):
 class InstitutionAttrsMismatchError(RuntimeError):
     pass
 
-async def list_insts_flat(experiment=None, filter_func=None, rest_client=None):
+async def list_insts_flat(experiment=None, filter_func=None, remove_empty=True, attr_whitelist=None, rest_client=None):
     """
     List institution names in Keycloak, removing overlaps from multiple experiments.
 
     Args:
         experiment (str): experiment name (default: list all experiments)
         filter_func (callable): given a group path and set of attrs, a callable to return true/false
+        remove_empty (bool): remove institutions with no attributes
+        attr_whitelist (iterable): whitelist of attributes (default: all)
 
     Returns:
         dict: name: attrs
     """
     raw = await list_insts(experiment, filter_func=filter_func, rest_client=rest_client)
     ret = {}
-    for path in raw:
+    for path in sorted(raw):
         inst_key = path.split('/')[-1]
         attrs = raw[path]
+        if remove_empty and not attrs:
+            logger.info(f'ignoring inst {path} with no attrs')
+            continue
+        if attr_whitelist:
+            attrs = {k: attrs[k] for k in attrs if k in attr_whitelist}
         if inst_key in ret and ret[inst_key] != attrs:
             logger.warning(f'inst attr mismatch - {inst_key}')
+            for path in raw:
+                if path.split('/')[-1] == inst_key:
+                    logger.info(f'{path} {raw[path]}')
             raise InstitutionAttrsMismatchError(inst_key)
         ret[inst_key] = attrs
     return ret
@@ -191,6 +201,7 @@ def main():
     parser_list.set_defaults(func=list_insts)
     parser_list_flat = subparsers.add_parser('list-name', help='list institutions by name only')
     parser_list_flat.add_argument('--experiment', help='experiment name')
+    parser_list_flat.add_argument('--attr', dest='attr_whitelist', action='append', help='attribute names to compare (one per arg)')
     parser_list_flat.set_defaults(func=list_insts_flat)
     parser_info = subparsers.add_parser('info', help='institution info')
     parser_info.add_argument('experiment', help='experiment name')

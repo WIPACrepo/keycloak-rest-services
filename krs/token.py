@@ -56,6 +56,7 @@ def main():
     parser_get.add_argument('url', help='keycloak base url')
     parser_get.add_argument('client_id', help='keycloak client id')
     parser_get.add_argument('client_secret', help='keycloak client secret')
+    parser_get.add_argument('--client_realm', default='master', help='keycloak client realm')
     parser_get.set_defaults(func=get_token)
     args = vars(parser.parse_args())
 

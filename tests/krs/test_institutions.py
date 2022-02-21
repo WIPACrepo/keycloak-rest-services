@@ -37,18 +37,36 @@ async def test_list_insts_flat(keycloak_bootstrap):
     await groups.create_group('/institutions/IceCube2', rest_client=keycloak_bootstrap)
     await groups.create_group('/institutions/IceCube2/Test', rest_client=keycloak_bootstrap)
     await groups.create_group('/institutions/IceCube2/Test2', rest_client=keycloak_bootstrap)
-    ret = await institutions.list_insts_flat(rest_client=keycloak_bootstrap)
+    ret = await institutions.list_insts_flat(remove_empty=False, rest_client=keycloak_bootstrap)
     assert ret == {'Test': {}, 'Test2': {}}
 
-    ret = await institutions.list_insts_flat('IceCube', rest_client=keycloak_bootstrap)
+    ret = await institutions.list_insts_flat('IceCube', remove_empty=False, rest_client=keycloak_bootstrap)
     assert ret == {'Test': {}}
 
-    ret = await institutions.list_insts_flat('Other', rest_client=keycloak_bootstrap)
+    ret = await institutions.list_insts_flat('Other', remove_empty=False, rest_client=keycloak_bootstrap)
     assert ret == {}
 
     await groups.create_group('/institutions/IceCube/Test2', {'foo': 'bar'}, rest_client=keycloak_bootstrap)
     with pytest.raises(institutions.InstitutionAttrsMismatchError):
+        await institutions.list_insts_flat(remove_empty=False, rest_client=keycloak_bootstrap)
+
+@pytest.mark.asyncio
+async def test_list_insts_flat_whitelist(keycloak_bootstrap):
+    await groups.create_group('/institutions', rest_client=keycloak_bootstrap)
+
+    await groups.create_group('/institutions/IceCube', rest_client=keycloak_bootstrap)
+    await groups.create_group('/institutions/IceCube/Test', {'foo': 'bar'}, rest_client=keycloak_bootstrap)
+    await groups.create_group('/institutions/IceCube2', rest_client=keycloak_bootstrap)
+    await groups.create_group('/institutions/IceCube2/Test', {'foo': 'bar'}, rest_client=keycloak_bootstrap)
+    ret = await institutions.list_insts_flat(rest_client=keycloak_bootstrap)
+    assert ret == {'Test': {'foo': 'bar'}}
+
+    await groups.create_group('/institutions/IceCube/Test2', {'bar': 'baz'}, rest_client=keycloak_bootstrap)
+    await groups.create_group('/institutions/IceCube2/Test2', {'bar': 'foo'}, rest_client=keycloak_bootstrap)
+    with pytest.raises(institutions.InstitutionAttrsMismatchError):
         await institutions.list_insts_flat(rest_client=keycloak_bootstrap)
+    ret = await institutions.list_insts_flat(attr_whitelist=['foo'], rest_client=keycloak_bootstrap)
+    assert ret == {'Test': {'foo': 'bar'}, 'Test2': {}}
 
 @pytest.mark.asyncio
 async def test_list_insts_filter(keycloak_bootstrap):
