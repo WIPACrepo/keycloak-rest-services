@@ -37,7 +37,7 @@ async def process(email_server, group_path, dryrun=False, keycloak_client=None):
         if (not user['firstName']) or (not user['lastName']):
             logger.debug(f'user {username} does not have a valid first and last name, skipping')
             continue
-        canonical = unidecode.unidecode(user['firstName'].lower()+'.'+user['lastName'].lower()).replace(' ','')
+        canonical = unidecode.unidecode(user['firstName'].lower()+'.'+user['lastName'].lower()).replace(' ', '')
         users[username] = {
             'canonical': canonical,
             'uid': int(attrs['uidNumber']),
