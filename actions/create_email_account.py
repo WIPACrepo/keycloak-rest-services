@@ -10,6 +10,7 @@ Example::
 import logging
 import asyncio
 import json
+import unidecode
 
 from krs.groups import get_group_membership
 from krs.users import list_users
@@ -33,8 +34,12 @@ async def process(email_server, group_path, dryrun=False, keycloak_client=None):
         if 'uidNumber' not in attrs or 'gidNumber' not in attrs:
             logger.debug(f'user {username} is not a posix user, skipping')
             continue
+        if (not user['firstName']) or (not user['lastName']):
+            logger.debug(f'user {username} does not have a valid first and last name, skipping')
+            continue
+        canonical = unidecode.unidecode(user['firstName'].lower()+'.'+user['lastName'].lower()).replace(' ', '')
         users[username] = {
-            'canonical': user['firstName'].lower()+'.'+user['lastName'].lower(),
+            'canonical': canonical,
             'uid': int(attrs['uidNumber']),
             'gid': int(attrs['gidNumber']),
         }
