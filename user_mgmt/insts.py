@@ -256,7 +256,7 @@ class InstApprovals(MyHandler):
 
             # make ascii username
             def gen_username(number):
-                ret = unidecode.unidecode(data['first_name'][0] + data['last_name']).replace("'", '').lower()
+                ret = unidecode.unidecode(data['first_name'][0] + data['last_name']).replace("'", '').replace(' ','').lower()
                 if len(ret) > 16:
                     ret = ret[:16]
                 if number > 0:
