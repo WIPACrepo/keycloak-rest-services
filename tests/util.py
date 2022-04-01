@@ -4,7 +4,7 @@ from functools import partial
 import pytest
 from ldap3 import Connection
 from rest_tools.client import RestClient
-from rest_tools.server import from_environment
+from wipac_dev_tools import from_environment
 import requests
 
 from krs import bootstrap

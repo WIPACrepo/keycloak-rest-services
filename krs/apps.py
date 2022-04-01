@@ -463,7 +463,7 @@ def get_public_token(username, password, scopes=None, openid_url=None, client='p
 def main():
     import argparse
     from pprint import pprint
-    from rest_tools.server import from_environment
+    from wipac_dev_tools import from_environment
 
     parser = argparse.ArgumentParser(description='Keycloak application management')
     subparsers = parser.add_subparsers()

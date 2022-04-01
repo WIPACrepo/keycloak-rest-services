@@ -5,7 +5,7 @@ import logging
 from functools import partial
 
 import requests
-from rest_tools.server import from_environment
+from wipac_dev_tools import from_environment
 from rest_tools.client import RestClient
 
 

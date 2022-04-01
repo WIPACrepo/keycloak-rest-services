@@ -2,7 +2,7 @@ import logging
 
 from ldap3 import Server, Connection, ALL, ALL_ATTRIBUTES, MODIFY_ADD, MODIFY_REPLACE, MODIFY_DELETE
 from rest_tools.client import RestClient
-from rest_tools.server import from_environment
+from wipac_dev_tools import from_environment
 
 logger = logging.getLogger('krs.ldap')
 
