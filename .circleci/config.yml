@@ -89,14 +89,12 @@ workflows:
         jobs:
             - test_krs
             - test_actions
-            - test_user_mgmt
             - test_flake8
             - deploy:
                 context: docker
                 requires:
                     - test_krs
                     - test_actions
-                    - test_user_mgmt
                     - test_flake8
                 filters:
                     branches:
