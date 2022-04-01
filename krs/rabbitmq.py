@@ -5,7 +5,7 @@ import asyncio
 import logging
 
 from rest_tools.utils.json_util import json_decode
-from rest_tools.server import from_environment
+from wipac_dev_tools import from_environment
 import requests
 import aio_pika
 

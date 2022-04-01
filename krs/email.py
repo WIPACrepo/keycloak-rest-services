@@ -5,7 +5,7 @@ from email.message import EmailMessage
 from email.headerregistry import Address
 from email.utils import localtime
 
-from rest_tools.server import from_environment
+from wipac_dev_tools import from_environment
 
 
 TEMPLATE = """{}

@@ -4,7 +4,7 @@ Bootstrap a Keycloak instance with an admin role account for REST access.
 import time
 import requests
 
-from rest_tools.server import from_environment
+from wipac_dev_tools import from_environment
 
 
 def wait_for_keycloak(timeout=300):
