@@ -59,53 +59,9 @@ jobs:
             - run: |
                 . env/bin/activate &&
                 python -m pytest tests/actions --tb=short --log-level=INFO
-    test_flake8:
-        docker:
-            - image: circleci/python:3.8
-        steps:
-            - checkout
-            - run: ./setupenv.sh
-            - run: |
-                . env/bin/activate &&
-                flake8
-    deploy:
-        docker:
-            - image: circleci/buildpack-deps:stretch
-              environment:
-                IMAGE_NAME: wipac/keycloak-rest-services
-        steps:
-            - checkout
-            - setup_remote_docker
-            - run: |
-                echo 'export TAG="${CIRCLE_TAG:=latest}"' >> $BASH_ENV
-            - run: |
-                docker build -t $IMAGE_NAME:$TAG .
-            - run: |
-                echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USER" --password-stdin
-                docker push $IMAGE_NAME:$TAG
 workflows:
     version: 2
     build_and_test:
         jobs:
             - test_krs
             - test_actions
-            - test_flake8
-            - deploy:
-                context: docker
-                requires:
-                    - test_krs
-                    - test_actions
-                    - test_flake8
-                filters:
-                    branches:
-                        only: master
-
-    release:
-        jobs:
-            - deploy:
-                context: docker
-                filters:
-                    branches:
-                        ignore: /.*/
-                    tags:
-                        only: /^v?\d+\.\d+\.\d+$/
