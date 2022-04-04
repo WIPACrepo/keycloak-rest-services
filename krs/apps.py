@@ -33,6 +33,7 @@ from .groups import list_groups, group_info
 
 logger = logging.getLogger('krs.apps')
 
+
 async def list_apps(rest_client=None):
     """
     List applications ("clients") in Keycloak.
@@ -48,6 +49,7 @@ async def list_apps(rest_client=None):
             continue
         ret[c['clientId']] = {k: c[k] for k in c if k in ('clientId', 'defaultClientScopes', 'id', 'optionalClientScopes', 'rootUrl', 'serviceAccountsEnabled')}
     return ret
+
 
 async def app_info(appname, rest_client=None):
     """
@@ -77,6 +79,7 @@ async def app_info(appname, rest_client=None):
 
     return data
 
+
 async def list_scopes(only_apps=True, mappers=False, rest_client=None):
     """
     List scopes in Keycloak.
@@ -100,6 +103,7 @@ async def list_scopes(only_apps=True, mappers=False, rest_client=None):
         if mappers and 'protocolMappers' in s:
             ret[s['name']]['protocolMappers'] = s['protocolMappers']
     return ret
+
 
 async def create_app(appname, appurl, roles=['read', 'write'], builtin_scopes=[], access='public', service_account=False, rest_client=None):
     """
@@ -248,6 +252,7 @@ async def create_app(appname, appurl, roles=['read', 'write'], builtin_scopes=[]
     else:
         logger.info(f'app "{appname}" already exists')
 
+
 async def delete_app(appname, rest_client=None):
     """
     Delete an application ("client") in Keycloak.
@@ -282,6 +287,7 @@ async def delete_app(appname, rest_client=None):
         url = f'/clients/{client_id}'
         await rest_client.request('DELETE', url)
         logger.info(f'app "{appname}" deleted')
+
 
 async def get_app_role_mappings(appname, role=None, rest_client=None):
     """
@@ -319,6 +325,7 @@ async def get_app_role_mappings(appname, role=None, rest_client=None):
                 else:
                     groups_with_role[role_name] = [g]
     return groups_with_role
+
 
 async def add_app_role_mapping(appname, role, group, rest_client=None):
     """
@@ -360,6 +367,7 @@ async def add_app_role_mapping(appname, role, group, rest_client=None):
         await rest_client.request('POST', url, args)
         logger.info(f'app "{appname}" role mapping {role}-{group} created')
 
+
 async def delete_app_role_mapping(appname, role, group, rest_client=None):
     """
     Delete a role-group mapping to an application.
@@ -399,6 +407,7 @@ async def delete_app_role_mapping(appname, role, group, rest_client=None):
         args = [role_info]
         await rest_client.request('DELETE', url, args)
         logger.info(f'app "{appname}" role mapping {role}-{group} deleted')
+
 
 def get_public_token(username, password, scopes=None, openid_url=None, client='public', secret=None, raw=False, **kwargs):
     import jwt
@@ -459,6 +468,7 @@ def get_public_token(username, password, scopes=None, openid_url=None, client='p
         return tokens['access_token']
     else:
         return decode(tokens['access_token'])
+
 
 def main():
     import argparse
@@ -522,6 +532,7 @@ def main():
         ret = asyncio.run(func(rest_client=rest_client, **args))
     if ret is not None:
         pprint(ret)
+
 
 if __name__ == '__main__':
     main()

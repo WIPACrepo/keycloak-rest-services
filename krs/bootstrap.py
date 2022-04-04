@@ -23,6 +23,7 @@ def wait_for_keycloak(timeout=300):
     else:
         raise Exception('Keycloak did not start')
 
+
 def get_token():
     cfg = from_environment({
         'KEYCLOAK_URL': None,
@@ -41,6 +42,7 @@ def get_token():
     r.raise_for_status()
     req = r.json()
     return req['access_token']
+
 
 def create_realm(realm, token=None):
     cfg = from_environment({
@@ -61,6 +63,7 @@ def create_realm(realm, token=None):
     else:
         print(f'realm "{realm}" already exists')
 
+
 def delete_realm(realm, token=None):
     cfg = from_environment({
         'KEYCLOAK_URL': None,
@@ -78,6 +81,7 @@ def delete_realm(realm, token=None):
         r = requests.delete(url, headers={'Authorization': f'bearer {token}'})
         r.raise_for_status()
         print(f'realm "{realm}" deleted')
+
 
 def create_service_role(client_id, realm=None, token=None):
     cfg = from_environment({
@@ -171,6 +175,7 @@ def create_service_role(client_id, realm=None, token=None):
         r.raise_for_status()
     return r.json()['value']
 
+
 def delete_service_role(client_id, token=None):
     cfg = from_environment({
         'KEYCLOAK_URL': None,
@@ -199,6 +204,7 @@ def delete_service_role(client_id, token=None):
         except Exception:
             print(r.text)
             raise
+
 
 def create_public_app(realm=None, token=None):
     cfg = from_environment({
@@ -260,6 +266,7 @@ def create_public_app(realm=None, token=None):
         r = requests.post(url, json=args, headers={'Authorization': f'bearer {token}'})
         r.raise_for_status()
         print('public app created')
+
 
 def user_mgmt_app(appurl, passwordGrant=False, token=None):
     """
@@ -360,6 +367,7 @@ def user_mgmt_app(appurl, passwordGrant=False, token=None):
 
         print('user_mgmt app created')
 
+
 def add_rabbitmq_listener(realm=None, token=None):
     cfg = from_environment({
         'KEYCLOAK_URL': None,
@@ -382,6 +390,7 @@ def add_rabbitmq_listener(realm=None, token=None):
         except Exception:
             print(r.text)
             raise
+
 
 def add_custom_theme(realm=None, token=None):
     cfg = from_environment({
@@ -431,6 +440,7 @@ def bootstrap():
     print(f'\nclient_id={cfg["KEYCLOAK_CLIENT_ID"]}')
     print(f'client_secret={client_secret}')
     return client_secret
+
 
 if __name__ == '__main__':
     bootstrap()

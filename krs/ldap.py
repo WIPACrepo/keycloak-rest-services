@@ -6,6 +6,7 @@ from wipac_dev_tools import from_environment
 
 logger = logging.getLogger('krs.ldap')
 
+
 class LDAP:
     """
     LDAP client with a few basic actions to suppliment Keycloak

@@ -27,10 +27,12 @@ INGORE_DIR_ROLES = {
 
 ssh_opts = ['-o', 'UserKnownHostsFile=/dev/null', '-o', 'StrictHostKeyChecking=no']
 
+
 def ssh(host, *args):
     """Run command on remote machine via ssh."""
     cmd = ['ssh'] + ssh_opts + [f'{host}'] + list(args)
     subprocess.check_call(cmd)
+
 
 def scp_and_run(host, script_data, script_name='create.py'):
     """Transfer a script to a remote machine, run it, then delete it."""
@@ -45,6 +47,7 @@ def scp_and_run(host, script_data, script_name='create.py'):
         ssh(host, 'python', f'/tmp/{script_name}')
     finally:
         ssh(host, 'rm', f'/tmp/{script_name}')
+
 
 def scp_and_run_sudo(host, script_data, script_name='create.py'):
     """Transfer a script to a remote machine, run it as root, then delete it."""

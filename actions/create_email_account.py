@@ -93,6 +93,7 @@ if changes and not dryrun:
 '''
     actions.util.scp_and_run_sudo(email_server, script, script_name='create_email_accounts.py')
 
+
 def listener(group_path, address=None, exchange=None, dedup=1, **kwargs):
     """Set up RabbitMQ listener"""
     async def action(message):

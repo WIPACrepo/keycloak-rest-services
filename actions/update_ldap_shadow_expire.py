@@ -14,10 +14,12 @@ logger = logging.getLogger('update_ldap_shadow_expire')
 
 ACCEPTABLE_LDAP_CN = string.ascii_letters+string.digits+'-_'
 
+
 def flatten_group_name(path):
     path = path.replace('/', '-')
     path = ''.join(letter for letter in path if letter in ACCEPTABLE_LDAP_CN)
     return path
+
 
 async def process(username=None, dryrun=False, ldap_client=None):
     ldap_users = ldap_client.list_users()
@@ -39,6 +41,7 @@ async def process(username=None, dryrun=False, ldap_client=None):
                 logger.info(f'updating expiry for user {uid} to {newExpire}')
                 if not dryrun:
                     ldap_client.modify_user(uid, {'shadowExpire': newExpire})
+
 
 def listener(group_path, address=None, exchange=None, dedup=1, **kwargs):
     """Set up RabbitMQ listener"""

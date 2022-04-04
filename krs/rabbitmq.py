@@ -12,6 +12,7 @@ import aio_pika
 
 logger = logging.getLogger('rabbitmq')
 
+
 class RabbitMQListener:
     """
     RabbitMQ exchange listener.
@@ -91,6 +92,7 @@ class RabbitMQListener:
         message = self.message_queue.pop()
         self.message_queue = []
         await self._process(message)
+
 
 def create_user(username, password):
     config = from_environment({
