@@ -11,5 +11,3 @@ USER keycloak
 COPY . .
 
 ENV PYTHONPATH=/home/keycloak
-
-CMD ["python", "-m", "user_mgmt"]
