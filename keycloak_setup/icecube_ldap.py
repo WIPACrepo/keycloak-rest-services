@@ -15,6 +15,7 @@ logger = logging.getLogger('import_ldap')
 
 IGNORE_LIST = set(['IceCube', 'wipac'])
 
+
 def get_attr_as_list(group, name, default=None):
     if name not in group:
         return default
@@ -22,6 +23,7 @@ def get_attr_as_list(group, name, default=None):
     if isinstance(val, list):
         return val
     return [val]
+
 
 async def import_ldap_groups(keycloak_conn, ldap_setup=True, dryrun=False):
     ldap_conn = LDAP()
@@ -86,6 +88,7 @@ async def import_ldap_groups(keycloak_conn, ldap_setup=True, dryrun=False):
                     except UserDoesNotExist:
                         logger.info(f'skipping user {member} for group /posix/{group_name} - user does not exist')
 
+
 async def import_ldap_insts(keycloak_conn, base_group='/institutions/IceCube', INSTS=ICECUBE_INSTS, dryrun=False):
     ldap_conn = LDAP()
     ldap_users = ldap_conn.list_users()
@@ -132,6 +135,7 @@ async def import_ldap_insts(keycloak_conn, base_group='/institutions/IceCube', I
                         await add_user_group(keycloak_group, user, rest_client=keycloak_conn)
         else:
             logger.info(f'skipping LDAP inst {inst["o"]}')
+
 
 def main():
     parser = argparse.ArgumentParser(description='IceCube Keycloak setup')

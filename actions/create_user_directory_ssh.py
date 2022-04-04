@@ -98,8 +98,10 @@ def listener(group_path, address=None, exchange=None, dedup=1, **kwargs):
 
     return RabbitMQListener(action, **args)
 
+
 def auto_int(x):
     return int(x, 0)
+
 
 def main():
     import argparse

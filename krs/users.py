@@ -8,6 +8,7 @@ from .token import get_rest_client
 
 logger = logging.getLogger('krs.users')
 
+
 def _fix_attributes(user):
     """
     "Fix" user attributes that are only a single value.
@@ -23,8 +24,10 @@ def _fix_attributes(user):
             if len(user['attributes'][k]) == 1:
                 user['attributes'][k] = user['attributes'][k][0]
 
+
 class UserDoesNotExist(Exception):
     pass
+
 
 async def list_users(search=None, rest_client=None):
     """
@@ -49,6 +52,7 @@ async def list_users(search=None, rest_client=None):
             ret[u['username']] = u
     return ret
 
+
 async def user_info(username, rest_client=None):
     """
     Get user information.
@@ -66,6 +70,7 @@ async def user_info(username, rest_client=None):
         raise UserDoesNotExist(f'user "{username}" does not exist')
     _fix_attributes(ret[0])
     return ret[0]
+
 
 async def create_user(username, first_name, last_name, email, attribs=None, rest_client=None):
     """
@@ -101,6 +106,7 @@ async def create_user(username, first_name, last_name, email, attribs=None, rest
     else:
         logger.info(f'user "{username}" already exists')
 
+
 async def modify_user(username, attribs=None, rest_client=None):
     """
     Modify a user in Keycloak.
@@ -134,6 +140,7 @@ async def modify_user(username, attribs=None, rest_client=None):
             ret['attributes'][k] = [attribs[k]]
     await rest_client.request('PUT', url, ret)
 
+
 async def set_user_password(username, password=None, temporary=False, rest_client=None):
     """
     Set a user's password in Keycloak.
@@ -164,6 +171,7 @@ async def set_user_password(username, password=None, temporary=False, rest_clien
         ret = await rest_client.request('PUT', url, args)
         logger.info(f'user "{username}" password set')
 
+
 async def delete_user(username, rest_client=None):
     """
     Delete a user in Keycloak.
@@ -179,6 +187,7 @@ async def delete_user(username, rest_client=None):
         url = f'/users/{ret["id"]}'
         ret = await rest_client.request('DELETE', url)
         logger.info(f'user "{username}" deleted')
+
 
 def main():
     import argparse
@@ -222,6 +231,7 @@ def main():
     ret = asyncio.run(func(rest_client=rest_client, **args))
     if ret is not None:
         pprint(ret)
+
 
 if __name__ == '__main__':
     main()

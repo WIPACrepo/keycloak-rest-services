@@ -18,6 +18,7 @@ logger = logging.getLogger('import_authorlist')
 
 IGNORE_LIST = set(['IceCube', 'wipac'])
 
+
 def get_attr_as_list(group, name, default=None):
     if name not in group:
         return default
@@ -25,6 +26,7 @@ def get_attr_as_list(group, name, default=None):
     if isinstance(val, list):
         return val
     return [val]
+
 
 async def import_authorlist_insts(keycloak_conn, base_group='/institutions/IceCube', INSTS=ICECUBE_INSTS, dryrun=False):
     # get authorlist data
@@ -97,6 +99,7 @@ async def import_authorlist_insts(keycloak_conn, base_group='/institutions/IceCu
                 await add_user_group(group_name, keycloak_user['username'], rest_client=keycloak_conn)
                 attrs = {'author_name': user['author']}
                 await modify_user(keycloak_user['username'], attrs, rest_client=keycloak_conn)
+
 
 def main():
     parser = argparse.ArgumentParser(description='IceCube Keycloak setup')

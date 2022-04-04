@@ -55,6 +55,7 @@ async def process(group_path, root_dir, keycloak_client=None):
                         }
                         subprocess.check_call(QUOTAS[root_dir].format(**attrs), shell=True)
 
+
 def listener(group_path, address=None, exchange=None, dedup=1, **kwargs):
     """Set up RabbitMQ listener"""
     async def action(message):

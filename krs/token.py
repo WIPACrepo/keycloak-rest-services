@@ -23,6 +23,7 @@ def get_token(url, client_id, client_secret, client_realm='master'):
     req = r.json()
     return req['access_token']
 
+
 def get_rest_client(retries=None, timeout=10):
     config = from_environment({
         'KEYCLOAK_REALM': None,
@@ -31,7 +32,9 @@ def get_rest_client(retries=None, timeout=10):
         'KEYCLOAK_CLIENT_SECRET': None,
         'KEYCLOAK_CLIENT_REALM': 'master',
     })
-    token_func = partial(get_token, config["KEYCLOAK_URL"],
+    token_func = partial(
+        get_token,
+        config["KEYCLOAK_URL"],
         client_id=config['KEYCLOAK_CLIENT_ID'],
         client_secret=config['KEYCLOAK_CLIENT_SECRET'],
         client_realm=config['KEYCLOAK_CLIENT_REALM'],
@@ -66,6 +69,7 @@ def main():
     ret = func(**args)
     if ret is not None:
         pprint(ret)
+
 
 if __name__ == '__main__':
     main()

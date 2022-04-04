@@ -9,6 +9,7 @@ from .token import get_rest_client
 
 logger = logging.getLogger('krs.groups')
 
+
 async def list_groups(max_groups=10000, rest_client=None):
     """
     List groups in Keycloak.
@@ -33,6 +34,7 @@ async def list_groups(max_groups=10000, rest_client=None):
     add_groups(group_hierarchy)
     return ret
 
+
 async def group_info(group_path, rest_client=None):
     """
     Get group information.
@@ -49,6 +51,7 @@ async def group_info(group_path, rest_client=None):
 
     group_id = groups[group_path]['id']
     return await group_info_by_id(group_id, rest_client=rest_client)
+
 
 async def group_info_by_id(group_id, rest_client=None):
     """
@@ -67,6 +70,7 @@ async def group_info_by_id(group_id, rest_client=None):
         raise Exception(f'group "{group_id}" does not exist')
     _fix_attributes(ret)
     return ret
+
 
 async def create_group(group_path, attrs=None, rest_client=None):
     """
@@ -100,6 +104,7 @@ async def create_group(group_path, attrs=None, rest_client=None):
         await rest_client.request('POST', url, group)
         logger.info(f'group "{group_path}" created')
 
+
 async def modify_group(group_path, attrs={}, rest_client=None):
     """
     Modify attributes for a group.
@@ -126,6 +131,7 @@ async def modify_group(group_path, attrs={}, rest_client=None):
     else:
         logger.info(f'group "{group_path}" does not exist')
 
+
 async def delete_group(group_path, rest_client=None):
     """
     Delete a group in Keycloak.
@@ -140,6 +146,7 @@ async def delete_group(group_path, rest_client=None):
         logger.info(f'group "{group_path}" deleted')
     else:
         logger.info(f'group "{group_path}" does not exist')
+
 
 async def get_group_membership(group_path, rest_client=None):
     """
@@ -157,6 +164,7 @@ async def get_group_membership(group_path, rest_client=None):
     group_id = groups[group_path]['id']
 
     return await get_group_membership_by_id(group_id, rest_client=rest_client)
+
 
 async def get_group_membership_by_id(group_id, rest_client=None):
     """
@@ -183,6 +191,7 @@ async def get_group_membership_by_id(group_id, rest_client=None):
             ret.append(user['username'])
     return ret
 
+
 async def get_user_groups(username, rest_client=None):
     """
     Get the groups a user has membership in.
@@ -195,6 +204,7 @@ async def get_user_groups(username, rest_client=None):
     """
     info = await user_info(username, rest_client=rest_client)
     return await get_user_groups_by_id(info['id'], rest_client=rest_client)
+
 
 async def get_user_groups_by_id(user_id, rest_client=None):
     """
@@ -213,6 +223,7 @@ async def get_user_groups_by_id(user_id, rest_client=None):
     for g in data:
         ret.append(g['path'])
     return ret
+
 
 async def add_user_group(group_path, username, rest_client=None):
     """
@@ -249,6 +260,7 @@ async def add_user_group(group_path, username, rest_client=None):
 
         logger.info(f'user "{username}" added to group "{group_path}"')
 
+
 async def remove_user_group(group_path, username, rest_client=None):
     """
     Remove a user from a group in Keycloak.
@@ -270,6 +282,7 @@ async def remove_user_group(group_path, username, rest_client=None):
         url = f'/users/{info["id"]}/groups/{groups[group_path]["id"]}'
         await rest_client.request('DELETE', url)
         logger.info(f'user "{username}" removed from group "{group_path}"')
+
 
 def main():
     import argparse
@@ -311,6 +324,7 @@ def main():
     ret = asyncio.run(func(rest_client=rest_client, **args))
     if ret is not None:
         pprint(ret)
+
 
 if __name__ == '__main__':
     main()

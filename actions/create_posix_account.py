@@ -94,6 +94,7 @@ async def process(group_path, keycloak_client=None, dryrun=False, ldap_client=No
     if not dryrun:
         await ldap_client.force_keycloak_sync(keycloak_client=keycloak_client)
 
+
 def listener(group_path, address=None, exchange=None, dedup=1, **kwargs):
     """Set up RabbitMQ listener"""
     async def action(message):

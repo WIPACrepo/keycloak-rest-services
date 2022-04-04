@@ -19,10 +19,12 @@ logger = logging.getLogger('sync_ldap_groups')
 
 ACCEPTABLE_LDAP_CN = string.ascii_letters+string.digits+'-_'
 
+
 def flatten_group_name(path):
     path = path.replace('/', '-')
     path = ''.join(letter for letter in path if letter in ACCEPTABLE_LDAP_CN)
     return path
+
 
 async def process(group_path, ldap_ou=None, posix=False, recursive=False, dryrun=False, keycloak_client=None, ldap_client=None):
     ldap_groups = ldap_client.list_groups(groupbase=ldap_ou)
@@ -84,6 +86,7 @@ async def process(group_path, ldap_ou=None, posix=False, recursive=False, dryrun
             if not dryrun:
                 for member in remove_members:
                     ldap_client.remove_user_group(member, ldap_cn, groupbase=ldap_ou)
+
 
 def listener(group_path, address=None, exchange=None, dedup=1, **kwargs):
     """Set up RabbitMQ listener"""

@@ -59,8 +59,10 @@ async def list_insts(experiment=None, filter_func=None, rest_client=None):
 
     return {k: ret[k] for k in sorted(ret)}
 
+
 class InstitutionAttrsMismatchError(RuntimeError):
     pass
+
 
 async def list_insts_flat(experiment=None, filter_func=None, remove_empty=True, attr_whitelist=None, rest_client=None):
     """
@@ -94,6 +96,7 @@ async def list_insts_flat(experiment=None, filter_func=None, remove_empty=True, 
         ret[inst_key] = attrs
     return ret
 
+
 async def inst_info(experiment, institution, rest_client=None):
     """
     Get institution information.
@@ -111,6 +114,7 @@ async def inst_info(experiment, institution, rest_client=None):
         raise KeyError(f'inst "{group_path}" does not exist')
     return ret[group_path]
 
+
 def validate_attrs(attrs):
     if not attrs:
         raise ValueError('attrs is required')
@@ -126,6 +130,7 @@ def validate_attrs(attrs):
     if 'has_mou' not in attrs:
         attrs['has_mou'] = False
     return attrs
+
 
 async def create_inst(experiment, institution, attrs=None, rest_client=None):
     """
@@ -162,6 +167,7 @@ async def create_inst(experiment, institution, attrs=None, rest_client=None):
                                       attrs=attrs, rest_client=rest_client)
     elif attrs['authorlist']:
         await groups.create_group(f'{group_path}/authorlist', rest_client=rest_client)
+
 
 async def modify_inst(experiment, institution, attrs, rest_client=None):
     """
@@ -226,6 +232,7 @@ def main():
     ret = asyncio.run(func(rest_client=rest_client, **args))
     if ret is not None:
         pprint(ret)
+
 
 if __name__ == '__main__':
     main()

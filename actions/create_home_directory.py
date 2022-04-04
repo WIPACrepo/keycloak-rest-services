@@ -24,6 +24,7 @@ from krs.rabbitmq import RabbitMQListener
 
 logger = logging.getLogger('create_home_directory')
 
+
 async def process(root_dir, keycloak_client=None):
     ret = await list_users(rest_client=keycloak_client)
     for username in ret:
@@ -42,6 +43,7 @@ async def process(root_dir, keycloak_client=None):
                     os.chown(path, int(user['attributes']['uidNumber']), int(user['attributes']['gidNumber']))
                 else:
                     logger.debug('skipping chown because we are not root')
+
 
 def listener(address=None, exchange=None, dedup=1, **kwargs):
     """Set up RabbitMQ listener"""
