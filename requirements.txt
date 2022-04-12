@@ -54,7 +54,7 @@ unidecode==1.3.4
     # via wipac-keycloak-rest-services (setup.py)
 urllib3==1.26.9
     # via requests
-wipac-dev-tools==1.1.4
+wipac-dev-tools==1.1.5
     # via
     #   wipac-keycloak-rest-services (setup.py)
     #   wipac-rest-tools
