@@ -2,6 +2,9 @@
 
 <!--next-version-placeholder-->
 
+## v1.2.1 (2022-05-12)
+
+
 ## v1.2.0 (2022-04-04)
 ### Feature
 * Flake8 fixes ([#53](https://github.com/WIPACrepo/keycloak-rest-services/issues/53)) ([`02548ed`](https://github.com/WIPACrepo/keycloak-rest-services/commit/02548ed28b4add44d5625441c56983a6a838afe4))
