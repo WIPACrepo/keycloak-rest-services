@@ -107,15 +107,25 @@ async def create_user(username, first_name, last_name, email, attribs=None, rest
         logger.info(f'user "{username}" already exists')
 
 
-async def modify_user(username, attribs=None, rest_client=None):
+async def modify_user(username, first_name=None, last_name=None, email=None, attribs=None, rest_client=None):
     """
     Modify a user in Keycloak.
 
     Args:
         username (str): username of user to modify
+        first_name (str): first name
+        last_name (str): last name
+        email (str): email address
         attribs (dict): user attributes
         rest_client: keycloak rest client
     """
+    # do some assertions to save on strange keycloak errors
+    if first_name and not isinstance(first_name, str):
+        raise RuntimeError('first_name must be a string')
+    if last_name and not isinstance(last_name, str):
+        raise RuntimeError('last_name must be a string')
+    if email and not isinstance(email, str):
+        raise RuntimeError('email must be a string')
     if not attribs:
         attribs = {}
 
@@ -129,6 +139,12 @@ async def modify_user(username, attribs=None, rest_client=None):
     ret = await rest_client.request('GET', url)
 
     # update info
+    if first_name:
+        ret['firstName'] = first_name
+    if last_name:
+        ret['lastName'] = last_name
+    if email:
+        ret['email'] = email
     if 'attributes' not in ret:
         ret['attributes'] = {}
     for k in attribs:
@@ -210,6 +226,9 @@ def main():
     parser_create.set_defaults(func=create_user)
     parser_modify = subparsers.add_parser('modify', help='modify an existing user')
     parser_modify.add_argument('username', help='user name')
+    parser_create.add_argument('first_name', help='first name')
+    parser_create.add_argument('last_name', help='last name')
+    parser_create.add_argument('email', help='email address')
     parser_modify.add_argument('attribs', nargs=argparse.REMAINDER)
     parser_modify.set_defaults(func=modify_user)
     parser_set_password = subparsers.add_parser('set_password', help='set a user\'s password')

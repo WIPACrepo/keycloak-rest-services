@@ -105,15 +105,18 @@ async def create_group(group_path, attrs=None, rest_client=None):
         logger.info(f'group "{group_path}" created')
 
 
-async def modify_group(group_path, attrs={}, rest_client=None):
+async def modify_group(group_path, attrs={}, new_group_path=None, rest_client=None):
     """
     Modify attributes for a group.
 
     Patches attributes with existing ones.  Use `None` to remove attr.
 
+    Can also rename the group path.
+
     Args:
         group_path (str): group path (/parent/parent/name)
         attrs (dict): attributes to modify
+        new_group_path (str): new group path (/parent/parent/new-name)
     """
     groups = await list_groups(rest_client=rest_client)
     if group_path in groups:
@@ -126,6 +129,9 @@ async def modify_group(group_path, attrs={}, rest_client=None):
                 ret['attributes'][k] = attrs[k]
             else:
                 ret['attributes'][k] = [attrs[k]]
+        if new_group_path:
+            ret['name'] = new_group_path.rsplit('/')[-1]
+            ret['path'] = new_group_path
         await rest_client.request('PUT', url, ret)
         logger.info(f'group "{group_path}" modified')
     else:
