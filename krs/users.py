@@ -119,6 +119,13 @@ async def modify_user(username, first_name=None, last_name=None, email=None, att
         attribs (dict): user attributes
         rest_client: keycloak rest client
     """
+    # do some assertions to save on strange keycloak errors
+    if first_name and not isinstance(first_name, str):
+        raise RuntimeError('first_name must be a string')
+    if last_name and not isinstance(last_name, str):
+        raise RuntimeError('last_name must be a string')
+    if email and not isinstance(email, str):
+        raise RuntimeError('email must be a string')
     if not attribs:
         attribs = {}
 

@@ -34,10 +34,22 @@ async def test_create_user(keycloak_bootstrap):
 @pytest.mark.asyncio
 async def test_modify_user(keycloak_bootstrap):
     await users.create_user('testuser', first_name='first', last_name='last', email='foo@test', rest_client=keycloak_bootstrap)
-    await users.modify_user('testuser', {'foo': 'bar'}, rest_client=keycloak_bootstrap)
+    await users.modify_user('testuser', attribs={'foo': 'bar'}, rest_client=keycloak_bootstrap)
     ret = await users.user_info('testuser', rest_client=keycloak_bootstrap)
     assert 'foo' in ret['attributes']
     assert ret['attributes']['foo'] == 'bar'
+
+@pytest.mark.asyncio
+async def test_modify_user_asserts(keycloak_bootstrap):
+    await users.create_user('testuser', first_name='first', last_name='last', email='foo@test', rest_client=keycloak_bootstrap)
+    with pytest.raises(RuntimeError):
+        await users.modify_user('testuser', {'foo': 'bar'}, rest_client=keycloak_bootstrap)
+    with pytest.raises(RuntimeError):
+        await users.modify_user('testuser', first_name={'foo': 'bar'}, rest_client=keycloak_bootstrap)
+    with pytest.raises(RuntimeError):
+        await users.modify_user('testuser', last_name={'foo': 'bar'}, rest_client=keycloak_bootstrap)
+    with pytest.raises(RuntimeError):
+        await users.modify_user('testuser', email={'foo': 'bar'}, rest_client=keycloak_bootstrap)
 
 @pytest.mark.asyncio
 async def test_modify_user_firstName(keycloak_bootstrap):
