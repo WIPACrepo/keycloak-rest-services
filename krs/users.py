@@ -107,7 +107,7 @@ async def create_user(username, first_name, last_name, email, attribs=None, rest
         logger.info(f'user "{username}" already exists')
 
 
-async def modify_user(username, first_name=None, last_name=None, email=None, attribs=None, rest_client=None):
+async def modify_user(username, first_name=None, last_name=None, email=None, attribs=None, actions=None, actions_reset=False, rest_client=None):
     """
     Modify a user in Keycloak.
 
@@ -117,6 +117,8 @@ async def modify_user(username, first_name=None, last_name=None, email=None, att
         last_name (str): last name
         email (str): email address
         attribs (dict): user attributes
+        actions (list): required actions
+        actions_reset (bool): reset required actions
         rest_client: keycloak rest client
     """
     # do some assertions to save on strange keycloak errors
@@ -128,12 +130,17 @@ async def modify_user(username, first_name=None, last_name=None, email=None, att
         raise RuntimeError('email must be a string')
     if not attribs:
         attribs = {}
+    if not actions:
+        actions = []
+    if not all(a in ['CONFIGURE_TOTP', 'UPDATE_PASSWORD', 'UPDATE_PROFILE', 'VERIFY_EMAIL'] for a in actions):
+        raise RuntimeError('actions are invalid')
 
     # get current user info
     try:
         ret = await user_info(username, rest_client=rest_client)
     except Exception:
         logger.info(f'user "{username}" does not exist')
+        raise
 
     url = f'/users/{ret["id"]}'
     ret = await rest_client.request('GET', url)
@@ -154,6 +161,9 @@ async def modify_user(username, first_name=None, last_name=None, email=None, att
             ret['attributes'][k] = attribs[k]
         else:
             ret['attributes'][k] = [attribs[k]]
+    if not actions_reset:
+        actions = list(set(actions) | set(ret['requiredActions']))
+    ret['requiredActions'] = actions
     await rest_client.request('PUT', url, ret)
 
 
@@ -226,9 +236,11 @@ def main():
     parser_create.set_defaults(func=create_user)
     parser_modify = subparsers.add_parser('modify', help='modify an existing user')
     parser_modify.add_argument('username', help='user name')
-    parser_create.add_argument('first_name', help='first name')
-    parser_create.add_argument('last_name', help='last name')
-    parser_create.add_argument('email', help='email address')
+    parser_modify.add_argument('--first_name', help='first name')
+    parser_modify.add_argument('--last_name', help='last name')
+    parser_modify.add_argument('--email', help='email address')
+    parser_modify.add_argument('--actions', action='append', help='required actions', choices=['CONFIGURE_TOTP', 'UPDATE_PASSWORD', 'UPDATE_PROFILE', 'VERIFY_EMAIL'])
+    parser_modify.add_argument('--actions-reset', action='store_true', help='reset required actions')
     parser_modify.add_argument('attribs', nargs=argparse.REMAINDER)
     parser_modify.set_defaults(func=modify_user)
     parser_set_password = subparsers.add_parser('set_password', help='set a user\'s password')
