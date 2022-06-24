@@ -68,7 +68,7 @@ async def _get_expired_users(ldap_users, usernames):
                 disabled_users[uid] = exp_date
             elif -7 < days_remaining <= 0:
                 expired_users[uid] = exp_date
-            elif days_remaining <= 28:
+            elif 0 < days_remaining <= 28:
                 expiring_users[uid] = exp_date
 
     return expiring_users, expired_users, disabled_users
