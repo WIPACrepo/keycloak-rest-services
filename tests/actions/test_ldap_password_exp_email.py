@@ -4,7 +4,8 @@ import logging
 import time
 
 #from krs.token import get_token
-from krs import users, groups, bootstrap, rabbitmq
+from krs import users, groups, bootstrap  
+from actions import create_posix_account
 from actions import ldap_password_exp_email
 
 from ..util import keycloak_bootstrap, ldap_bootstrap, rabbitmq_bootstrap
@@ -15,9 +16,10 @@ async def test_create(keycloak_bootstrap, ldap_bootstrap):
     await ldap_bootstrap.keycloak_ldap_link(bootstrap.get_token())
 
     await users.create_user('testuser', first_name='first', last_name='last', email='foo@test', rest_client=keycloak_bootstrap)
-    await users.set_user_password('testuser', 'test', rest_client=keycloak_bootstrap)
     await groups.create_group('/posix', rest_client=keycloak_bootstrap)
     await groups.add_user_group('/posix', 'testuser', rest_client=keycloak_bootstrap)
+    await create_posix_account.process('/posix', keycloak_client=keycloak_bootstrap, ldap_client=ldap_bootstrap)
+    await users.set_user_password('testuser', 'test', rest_client=keycloak_bootstrap)
 
     # initially user should be up to date
     ldap_users = ldap_bootstrap.list_users()
