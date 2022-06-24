@@ -24,7 +24,7 @@ async def test_create(keycloak_bootstrap, ldap_bootstrap):
 
     assert not e1
     assert not e2
-    assert not 
+    assert not d
 
     # test expiring user
     today = int(time.time()/3600/24)

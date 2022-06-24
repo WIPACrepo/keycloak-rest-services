@@ -5,7 +5,6 @@ import asyncio
 from datetime import datetime, timedelta
 import logging
 from pprint import pprint
-import string
 import time
 
 from krs.token import get_rest_client
@@ -168,7 +167,6 @@ async def process(username=None, dryrun=False, ldap_client=None, keycloak_client
             send_email({'name': 'IceCube Admin Team', 'email': 'admin@icecube.wisc.edu'}, 'Disabled Accounts', msg)
     except Exception:
         logger.warning('error sending admin disabled email', exc_info=True)
-
 
 
 def main():
