@@ -9,6 +9,7 @@ QUOTAS = {
     '/mnt/homework/public_html': '/sbin/zfs set userquota@{uid}=3G homework/public_html',
     '/mnt/homework/private_cvmfs': '/sbin/zfs set userquota@{uid}=10G homework/private_cvmfs',
     '/mnt/lfs7/user': '/usr/bin/lfs setquota -g {gid} --block-softlimit 2000000 --block-hardlimit 2250000 /mnt/lfs7',
+    '/mnt/ceph1-npx-user': '/usr/bin/setfattr -n ceph.quota.max_files -v 10000000 /mnt/ceph1-npx-user/{uid}; /usr/bin/setfattr -n ceph.quota.max_bytes -v 2250000000000 /mnt/ceph1-npx-user/{uid}',
     # testing dirs
     '/mnt/homework/homework_test': '/sbin/zfs set userquota@{uid}=15G homework/homework_test',
     '/mnt/lfs7/user_test': '/usr/bin/lfs setquota -g {gid} --block-softlimit 2000000 --block-hardlimit 2250000 /mnt/lfs7',
@@ -20,6 +21,7 @@ INGORE_DIR_ROLES = {
     '/mnt/homework/public_html': {'roleAccount', 'appAccount', 'thirdPartyAccount'},
     '/mnt/homework/private_cvmfs': {'roleAccount', 'appAccount', 'thirdPartyAccount'},
     '/mnt/lfs7/user': {'roleAccount', 'appAccount', 'thirdPartyAccount'},
+    '/mnt/ceph1-npx-user': {'roleAccount', 'appAccount', 'thirdPartyAccount'},
     # testing dirs
     '/mnt/homework/homework_test': {'appAccount'},
     '/mnt/lfs7/user_test': {'roleAccount', 'appAccount', 'thirdPartyAccount'},
