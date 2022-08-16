@@ -42,6 +42,7 @@ async def process(server, group_path, root_dir, mode=0o755, dryrun=False, keyclo
                 'path': str(root_dir / username),
                 'uid': int(attrs['uidNumber']),
                 'gid': int(attrs['gidNumber']),
+                'username': username,
             }
 
     script = f'''import subprocess
