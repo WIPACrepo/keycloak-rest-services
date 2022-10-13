@@ -22,8 +22,6 @@ from krs.users import list_users
 from krs.token import get_rest_client
 from krs.rabbitmq import RabbitMQListener
 
-from pprint import pprint
-
 
 logger = logging.getLogger('sync_gws_users')
 
