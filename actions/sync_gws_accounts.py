@@ -44,20 +44,23 @@ def is_eligible(account_attrs):
 
 
 def create_missing_eligible_accounts(gws_users_client, gws_accounts, kc_accounts, dryrun):
-    """Create eligible KeyCloak accounts in Google Workspace if not there already."""
-    missing_accounts = dict((u,a) for u,a in kc_accounts.items()
-                            if is_eligible(a) and u not in gws_accounts)
+    """Create eligible KeyCloak accounts in Google Workspace if not there already.
+
+    Google's documentation on account creation, inluding JSON request content:
+    https://developers.google.com/admin-sdk/directory/v1/guides/manage-users
+    """
     created_usernames = []
-    for username,attrs in missing_accounts.items():
-        body = {'primaryEmail': f'{username}@icecube.wisc.edu',
-                'name': {
-                    'givenName': attrs.get('firstName', 'firstName-undefined'),
-                    'familyName': attrs.get('lastName', 'lastName-undefined'),},
-                'password': ''.join(random.choices(string.ascii_letters, k=12)),}
-        created_usernames.append(username)
-        logger.info(f'creating user {username}')
-        if not dryrun:
-            gws_users_client.insert(body=body).execute()
+    for username,attrs in kc_accounts.items():
+        if username not in gws_accounts and is_eligible(attrs):
+            body = {'primaryEmail': f'{username}@icecube.wisc.edu',
+                    'name': {
+                        'givenName': attrs.get('firstName', 'firstName-undefined'),
+                        'familyName': attrs.get('lastName', 'lastName-undefined'),},
+                    'password': ''.join(random.choices(string.ascii_letters, k=12)),}
+            created_usernames.append(username)
+            logger.info(f'creating user {username}')
+            if not dryrun:
+                gws_users_client.insert(body=body).execute()
     return created_usernames
 
 
