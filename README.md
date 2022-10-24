@@ -16,16 +16,20 @@ First, build and load the local python environment:
     ./setupenv.sh
     . env/bin/activate
 
-Then, start an instance of Keycloak in another terminal:
+Then, start instances of Keycloak, LDAP, and RabbitMQ in other terminals:
 
-    docker run --rm -it -p 8080:8080 -e KEYCLOAK_USER=admin -e KEYCLOAK_PASSWORD=admin quay.io/keycloak/keycloak:latest -Djboss.bind.address.private=127.0.0.1 -Djboss.bind.address=0.0.0.0
+    ./resources/start-keycloak.sh
+    ./resources/start-ldap.sh
+    ./resources/start-rabbitmq.sh
+
 
 Keycloak may take a minute to start. If it does not, check your network settings,
 as it does not play well with VPNs and other more exotic network situations.
 
 Finally, run the tests:
 
-    keycloak_url=http://localhost:8080 username=admin password=admin pytest
+    source ./resources/pytest-env.sh
+    pytest
 
 ### Getting Test Coverage
 
