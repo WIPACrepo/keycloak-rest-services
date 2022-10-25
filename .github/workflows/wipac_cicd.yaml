@@ -99,6 +99,9 @@ jobs:
         - 15672:15672
       keycloak:
         image: ${{ needs.keycloak-image-build.outputs.keycloak-tag }}
+        env:
+          KEYCLOAK_ADMIN: admin
+          KEYCLOAK_ADMIN_PASSWORD: admin
         ports:
         - 8080:8080
     env:
