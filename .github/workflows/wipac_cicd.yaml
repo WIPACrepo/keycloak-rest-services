@@ -158,7 +158,7 @@ jobs:
           pip install --upgrade pip wheel setuptools
           pip install .[tests]
       - run: |
-          python -m pytest tests/${{ matrix.test }} --tb=short --log-level=INFO
+          python -m pytest tests/${{ matrix.test }} --tb=short --log-level=DEBUG
 
   release:
     if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
