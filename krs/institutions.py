@@ -31,7 +31,7 @@ async def list_insts(experiment=None, filter_func=None, rest_client=None):
     Returns:
         dict: group_path: attrs
     """
-    url = '/groups?briefRepresentation=false&search=institutions'
+    url = '/groups?briefRepresentation=false&max=10000'#&search=institutions'
     group_hierarchy = await rest_client.request('GET', url)
     logger.debug('raw list_insts: %r', group_hierarchy)
     ret = {}
