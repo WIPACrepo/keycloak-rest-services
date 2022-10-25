@@ -1,6 +1,7 @@
-import pytest
 import asyncio
 import json
+import pytest
+import pytest_asyncio
 import subprocess
 
 #from krs.token import get_token
