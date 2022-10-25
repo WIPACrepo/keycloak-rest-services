@@ -141,7 +141,7 @@ jobs:
         ports:
         - 8080:8080
     container:
-      image: ubuntu:20.04
+      image: python:${{ fromJSON(needs.py-versions.outputs.matrix).py3_versions[0] }}
       env:
         KEYCLOAK_URL: http://keycloak:8080
         KEYCLOAK_USERNAME: admin
@@ -151,9 +151,6 @@ jobs:
         LDAP_ADMIN_PASSWORD: admin
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: ${{ fromJSON(needs.py-versions.outputs.matrix).py3_versions[0] }}
       - run: |
           pip install --upgrade pip wheel setuptools
           pip install .[tests]
