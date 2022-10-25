@@ -38,6 +38,35 @@ jobs:
           tags: ${{ steps.docker_meta.outputs.tags }}
           labels: ${{ steps.docker_meta.outputs.labels }}
 
+  ldap-image-build:
+    runs-on: ubuntu-latest
+    outputs:
+      ldap-tag: ${{ steps.docker_meta.outputs.tags }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Docker meta
+        id: docker_meta
+        uses: docker/metadata-action@v3
+        with:
+          images: |
+            ghcr.io/WIPACRepo/keycloak-rest-services
+          tags: |
+            type=ref,prefix=test-ldap-,event=branch
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Push Docker Image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: resources/ldap-image/Dockerfile
+          push: true
+          tags: ${{ steps.docker_meta.outputs.tags }}
+          labels: ${{ steps.docker_meta.outputs.labels }}
+
   flake8:
     runs-on: ubuntu-latest
     steps:
@@ -81,9 +110,10 @@ jobs:
           pip install .
 
   py-tests:
-    needs: [keycloak-image-build, py-versions]
+    needs: [keycloak-image-build, ldap-image-build, py-versions]
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         test: ["actions", "krs"]
     services:
@@ -97,6 +127,10 @@ jobs:
         ports:
         - 5672:5672
         - 15672:15672
+      ldap:
+        image: ${{ needs.ldap-image-build.outputs.ldap-tag }}
+        ports:
+        - 1389:1389
       keycloak:
         image: ${{ needs.keycloak-image-build.outputs.keycloak-tag }}
         env:
@@ -110,15 +144,11 @@ jobs:
       KEYCLOAK_URL: http://localhost:8080
       KEYCLOAK_USERNAME: admin
       KEYCLOAK_PASSWORD: admin
-      LDAP_URL: ldap://localhost:1389
+      LDAP_URL: ldap://ldap:1389
       LDAP_ADMIN_USER: "cn=admin,dc=icecube,dc=wisc,dc=edu"
       LDAP_ADMIN_PASSWORD: admin
     steps:
       - uses: actions/checkout@v3
-      - name: LDAP
-        run: |
-          resources/start-ldap.sh &
-          sleep 2
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ fromJSON(needs.py-versions.outputs.matrix).py3_versions[0] }}
