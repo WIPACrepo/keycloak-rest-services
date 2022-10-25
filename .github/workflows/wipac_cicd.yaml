@@ -106,7 +106,7 @@ jobs:
       KEYCLOAK_USERNAME: admin
       KEYCLOAK_PASSWORD: admin
       LDAP_URL: ldap://localhost:1389
-      LDAP_ADMIN_USER="cn=admin,dc=icecube,dc=wisc,dc=edu"
+      LDAP_ADMIN_USER=cn=admin,dc=icecube,dc=wisc,dc=edu
       LDAP_ADMIN_PASSWORD=admin
     steps:
       - uses: actions/checkout@v3
