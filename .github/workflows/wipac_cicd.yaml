@@ -64,7 +64,6 @@ jobs:
         uses: WIPACrepo/wipac-dev-py-versions-action@v1
 
   pip-install:
-    # FUTURE DEV: this can be expanded to run actual tests instead of just pip installing
     needs: [py-versions]
     runs-on: ubuntu-latest
     strategy:
@@ -80,9 +79,51 @@ jobs:
           pip install --upgrade pip wheel setuptools
           pip install .
 
+  py-tests:
+    needs: [py-versions]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        test: ["actions", "krs"]
+    services:
+      rabbitmq:
+        image: bitnami/rabbitmq:3.8
+        env:
+          RABBITMQ_USERNAME: admin
+          RABBITMQ_PASSWORD: admin
+          RABBITMQ_VHOST: keycloak
+        options: --health-cmd "rabbitmqctl node_health_check" --health-interval 10s --health-timeout 5s --health-retries 5
+        ports:
+        - 5672:5672
+        - 15672:15672
+    steps:
+      - uses: actions/checkout@v3
+      - name: LDAP
+        run: |
+          resources/start-ldap.sh &
+          sleep 2
+      - name: Keycloak
+        run: |
+          resources/start-keycloak.sh &
+          until curl http://localhost:8080 >/dev/null 2>/dev/null
+          do
+              echo -n "."
+              sleep 5
+          done
+          echo "Keycloak Ready"
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ fromJSON(needs.py-versions.outputs.matrix).py3_versions[0] }}
+      - run: |
+          pip install --upgrade pip wheel setuptools
+          pip install .[tests]
+      - run: |
+          . env/bin/activate &&
+          python -m pytest tests/${{ matrix.test }} --tb=short --log-level=INFO
+
   release:
     if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
-    needs: [py-setup, pip-install]
+    needs: [py-setup, pip-install, py-tests]
     runs-on: ubuntu-latest
     concurrency: release
     steps:
@@ -99,7 +140,7 @@ jobs:
 
   docker:
     name: "Docker Image"
-    needs: [py-setup, pip-install]
+    needs: [py-setup, pip-install, py-tests]
     runs-on: ubuntu-latest
     steps:
     - name: Checkout Project
