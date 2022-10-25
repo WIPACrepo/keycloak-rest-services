@@ -65,8 +65,7 @@ async def test_create_unicode(keycloak_bootstrap, patch_ssh_sudo):
     assert json.loads(patch_ssh_sudo.call_args.args[1].split('\n')[6].split('=',1)[-1]) == user_dict
 
 
-@pytest.fixture
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def listener(keycloak_bootstrap, rabbitmq_bootstrap, tmp_path):
     mq = create_email_account.listener(email_server='test.test.test', group_path='/email', dedup=None, keycloak_client=keycloak_bootstrap)
     await mq.start()
