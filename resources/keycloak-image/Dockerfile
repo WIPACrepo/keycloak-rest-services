@@ -6,7 +6,7 @@ ENV KC_HTTP_RELATIVE_PATH="/auth"
 ENV KC_FEATURES=token-exchange
 
 # rabbitmq settings
-COPY resources/keycloak-to-rabbit-1.0.jar /opt/keycloak/providers/
+COPY resources/keycloak-to-rabbit-3.0.jar /opt/keycloak/providers/
 ENV KK_TO_RMQ_USERNAME=admin
 ENV KK_TO_RMQ_PASSWORD=admin
 ENV KK_TO_RMQ_VHOST=keycloak

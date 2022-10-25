@@ -1,0 +1,29 @@
+--2022-10-25 10:14:26--  https://github.com/aznamier/keycloak-event-listener-rabbitmq/releases/download/3.0/keycloak-to-rabbit-3.0.jar
+Resolving github.com (github.com)... 140.82.114.3
+Connecting to github.com (github.com)|140.82.114.3|:443... connected.
+HTTP request sent, awaiting response... 302 Found
+Location: https://objects.githubusercontent.com/github-production-release-asset-2e65be/284758152/cf279775-09d6-41a6-8cf2-3e7f910c2436?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAIWNJYAX4CSVEH53A%2F20221025%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20221025T151426Z&X-Amz-Expires=300&X-Amz-Signature=da8ae4a0a9973a6a98e988d3fdfd8eac97e70b11f6edbbeccd171990a78610d9&X-Amz-SignedHeaders=host&actor_id=0&key_id=0&repo_id=284758152&response-content-disposition=attachment%3B%20filename%3Dkeycloak-to-rabbit-3.0.jar&response-content-type=application%2Foctet-stream [following]
+--2022-10-25 10:14:26--  https://objects.githubusercontent.com/github-production-release-asset-2e65be/284758152/cf279775-09d6-41a6-8cf2-3e7f910c2436?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAIWNJYAX4CSVEH53A%2F20221025%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20221025T151426Z&X-Amz-Expires=300&X-Amz-Signature=da8ae4a0a9973a6a98e988d3fdfd8eac97e70b11f6edbbeccd171990a78610d9&X-Amz-SignedHeaders=host&actor_id=0&key_id=0&repo_id=284758152&response-content-disposition=attachment%3B%20filename%3Dkeycloak-to-rabbit-3.0.jar&response-content-type=application%2Foctet-stream
+Resolving objects.githubusercontent.com (objects.githubusercontent.com)... 185.199.108.133, 185.199.109.133, 185.199.110.133, ...
+Connecting to objects.githubusercontent.com (objects.githubusercontent.com)|185.199.108.133|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 703187 (687K) [application/octet-stream]
+Saving to: ‘keycloak-to-rabbit-3.0.jar’
+
+     0K .......... .......... .......... .......... ..........  7% 1.69M 0s
+    50K .......... .......... .......... .......... .......... 14% 3.28M 0s
+   100K .......... .......... .......... .......... .......... 21% 7.39M 0s
+   150K .......... .......... .......... .......... .......... 29% 8.10M 0s
+   200K .......... .......... .......... .......... .......... 36% 4.31M 0s
+   250K .......... .......... .......... .......... .......... 43% 21.5M 0s
+   300K .......... .......... .......... .......... .......... 50% 15.1M 0s
+   350K .......... .......... .......... .......... .......... 58% 17.0M 0s
+   400K .......... .......... .......... .......... .......... 65% 23.8M 0s
+   450K .......... .......... .......... .......... .......... 72% 5.40M 0s
+   500K .......... .......... .......... .......... .......... 80% 10.7M 0s
+   550K .......... .......... .......... .......... .......... 87% 26.9M 0s
+   600K .......... .......... .......... .......... .......... 94% 30.8M 0s
+   650K .......... .......... .......... ......               100% 88.9M=0.1s
+
+2022-10-25 10:14:27 (7.02 MB/s) - ‘keycloak-to-rabbit-3.0.jar’ saved [703187/703187]
+

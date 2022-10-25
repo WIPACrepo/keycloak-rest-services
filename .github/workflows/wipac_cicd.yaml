@@ -102,6 +102,7 @@ jobs:
         env:
           KEYCLOAK_ADMIN: admin
           KEYCLOAK_ADMIN_PASSWORD: admin
+          KK_TO_RMQ_URL: rabbitmq
           CMD: start-dev
         ports:
         - 8080:8080
@@ -118,15 +119,6 @@ jobs:
         run: |
           resources/start-ldap.sh &
           sleep 2
-      #- name: Keycloak
-      #  run: |
-      #    resources/start-keycloak.sh &
-      #    until curl http://localhost:8080 >/dev/null 2>/dev/null
-      #    do
-      #        echo -n "."
-      #        sleep 5
-      #    done
-      #    echo "Keycloak Ready"
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ fromJSON(needs.py-versions.outputs.matrix).py3_versions[0] }}
