@@ -89,7 +89,7 @@ def listener(group_path, address=None, exchange=None, dedup=1, **kwargs):
             await process(group_path=group_path, **kwargs)
 
     args = {
-        'routing_key': 'KK.EVENT.ADMIN.#.GROUP_MEMBERSHIP.#',
+        'routing_key': 'KK.EVENT.ADMIN.*.GROUP_MEMBERSHIP.#',
         'dedup': dedup,
     }
     if address:

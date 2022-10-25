@@ -53,7 +53,7 @@ def listener(address=None, exchange=None, dedup=1, **kwargs):
             await process(**kwargs)
 
     args = {
-        'routing_key': 'KK.EVENT.ADMIN.#.USER.#',
+        'routing_key': 'KK.EVENT.ADMIN.*.USER.#',
         'dedup': dedup,
     }
     if address:
