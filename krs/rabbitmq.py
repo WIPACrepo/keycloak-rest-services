@@ -64,12 +64,14 @@ class RabbitMQListener:
         queue = await channel.declare_queue(exclusive=True)
         await queue.bind(exchange, routing_key=self.routing_key)
 
+        logger.info(f'started rabbitmq listener on {self.exchange} exchange, {self.routing_key} routing key')
+
         fn = self._process_dedup if self.dedup else self._process
         await queue.consume(fn)
 
     async def stop(self):
         if self.connection:
-            print('closing connection')
+            logger.info(f'closing rabbitmq listener on {self.exchange} exchange, {self.routing_key} routing key')
             await self.connection.close()
             self.connection = None
 
@@ -83,6 +85,8 @@ class RabbitMQListener:
                         body['representation'] = json_decode(body['representation'])
                     except Exception:
                         pass
+                else:
+                    raise Exception(f'unknown message body: {body}')
                 await self.action(body)
             except Exception:
                 logger.warning('error processing message', exc_info=True)
