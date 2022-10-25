@@ -112,7 +112,7 @@ wipac-dev-tools==1.6.0
     # via
     #   wipac-keycloak-rest-services (setup.py)
     #   wipac-rest-tools
-wipac-rest-tools==1.3.8
+wipac-rest-tools==1.3.9
     # via wipac-keycloak-rest-services (setup.py)
 yarl==1.8.1
     # via
