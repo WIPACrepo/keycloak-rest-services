@@ -424,7 +424,15 @@ def bootstrap():
 
     wait_for_keycloak()
 
-    token = get_token()
+    for i in range(3):
+        try:
+            token = get_token()
+        except requests.exceptions.HTTPError:
+            if i < 2:
+                continue
+            raise
+        break
+
     print('Keycloak token obtained, setting up...')
 
     create_realm(cfg['KEYCLOAK_REALM'], token=token)

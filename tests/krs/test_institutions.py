@@ -15,6 +15,10 @@ async def test_list_insts(keycloak_bootstrap):
 
     await groups.create_group('/institutions/IceCube', rest_client=keycloak_bootstrap)
     await groups.create_group('/institutions/IceCube/Test', rest_client=keycloak_bootstrap)
+
+    ret = await groups.list_groups(rest_client=keycloak_bootstrap)
+    assert list(ret.keys()) == ['/institutions', '/institutions/IceCube', '/institutions/IceCube/Test']
+
     ret = await institutions.list_insts(rest_client=keycloak_bootstrap)
     assert ret == {'/institutions/IceCube/Test': {}}
 

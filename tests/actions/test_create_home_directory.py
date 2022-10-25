@@ -1,5 +1,6 @@
-import pytest
 import asyncio
+import pytest
+import pytest_asyncio
 
 #from krs.token import get_token
 from krs import users, groups, bootstrap, rabbitmq
@@ -80,8 +81,7 @@ async def test_already_exists(keycloak_bootstrap, tmp_path):
     assert ret_path.exists()
     assert not ret_path.is_dir()
 
-@pytest.fixture
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def listener(keycloak_bootstrap, tmp_path):
     rabbitmq.create_user('guest', 'guest')
     mq = create_home_directory.listener(root_dir=tmp_path, dedup=None, keycloak_client=keycloak_bootstrap)
@@ -90,7 +90,6 @@ async def listener(keycloak_bootstrap, tmp_path):
         yield mq
     finally:
         await mq.stop()
-
 
 @pytest.mark.asyncio
 async def test_listener_create(keycloak_bootstrap, tmp_path, listener):

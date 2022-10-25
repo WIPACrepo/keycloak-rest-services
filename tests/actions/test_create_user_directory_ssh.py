@@ -1,5 +1,6 @@
-import pytest
 import asyncio
+import pytest
+import pytest_asyncio
 
 #from krs.token import get_token
 from krs import users, groups, bootstrap, rabbitmq
@@ -109,8 +110,7 @@ async def test_already_exists(keycloak_bootstrap, tmp_path, patch_ssh_sudo):
     assert ret_path.exists()
     assert not ret_path.is_dir()
 
-@pytest.fixture
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def listener(keycloak_bootstrap, rabbitmq_bootstrap, tmp_path):
     mq = create_user_directory_ssh.listener(server='test.test.test',
             group_path='/posix', root_dir=tmp_path, dedup=None, keycloak_client=keycloak_bootstrap)

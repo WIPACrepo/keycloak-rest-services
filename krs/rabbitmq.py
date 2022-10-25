@@ -27,14 +27,22 @@ class RabbitMQListener:
         message_count (int): number of messages to prefetch
         dedup (int): deduplicate multiple requests received over specified time interval
     """
-    def __init__(self, action, address='amqp://keycloak_guest:guest@127.0.0.1/keycloak', exchange='amq.topic',
-                 routing_key='KK.EVENT.ADMIN.#', message_count=100, dedup=None):
+    def __init__(self, action, address=None, exchange=None,
+                 routing_key=None, message_count=100, dedup=None):
+        config = from_environment({
+            'RABBITMQ_URL': 'amqp://keycloak_guest:guest@127.0.0.1/keycloak',
+            'RABBITMQ_EXCHANGE': 'amq.topic',
+            'RABBITMQ_ROUTING_KEY': 'KK.EVENT.ADMIN.#',
+        })
+
         self.action = action
-        self.address = address
-        self.exchange = exchange
-        self.routing_key = routing_key
+        self.address = address if address else config['RABBITMQ_URL']
+        self.exchange = exchange if exchange else config['RABBITMQ_EXCHANGE']
+        self.routing_key = routing_key if routing_key else config['RABBITMQ_ROUTING_KEY']
         self.message_count = message_count
         self.connection = None
+
+        logger.info(f'RabbitMQListener created on {self.address} for {self.exchange} exchange, {self.routing_key} routing key')
 
         assert dedup is None or dedup >= 0
         self.dedup = dedup
@@ -58,12 +66,14 @@ class RabbitMQListener:
         queue = await channel.declare_queue(exclusive=True)
         await queue.bind(exchange, routing_key=self.routing_key)
 
+        logger.info(f'started rabbitmq listener on {self.exchange} exchange, {self.routing_key} routing key')
+
         fn = self._process_dedup if self.dedup else self._process
         await queue.consume(fn)
 
     async def stop(self):
         if self.connection:
-            print('closing connection')
+            logger.info(f'closing rabbitmq listener on {self.exchange} exchange, {self.routing_key} routing key')
             await self.connection.close()
             self.connection = None
 
@@ -77,6 +87,8 @@ class RabbitMQListener:
                         body['representation'] = json_decode(body['representation'])
                     except Exception:
                         pass
+                else:
+                    raise Exception(f'unknown message body: {body}')
                 await self.action(body)
             except Exception:
                 logger.warning('error processing message', exc_info=True)

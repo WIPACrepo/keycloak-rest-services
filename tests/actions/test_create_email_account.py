@@ -1,6 +1,7 @@
-import pytest
 import asyncio
 import json
+import pytest
+import pytest_asyncio
 import subprocess
 
 #from krs.token import get_token
@@ -65,8 +66,7 @@ async def test_create_unicode(keycloak_bootstrap, patch_ssh_sudo):
     assert json.loads(patch_ssh_sudo.call_args.args[1].split('\n')[6].split('=',1)[-1]) == user_dict
 
 
-@pytest.fixture
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def listener(keycloak_bootstrap, rabbitmq_bootstrap, tmp_path):
     mq = create_email_account.listener(email_server='test.test.test', group_path='/email', dedup=None, keycloak_client=keycloak_bootstrap)
     await mq.start()
@@ -81,7 +81,7 @@ async def test_listener_create(keycloak_bootstrap, tmp_path, listener, patch_ssh
     await groups.create_group('/email', rest_client=keycloak_bootstrap)
     await groups.add_user_group('/email', 'testuser', rest_client=keycloak_bootstrap)
 
-    await asyncio.sleep(.25) # allow listener to run
+    await asyncio.sleep(5) # allow listener to run
 
     patch_ssh_sudo.assert_called_once()
     assert patch_ssh_sudo.call_args.args[0] == 'test.test.test'
