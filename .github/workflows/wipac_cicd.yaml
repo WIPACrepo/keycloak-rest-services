@@ -101,6 +101,13 @@ jobs:
         image: ${{ needs.keycloak-image-build.outputs.keycloak-tag }}
         ports:
         - 8080:8080
+    env:
+      KEYCLOAK_URL: http://localhost:8080
+      KEYCLOAK_USERNAME: admin
+      KEYCLOAK_PASSWORD: admin
+      LDAP_URL: ldap://localhost:1389
+      LDAP_ADMIN_USER="cn=admin,dc=icecube,dc=wisc,dc=edu"
+      LDAP_ADMIN_PASSWORD=admin
     steps:
       - uses: actions/checkout@v3
       - name: LDAP
