@@ -123,6 +123,7 @@ jobs:
           RABBITMQ_USERNAME: admin
           RABBITMQ_PASSWORD: admin
           RABBITMQ_VHOST: keycloak
+          RABBITMQ_NODE_NAME: rabbit@rabbitmq
         options: --health-cmd "rabbitmqctl node_health_check" --health-interval 10s --health-timeout 5s --health-retries 5
         ports:
         - 5672:5672
@@ -149,6 +150,8 @@ jobs:
         LDAP_URL: ldap://ldap:1389
         LDAP_ADMIN_USER: "cn=admin,dc=icecube,dc=wisc,dc=edu"
         LDAP_ADMIN_PASSWORD: admin
+        RABBITMQ_MGMT_URL: http://rabbitmq:15672
+        RABBITMQ_URL: amqp://admin:admin@rabbitmq/keycloak
     steps:
       - uses: actions/checkout@v3
       - run: |
