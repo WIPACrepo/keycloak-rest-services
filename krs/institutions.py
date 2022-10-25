@@ -33,6 +33,7 @@ async def list_insts(experiment=None, filter_func=None, rest_client=None):
     """
     url = '/groups?briefRepresentation=false&search=institutions'
     group_hierarchy = await rest_client.request('GET', url)
+    logger.debug('raw list_insts: %r', group_hierarchy)
     ret = {}
 
     def add_groups(groups):
