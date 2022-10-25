@@ -2,6 +2,9 @@
 
 <!--next-version-placeholder-->
 
+## v1.3.1 (2022-10-25)
+
+
 ## v1.3.0 (2022-08-16)
 ### Feature
 * Fix QUOTAS dict to use 'username' for ceph quota paths ([#60](https://github.com/WIPACrepo/keycloak-rest-services/issues/60)) ([`3b3b355`](https://github.com/WIPACrepo/keycloak-rest-services/commit/3b3b35557e9cea3b8b4bb8c61a1ae038c2bc3ce8))
