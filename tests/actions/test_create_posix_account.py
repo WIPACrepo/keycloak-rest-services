@@ -1,6 +1,7 @@
-import pytest
 import asyncio
 import logging
+import pytest
+import pytest_asyncio
 
 #from krs.token import get_token
 from krs import users, groups, bootstrap, rabbitmq
@@ -123,8 +124,7 @@ async def test_create_extra_groups(keycloak_bootstrap, ldap_bootstrap):
     assert ret['homeDirectory'] == '/home/testuser'
     assert 'posixAccount' in ret['objectClass']
 
-@pytest.fixture
-@pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def listener(keycloak_bootstrap, ldap_bootstrap, rabbitmq_bootstrap):
     mq = create_posix_account.listener('/posix', dedup=None, keycloak_client=keycloak_bootstrap, ldap_client=ldap_bootstrap)
     await mq.start()
