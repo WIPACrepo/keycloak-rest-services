@@ -42,6 +42,8 @@ class RabbitMQListener:
         self.message_count = message_count
         self.connection = None
 
+        logger.info(f'RabbitMQListener created on {self.address} for {self.exchange} exchange, {self.routing_key} routing key')
+
         assert dedup is None or dedup >= 0
         self.dedup = dedup
         self.message_queue = []
