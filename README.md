@@ -4,8 +4,6 @@
 # keycloak-rest-services
 Services surrounding Keycloak, that use the REST API to read/update state.
 
-[![CircleCI](https://circleci.com/gh/WIPACrepo/keycloak-rest-services.svg?style=svg&circle-token=87c420d0b5ba0dffb28337618e7cf0df7a905bf8)](https://circleci.com/gh/WIPACrepo/keycloak-rest-services)
-
 ## Running Tests
 
 The tests run automatically in CircleCI, but for those that want to run them
