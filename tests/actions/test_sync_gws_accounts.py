@@ -1,8 +1,6 @@
 from unittest.mock import MagicMock
 
 from actions.sync_gws_accounts import create_missing_eligible_accounts
-from actions.sync_gws_accounts import activate_suspended_eligible_accounts
-from actions.sync_gws_accounts import suspend_active_ineligible_accounts
 from actions.sync_gws_accounts import get_gws_accounts
 
 
@@ -26,20 +24,26 @@ class MockGwsResource:
 
 
 KC_ACCOUNTS = {
-    'add-to-gws': {'attributes': {'loginShell': '/bin/bash'}, 'enabled': True,},
-    'already-in-gws': {'attributes': {'loginShell': '/bin/bash'}, 'enabled': True,},
-    'ineligible': {'attributes': {'loginShell': '/sbin/nologin'}, 'enabled': True,},
-    'suspend-1': {'attributes': {'loginShell': '/bin/bash'}, 'enabled': False,},
-    'suspend-2': {'enabled': True,},
-    'activate': {'attributes': {'loginShell': '/bin/bash'}, 'enabled': True,},
+    'add-to-gws': {'attributes': {'loginShell': '/bin/bash'}, 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln',},
+    'already-in-gws': {'attributes': {'loginShell': '/bin/bash'}, 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln',},
+    'ineligible-nologin': {'attributes': {'loginShell': '/sbin/nologin'}, 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln',},
+    'no-shadow-expire': {'attributes': {'loginShell': '/bin/bash'}, 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln',},
+    'expired-shadow': {'attributes': {'loginShell': '/bin/bash'}, 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln',},
+    'missing-name': {'attributes': {'loginShell': '/bin/bash'}, 'enabled': True, 'firstName': '', 'lastName': 'Ln',},
 }
 
 GWS_ACCOUNTS = {
-    'not-in-kc': {'primaryEmail': 'not-in-kc@i.w.e', 'suspended': False,},
-    'already-in-gws': {'primaryEmail': 'already-in-gws@i.w.e', 'suspended': False,},
-    'suspend-1': {'primaryEmail': 'suspend-1@i.w.e', 'suspended': False,},
-    'suspend-2': {'primaryEmail': 'suspend-2@i.w.e', 'suspended': False,},
-    'activate': {'primaryEmail': 'activate@i.w.e', 'suspended': True,},
+    'gws-only-account': {'primaryEmail': 'gws-only-account@i.w.e', 'suspended': False,},
+    'already-in-gws': {'primaryEmail': 'already-in-gws@i.w.e', 'suspended': False,},  # noqa: F601
+}
+
+LDAP_ACCOUNTS = {
+    'add-to-gws': {'shadowExpire': 99999},
+    'already-in-gws': {'shadowExpire': 99999},  # noqa: F601
+    'ineligible-nologin': {'shadowExpire': 99999},
+    'no-shadow-expire': {},
+    'expired-shadow': {'shadowExpire': 11111},
+    'missing-name': {'shadowExpire': 99999},
 }
 
 
@@ -59,15 +63,6 @@ def test_get_gws_accounts():
 
 
 def test_create_missing_eligible_accounts():
-    ret = create_missing_eligible_accounts(MockGwsResource(), GWS_ACCOUNTS, KC_ACCOUNTS, dryrun=False)
+    ret = create_missing_eligible_accounts(MockGwsResource(), GWS_ACCOUNTS, LDAP_ACCOUNTS,
+                                           KC_ACCOUNTS, dryrun=False)
     assert ret == ['add-to-gws']
-
-
-def test_activate_suspended_eligible_accounts():
-    ret = activate_suspended_eligible_accounts(MockGwsResource(), GWS_ACCOUNTS, KC_ACCOUNTS, dryrun=False)
-    assert ret == ['activate']
-
-
-def test_suspend_active_ineligible_accounts():
-    ret = suspend_active_ineligible_accounts(MockGwsResource(), GWS_ACCOUNTS, KC_ACCOUNTS, dryrun=False)
-    assert sorted(ret) == ['suspend-1', 'suspend-2']

@@ -1,104 +1,116 @@
 """
-Syncs user accounts from KeyCloak to Google Workspace.
-
-Creates missing accounts, suspends and activates accounts as needed.
+Sync eligible user accounts from KeyCloak to Google Workspace.
+See is_eligible() for how eligibility is determined.
 
 Example::
 
-    python actions/sync_gws_accounts.py
+    python -m actions.sync_gws_accounts --sa-delegator admin-user@icecube.wisc.edu \
+                        --sa-credentials keycloak-directory-sync.json
 
-This will sync all user accounts from KeyCloak to Google Workspace.
+This will sync eligible user accounts from KeyCloak to Google Workspace.
 """
 import asyncio
 import logging
 import random
 import string
+import time
 
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
 
-from krs.users import list_users
-from krs.token import get_rest_client
+from krs.ldap import LDAP
 from krs.rabbitmq import RabbitMQListener
+from krs.token import get_rest_client
+from krs.users import list_users
 
 
 logger = logging.getLogger('sync_gws_accounts')
+SHADOWEXPIRE_DAYS_REMAINING_CUTOFF_FOR_ELIGIBILITY = -365 * 2
 
 
 def get_gws_accounts(gws_users_client):
-    """Return a dictionary with all Google Workspace user accounts"""
+    """Return a dictionary with all Google Workspace user accounts.
+
+    Args:
+        gws_users_client (googleapiclient.discovery.Resource): Admin API Users resource
+
+    Returns:
+        Dict of Google Workspace account attributes keyed by username (not email).
+    """
     user_list = []
     request = gws_users_client.list(customer='my_customer', maxResults=500)
     while request is not None:
         response = request.execute()
         user_list.extend(response.get('users', []))
         request = gws_users_client.list_next(request, response)
-
     return dict((u['primaryEmail'].split('@')[0], u) for u in user_list)
 
 
-def is_eligible(account_attrs):
-    """Return True if the account is eligible for creation in Google Workspace."""
+def is_eligible(account_attrs, shadow_expire):
+    """Return True if the account is eligible for creation in Google Workspace.
+
+    Args:
+        account_attrs (dict): KeyCloak attribues of the account
+        shadow_expire (float): value of shadowExpire LDAP attributes of the account
+
+    Return:
+        Whether or not the account is eligible for creation
+    """
+    today = int(time.time()/3600/24)
+    days_remaining = shadow_expire - today
+    old_account = days_remaining <= SHADOWEXPIRE_DAYS_REMAINING_CUTOFF_FOR_ELIGIBILITY
     shell = account_attrs.get('attributes', {}).get('loginShell')
-    return (account_attrs['enabled'] and shell not in ('/sbin/nologin', None))
+    return (not old_account
+            and account_attrs['enabled']
+            and shell not in ('/sbin/nologin', None)
+            and account_attrs.get('firstName') and account_attrs.get('lastName'))
 
 
-def create_missing_eligible_accounts(gws_users_client, gws_accounts, kc_accounts, dryrun):
+def create_missing_eligible_accounts(gws_users_client, gws_accounts, ldap_accounts,
+                                     kc_accounts, dryrun):
     """Create eligible KeyCloak accounts in Google Workspace if not there already.
 
-    Google's documentation on account creation, inluding JSON request content:
-    https://developers.google.com/admin-sdk/directory/v1/guides/manage-users
+    Google's documentation on account creation: https://developers.google.com/admin-sdk/directory/v1/guides/manage-users
+    API reference for the User resource, including field descriptions: https://developers.google.com/admin-sdk/directory/reference/rest/v1/users
+
+    Args:
+        gws_users_client (googleapiclient.discovery.Resource): Admin API Users resource
+        gws_accounts (dict): GWS account attributes keyed by username
+        ldap_accounts (dict): LDAP accounts attributes keyed by username
+        kc_accounts (dict): KeyCloak account attributes keyed by username
+        dryrun (bool): perform a trial run with no changes made
+
+    Returns:
+        List of created usernames (used for unit testing)
     """
-    created_usernames = []
+    created_usernames = []  # used for unit testing
     for username,attrs in kc_accounts.items():
-        if username not in gws_accounts and is_eligible(attrs):
+        shadow_expire = ldap_accounts[username].get('shadowExpire', float('-inf'))
+        if username not in gws_accounts and is_eligible(attrs, shadow_expire):
             body = {'primaryEmail': f'{username}@icecube.wisc.edu',
                     'name': {
-                        'givenName': attrs.get('firstName', 'firstName-undefined'),
-                        'familyName': attrs.get('lastName', 'lastName-undefined'),},
+                        'givenName': attrs['firstName'],
+                        'familyName': attrs['lastName'],},
                     'password': ''.join(random.choices(string.ascii_letters, k=12)),}
             created_usernames.append(username)
             logger.info(f'creating user {username}')
+            sanitized_body = body.copy()
+            sanitized_body['password'] = 'REDACTED'
+            logger.debug(f'request body: {sanitized_body}')
             if not dryrun:
                 gws_users_client.insert(body=body).execute()
+        else:
+            logger.debug(f'ignoring user {username}')
     return created_usernames
 
 
-def activate_suspended_eligible_accounts(gws_users_client, gws_accounts, kc_accounts, dryrun):
-    """Activate suspended GWS accounts if they are (became) "eligible" in KeyCloak"""
-    suspended_gws_usernames = set(u for u,a in gws_accounts.items() if a['suspended'])
-    eligible_kc_usernames = set(u for u,a in kc_accounts.items() if is_eligible(a))
-    activated_usernames = []
-    for username in suspended_gws_usernames.intersection(eligible_kc_usernames):
-        activated_usernames.append(username)
-        logger.info(f'activating enabled user {username}')
-        if not dryrun:
-            gws_users_client.update(userKey=f'{username}@icecube.wisc.edu',
-                                    body={'suspended': False}).execute()
-    return activated_usernames
-
-
-def suspend_active_ineligible_accounts(gws_users_client, gws_accounts, kc_accounts, dryrun):
-    """Suspend active GWS accounts if they are (became) "ineligible" in KeyCloak"""
-    ineligible_kc_usernames = set(u for u,a in kc_accounts.items() if not is_eligible(a))
-    active_gws_usernames = set(u for u,a in gws_accounts.items() if not a['suspended'])
-    suspended_usernames = []
-    for username in active_gws_usernames.intersection(ineligible_kc_usernames):
-        suspended_usernames.append(username)
-        logger.info(f'suspending disabled user {username}')
-        if not dryrun:
-            gws_users_client.update(userKey=f'{username}@icecube.wisc.edu',
-                                    body={'suspended': True}).execute()
-    return suspended_usernames
-
-
-async def process(gws_users_client, keycloak_client=None, dryrun=False):
+async def process(gws_users_client, ldap_client, keycloak_client, dryrun=False):
     kc_accounts = await list_users(rest_client=keycloak_client)
     gws_accounts = get_gws_accounts(gws_users_client)
+    ldap_accounts = ldap_client.list_users(attrs=['shadowExpire'])
 
-    create_missing_eligible_accounts(gws_users_client, gws_accounts, kc_accounts, dryrun)
-    activate_suspended_eligible_accounts(gws_users_client, gws_accounts, kc_accounts, dryrun)
-    suspend_active_ineligible_accounts(gws_users_client, gws_accounts, kc_accounts, dryrun)
+    create_missing_eligible_accounts(gws_users_client, gws_accounts, ldap_accounts,
+                                     kc_accounts, dryrun)
 
 
 def listener(address=None, exchange=None, dedup=1, **kwargs):
@@ -124,8 +136,11 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description='Sync users from KeyCloak to Google Workspace.',
-        epilog='Domain-wide delegation must be enabled for the service account. '
+        description='Sync eligible user accounts from KeyCloak to Google Workspace. '
+                    'Eligibility is determined by the is_eligible() function.',
+        epilog='Notes: (1) LDAP and KeyCloak clients are configured using environment '
+               'variables. See krs/ldap.py and krs/token.py for details. '
+               '(2): Domain-wide delegation must be enabled for the service account. '
                'The delegator principal must have access to the service account '
                'and have "Service Account Token Creator" role.')
     parser.add_argument('--dryrun', action='store_true', help='dry run')
@@ -145,6 +160,7 @@ def main():
     logging.basicConfig(level=getattr(logging, args['log_level'].upper()))
 
     keycloak_client = get_rest_client()
+    ldap_client = LDAP()
 
     creds = service_account.Credentials.from_service_account_file(
         args['sa_credentials'], subject=args['sa_delegator'],
@@ -155,12 +171,12 @@ def main():
     if args['listen']:
         ret = listener(address=args['listen_address'], exchange=args['listen_exchange'],
                        keycloak_client=keycloak_client, gws_users_client=gws_users_client,
-                       dryrun=args['dryrun'])
+                       ldap_client=ldap_client, dryrun=args['dryrun'])
         loop = asyncio.get_event_loop()
         loop.create_task(ret.start())
         loop.run_forever()
     else:
-        asyncio.run(process(gws_users_client, keycloak_client, dryrun=args['dryrun']))
+        asyncio.run(process(gws_users_client, ldap_client, keycloak_client, dryrun=args['dryrun']))
 
 
 if __name__ == '__main__':
