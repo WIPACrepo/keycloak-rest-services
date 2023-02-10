@@ -3,7 +3,7 @@ FROM python:3.8
 RUN useradd -m -U keycloak
 
 COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt requirements-actions.txt
+RUN pip install --no-cache-dir -r requirements.txt -r requirements-actions.txt
 
 WORKDIR /home/keycloak
 USER keycloak

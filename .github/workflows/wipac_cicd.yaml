@@ -107,7 +107,7 @@ jobs:
           python-version: ${{ matrix.py3_versions }}
       - run: |
           pip install --upgrade pip wheel setuptools
-          pip install .
+          pip install .[actions]
 
   py-tests:
     needs: [keycloak-image-build, ldap-image-build, py-versions]
