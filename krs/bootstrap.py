@@ -13,15 +13,17 @@ def wait_for_keycloak(timeout=300):
     })
 
     url = f'{cfg["KEYCLOAK_URL"]}/auth/'
-    for _ in range(timeout):
+    start_time = time.time()
+    while True:
         try:
             r = requests.get(url)
             r.raise_for_status()
             break
-        except requests.exceptions.RequestException:
-            time.sleep(1)
-    else:
-        raise Exception('Keycloak did not start')
+        except requests.exceptions.RequestException as e:
+            if start_time + timeout > time.time():
+                time.sleep(1)
+                continue
+            raise Exception('Keycloak did not start') from e
 
 
 def get_token():
