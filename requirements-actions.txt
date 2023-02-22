@@ -4,9 +4,9 @@
 #
 #    pip-compile --extra=actions --output-file=requirements-actions.txt
 #
-aio-pika==8.3.0
+aio-pika==9.0.4
     # via wipac-keycloak-rest-services (setup.py)
-aiormq==6.6.4
+aiormq==6.7.2
     # via aio-pika
 cachetools==5.3.0
     # via
@@ -24,9 +24,9 @@ dnspython==2.3.0
     # via pymongo
 google-api-core==2.11.0
     # via google-api-python-client
-google-api-python-client==2.77.0
+google-api-python-client==2.79.0
     # via wipac-keycloak-rest-services (setup.py)
-google-auth==2.16.0
+google-auth==2.16.1
     # via
     #   google-api-core
     #   google-api-python-client
@@ -56,7 +56,7 @@ oauthlib==3.2.2
     # via requests-oauthlib
 pamqp==3.2.1
     # via aiormq
-protobuf==4.21.12
+protobuf==4.22.0
     # via
     #   google-api-core
     #   googleapis-common-protos
@@ -103,7 +103,7 @@ tornado==6.2
     # via wipac-rest-tools
 types-cryptography==3.3.23.2
     # via pyjwt
-typing-extensions==4.4.0
+typing-extensions==4.5.0
     # via
     #   qrcode
     #   wipac-dev-tools
@@ -113,11 +113,11 @@ uritemplate==4.1.1
     # via google-api-python-client
 urllib3==1.26.14
     # via requests
-wipac-dev-tools==1.6.10
+wipac-dev-tools==1.6.12
     # via
     #   wipac-keycloak-rest-services (setup.py)
     #   wipac-rest-tools
-wipac-rest-tools==1.4.8
+wipac-rest-tools==1.4.12
     # via wipac-keycloak-rest-services (setup.py)
 yarl==1.8.2
     # via
