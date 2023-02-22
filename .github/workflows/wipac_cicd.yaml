@@ -81,7 +81,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-      - uses: WIPACrepo/wipac-dev-py-setup-action@pip-fix
+      - uses: WIPACrepo/wipac-dev-py-setup-action@v1.10
 
   py-versions:
     needs: [py-setup]
@@ -107,7 +107,7 @@ jobs:
           python-version: ${{ matrix.py3_versions }}
       - run: |
           pip install --upgrade pip wheel setuptools
-          pip install .
+          pip install .[actions]
 
   py-tests:
     needs: [keycloak-image-build, ldap-image-build, py-versions]
@@ -156,7 +156,7 @@ jobs:
       - uses: actions/checkout@v3
       - run: |
           pip install --upgrade pip wheel setuptools
-          pip install .[tests]
+          pip install .[tests,actions]
       - run: |
           python -m pytest tests/${{ matrix.test }} --tb=short --log-level=DEBUG
 
