@@ -72,6 +72,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
       - uses: WIPACrepo/wipac-dev-flake8-action@v1.0
 
   py-setup:
@@ -205,7 +207,7 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
     - name: Login to GitHub Container Registry
-      uses: docker/login-action@v1
+      uses: docker/login-action@v2
       if: ${{ github.event_name != 'pull_request' }}
       with:
         registry: ghcr.io
