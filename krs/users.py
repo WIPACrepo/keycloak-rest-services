@@ -4,6 +4,8 @@ User actions against Keycloak.
 import asyncio
 import logging
 
+import requests.exceptions
+
 from .token import get_rest_client
 
 logger = logging.getLogger('krs.users')
@@ -101,7 +103,11 @@ async def create_user(username, first_name, last_name, email, attribs=None, rest
             'attributes': attribs,
         }
 
-        await rest_client.request('POST', '/users', user)
+        try:
+            await rest_client.request('POST', '/users', user)
+        except requests.exceptions.HTTPError as e:
+            logger.error('Keycloak returned HTTP error %r: %r', e.response.status_code, e.response.text)
+            raise
         logger.info(f'user "{username}" created')
     else:
         logger.info(f'user "{username}" already exists')
