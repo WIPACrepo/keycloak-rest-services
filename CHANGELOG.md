@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.3.7 (2023-04-20)
+### Other
+* Remove extra pyjwt dep, since it gets pulled in through wipac-rest-tools ([#70](https://github.com/WIPACrepo/keycloak-rest-services/issues/70)) ([`fc0a6ad`](https://github.com/WIPACrepo/keycloak-rest-services/commit/fc0a6ad9004af23f1a1a5015cb77df3ec4769edf))
+
 ## v1.3.6 (2023-02-22)
 
 
