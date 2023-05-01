@@ -89,7 +89,7 @@ async def create_user(username, first_name, last_name, email, attribs=None, rest
     """
     if not attribs:
         attribs = {}
-    attribs['canonical_address'] = unidecode(first_name + '.' + last_name).lower().replace(' ', '.') + "@icecube.wisc.edu"
+    attribs['canonical_email'] = unidecode(first_name + '.' + last_name).lower().replace(' ', '.') + "@icecube.wisc.edu"
 
     try:
         await user_info(username, rest_client=rest_client)

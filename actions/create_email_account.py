@@ -36,12 +36,12 @@ async def process(email_server, group_path, dryrun=False, keycloak_client=None):
         if (not user['firstName']) or (not user['lastName']):
             logger.debug(f'user {username} does not have a valid first and last name, skipping')
             continue
-        if 'canonical_address' not in attrs:
-            logger.debug(f'user {username} does not have canonical_address attribute, skipping')
+        if 'canonical_email' not in attrs:
+            logger.debug(f'user {username} does not have canonical_email attribute, skipping')
             continue
 
         users[username] = {
-            'canonical': attrs['canonical_address'].split('@')[0],
+            'canonical': attrs['canonical_email'].split('@')[0],
             'uid': int(attrs['uidNumber']),
             'gid': int(attrs['gidNumber']),
         }

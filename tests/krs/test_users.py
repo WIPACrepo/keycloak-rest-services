@@ -31,7 +31,7 @@ async def test_user_info(keycloak_bootstrap):
 async def test_create_user(keycloak_bootstrap):
     await users.create_user('testuser', first_name='Fĭrst', last_name='Mü Lăst', email='foo@test', rest_client=keycloak_bootstrap)
     ret = await users.user_info('testuser', rest_client=keycloak_bootstrap)
-    assert ret['attributes'] == {'canonical_address': 'first.mu.last@icecube.wisc.edu'}
+    assert ret['attributes'] == {'canonical_email': 'first.mu.last@icecube.wisc.edu'}
 
 @pytest.mark.asyncio
 async def test_modify_user(keycloak_bootstrap):
@@ -79,14 +79,14 @@ async def test_modify_user_existing_attr(keycloak_bootstrap):
     await users.create_user('testuser', first_name='first', last_name='last', email='foo@test', attribs={'foo': 'bar'}, rest_client=keycloak_bootstrap)
     await users.modify_user('testuser', attribs={'baz': 'foo'}, rest_client=keycloak_bootstrap)
     ret = await users.user_info('testuser', rest_client=keycloak_bootstrap)
-    assert ret['attributes'] == {'foo': 'bar', 'baz': 'foo', 'canonical_address': 'first.last@icecube.wisc.edu'}
+    assert ret['attributes'] == {'foo': 'bar', 'baz': 'foo', 'canonical_email': 'first.last@icecube.wisc.edu'}
 
 @pytest.mark.asyncio
 async def test_modify_user_del_attr(keycloak_bootstrap):
     await users.create_user('testuser', first_name='first', last_name='last', email='foo@test', attribs={'foo': 'bar'}, rest_client=keycloak_bootstrap)
     await users.modify_user('testuser', attribs={'foo': None, 'baz': 'foo'}, rest_client=keycloak_bootstrap)
     ret = await users.user_info('testuser', rest_client=keycloak_bootstrap)
-    assert ret['attributes'] == {'baz': 'foo', 'canonical_address': 'first.last@icecube.wisc.edu'}
+    assert ret['attributes'] == {'baz': 'foo', 'canonical_email': 'first.last@icecube.wisc.edu'}
 
 @pytest.mark.asyncio
 async def test_set_user_password(keycloak_bootstrap):
