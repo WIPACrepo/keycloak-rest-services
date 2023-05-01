@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.3.8 (2023-05-01)
+### Other
+* Implement canonical_email user attribute ([`088cf94`](https://github.com/WIPACrepo/keycloak-rest-services/commit/088cf9446f5fb555bc08a8a404eedc03f1954400))
+
 ## v1.3.7 (2023-04-20)
 ### Other
 * Remove extra pyjwt dep, since it gets pulled in through wipac-rest-tools ([#70](https://github.com/WIPACrepo/keycloak-rest-services/issues/70)) ([`fc0a6ad`](https://github.com/WIPACrepo/keycloak-rest-services/commit/fc0a6ad9004af23f1a1a5015cb77df3ec4769edf))
