@@ -4,27 +4,9 @@ from actions.sync_gws_accounts import create_missing_eligible_accounts
 from actions.sync_gws_accounts import get_gws_accounts
 
 
-class MockHttpRequest:
-    def execute(*args, **kwargs):
-        pass
-
-
-class MockGwsResource:
-    def list(*args, **kwargs):
-        return MockHttpRequest()
-
-    def list_next(*args, **kwargs):
-        return MockHttpRequest()
-
-    def insert(*args, **kwargs):
-        return MockHttpRequest()
-
-    def update(*args, **kwargs):
-        return MockHttpRequest()
-
-
 KC_ACCOUNTS = {
     'add-to-gws': {'attributes': {'loginShell': '/bin/bash'}, 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln',},
+    'add-to-gws-w-alias': {'attributes': {'loginShell': '/bin/bash', 'canonical_email': 'foo@bar.com'}, 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln', },
     'already-in-gws': {'attributes': {'loginShell': '/bin/bash'}, 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln',},
     'ineligible-nologin': {'attributes': {'loginShell': '/sbin/nologin'}, 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln',},
     'no-shadow-expire': {'attributes': {'loginShell': '/bin/bash'}, 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln',},
@@ -39,6 +21,7 @@ GWS_ACCOUNTS = {
 
 LDAP_ACCOUNTS = {
     'add-to-gws': {'shadowExpire': 99999},
+    'add-to-gws-w-alias': {'shadowExpire': 99999},
     'already-in-gws': {'shadowExpire': 99999},  # noqa: F601
     'ineligible-nologin': {'shadowExpire': 99999},
     'no-shadow-expire': {},
@@ -63,6 +46,11 @@ def test_get_gws_accounts():
 
 
 def test_create_missing_eligible_accounts():
-    ret = create_missing_eligible_accounts(MockGwsResource(), GWS_ACCOUNTS, LDAP_ACCOUNTS,
+    gws_users_client = MagicMock()
+
+    ret = create_missing_eligible_accounts(gws_users_client, GWS_ACCOUNTS, LDAP_ACCOUNTS,
                                            KC_ACCOUNTS, dryrun=False)
-    assert ret == ['add-to-gws']
+    assert sorted(ret) == sorted(['add-to-gws', 'add-to-gws-w-alias'])
+    assert gws_users_client.insert().execute.call_count == 2
+    assert gws_users_client.aliases.call_count == 1
+    assert gws_users_client.aliases().insert().execute.call_count == 1

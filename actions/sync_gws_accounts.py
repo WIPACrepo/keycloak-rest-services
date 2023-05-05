@@ -16,6 +16,7 @@ import string
 import time
 
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 from google.oauth2 import service_account
 
 from krs.ldap import LDAP
@@ -50,7 +51,7 @@ def is_eligible(account_attrs, shadow_expire):
     """Return True if the account is eligible for creation in Google Workspace.
 
     Args:
-        account_attrs (dict): KeyCloak attribues of the account
+        account_attrs (dict): KeyCloak attributes of the account
         shadow_expire (float): value of shadowExpire LDAP attributes of the account
 
     Return:
@@ -70,8 +71,12 @@ def create_missing_eligible_accounts(gws_users_client, gws_accounts, ldap_accoun
                                      kc_accounts, dryrun):
     """Create eligible KeyCloak accounts in Google Workspace if not there already.
 
-    Google's documentation on account creation: https://developers.google.com/admin-sdk/directory/v1/guides/manage-users
-    API reference for the User resource, including field descriptions: https://developers.google.com/admin-sdk/directory/reference/rest/v1/users
+    When creating a new account, also create an email alias if keycloak attributes
+    contain 'canonical_email'.
+    Google's documentation on account creation:
+    https://developers.google.com/admin-sdk/directory/v1/guides/manage-users
+    API reference for the User resource, including field descriptions:
+    https://developers.google.com/admin-sdk/directory/reference/rest/v1/users
 
     Args:
         gws_users_client (googleapiclient.discovery.Resource): Admin API Users resource
@@ -87,18 +92,31 @@ def create_missing_eligible_accounts(gws_users_client, gws_accounts, ldap_accoun
     for username,attrs in kc_accounts.items():
         shadow_expire = ldap_accounts[username].get('shadowExpire', float('-inf'))
         if username not in gws_accounts and is_eligible(attrs, shadow_expire):
-            body = {'primaryEmail': f'{username}@icecube.wisc.edu',
-                    'name': {
-                        'givenName': attrs['firstName'],
-                        'familyName': attrs['lastName'],},
-                    'password': ''.join(random.choices(string.ascii_letters, k=12)),}
+            logger.info(f'creating user {username} (dryrun={dryrun})')
+            if dryrun:
+                continue
+            user_body = {'primaryEmail': f'{username}@icecube.wisc.edu',
+                         'name': {
+                             'givenName': attrs['firstName'],
+                             'familyName': attrs['lastName'],},
+                         'password': ''.join(random.choices(string.ascii_letters, k=12)),}
+            gws_users_client.insert(body=user_body).execute()
             created_usernames.append(username)
-            logger.info(f'creating user {username}')
-            sanitized_body = body.copy()
-            sanitized_body['password'] = 'REDACTED'
-            logger.debug(f'request body: {sanitized_body}')
-            if not dryrun:
-                gws_users_client.insert(body=body).execute()
+            if 'canonical_email' in attrs['attributes']:
+                logger.info(f'inserting alias {attrs["attributes"]["canonical_email"]}')
+                for attempt in range(3):
+                    time.sleep(5)  # give time for account creation
+                    try:
+                        gws_users_client.aliases().insert(
+                            userKey=user_body['primaryEmail'],
+                            body={'alias': attrs['attributes']['canonical_email']}).execute()
+                        break
+                    except HttpError as e:
+                        logger.debug(f'attempt {attempt+1} to insert alias failed')
+                        logger.debug(e)
+                        continue
+                else:
+                    logger.error(f'giving up on alias creation after {attempt+1} attempts')
         else:
             logger.debug(f'ignoring user {username}')
     return created_usernames
@@ -164,7 +182,8 @@ def main():
 
     creds = service_account.Credentials.from_service_account_file(
         args['sa_credentials'], subject=args['sa_delegator'],
-        scopes=['https://www.googleapis.com/auth/admin.directory.user'])
+        scopes=['https://www.googleapis.com/auth/admin.directory.user',
+                'https://www.googleapis.com/auth/admin.directory.user.alias'])
     gws_directory = build('admin', 'directory_v1', credentials=creds, cache_discovery=False)
     gws_users_client = gws_directory.users()
 
