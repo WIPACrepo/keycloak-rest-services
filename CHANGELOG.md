@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.3.9 (2023-05-05)
+### Other
+* Add canonical_email alias when creating new google workspace accounts ([#72](https://github.com/WIPACrepo/keycloak-rest-services/issues/72)) ([`9d48eb9`](https://github.com/WIPACrepo/keycloak-rest-services/commit/9d48eb9a6589115cad7cfa5ec154475d479f1adf))
+
 ## v1.3.8 (2023-05-01)
 ### Other
 * Implement canonical_email user attribute ([`088cf94`](https://github.com/WIPACrepo/keycloak-rest-services/commit/088cf9446f5fb555bc08a8a404eedc03f1954400))
