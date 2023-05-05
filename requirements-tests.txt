@@ -76,7 +76,7 @@ pytest-mock==3.10.0
     # via wipac-keycloak-rest-services (setup.py)
 qrcode==7.4.2
     # via wipac-rest-tools
-requests==2.29.0
+requests==2.30.0
     # via
     #   requests-futures
     #   wipac-dev-tools
@@ -96,7 +96,7 @@ typing-extensions==4.5.0
     # via
     #   qrcode
     #   wipac-dev-tools
-urllib3==1.26.15
+urllib3==2.0.2
     # via requests
 wipac-dev-tools==1.6.15
     # via
