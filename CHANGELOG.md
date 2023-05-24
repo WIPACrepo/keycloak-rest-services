@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.3.10 (2023-05-24)
+### Other
+* Bump py-versions CI release v2.1 ([#76](https://github.com/WIPACrepo/keycloak-rest-services/issues/76)) ([`4951345`](https://github.com/WIPACrepo/keycloak-rest-services/commit/49513458dc5a4a1e24369880136bddcaa5dee415))
+
 ## v1.3.9 (2023-05-05)
 ### Other
 * Add canonical_email alias when creating new google workspace accounts ([#72](https://github.com/WIPACrepo/keycloak-rest-services/issues/72)) ([`9d48eb9`](https://github.com/WIPACrepo/keycloak-rest-services/commit/9d48eb9a6589115cad7cfa5ec154475d479f1adf))
