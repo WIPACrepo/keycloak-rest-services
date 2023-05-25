@@ -28,20 +28,24 @@ async def process(mailing_list_group_root, keycloak_client, dryrun=False):
         dryrun (bool): perform a mock run with no changes made
     """
     institutions = await list_insts(rest_client=keycloak_client)
-    all_active_usernames = set()
+    experiment_usernames = {}
     for group_path in institutions.keys():
-        all_active_usernames.update(await get_group_membership(group_path, keycloak_client))
+        exp = group_path.split('/')[2]
+        exp_users = await get_group_membership(group_path, rest_client=keycloak_client)
+        experiment_usernames[exp] = set(exp_users)
 
-    ml_container_group = await group_info(mailing_list_group_root, keycloak_client)
-    ml_groups = [sg for sg in ml_container_group['subGroups'] if sg['name'] != '_admin']
+    root_group = await group_info(mailing_list_group_root, rest_client=keycloak_client)
+    exp_groups = root_group['subGroups']
 
-    for group in ml_groups:
-        usernames = set(await get_group_membership(group['path'], keycloak_client))
-        departed_usernames = usernames - all_active_usernames
-        for username in departed_usernames:
-            logger.info(f'Removing {username} from group {group["path"]} (dryrun={dryrun})')
-            if not dryrun:
-                await remove_user_group(group['path'], username, keycloak_client)
+    for exp_group in exp_groups:
+        exp = exp_group['name']
+        for group in exp_group['subGroups']:
+            usernames = set(await get_group_membership(group['path'], rest_client=keycloak_client))
+            departed_usernames = usernames - experiment_usernames[exp]
+            for username in departed_usernames:
+                logger.info(f'Removing {username} from group {group["path"]} (dryrun={dryrun})')
+                if not dryrun:
+                    await remove_user_group(group['path'], username, rest_client=keycloak_client)
 
 
 def listener(address=None, exchange=None, dedup=1, **kwargs):
