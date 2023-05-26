@@ -1,11 +1,22 @@
 """
-Remove from all mailing list groups users who are not part of
-any institution (which indicates they are no longer with the
-collaboration).
+Remove from KeyCloak mailing list groups users who are not part of those groups'
+experiment.
+
+This code assumes that the mailing list group hierarcy is structured likes this:
+/ROOT_MAILING_LIST_GROUP
+    /EXPERIMENT_NAME
+        /MAILING_LIST_NAME
+        ...
+    ...
+
+EXPERIMENT_NAME must match group names of experiments under the /institutions
+group hierarchy because that is how this code determines which experiment a
+mailing list group belongs to.
+
 
 Example::
 
-    python -m actions.deprovision_mailing_lists --ml-group-root /test-mail
+       python -m actions.deprovision_mailing_lists --ml-group-root /test-mail
 """
 import asyncio
 import logging
@@ -20,18 +31,23 @@ logger = logging.getLogger('deprovision_mailing_lists')
 
 
 async def process(mailing_list_group_root, keycloak_client, dryrun=False):
-    """Remove from all mailing list groups users who are institutionless
+    """Remove from all mailing list groups users who are not part of the
+    experiment the mailing list belongs to.
+     
+    Active users of an experiment are determined by examining the /institutions
+    group hierarchy. It is assumed that experiment group names under /institutions
+    match exactly experiment group names under mailing_list_group_root.
 
     Args:
-        mailing_list_group_root (str): KeyCloak path to the group that contains all mailing list groups
+        mailing_list_group_root (str): KeyCloak path to mailing list group tree
         keycloak_client (RestClient): KeyCloak REST API client
         dryrun (bool): perform a mock run with no changes made
     """
     institutions = await list_insts(rest_client=keycloak_client)
     experiment_usernames = {}
-    for group_path in institutions.keys():
-        exp = group_path.split('/')[2]
-        exp_users = await get_group_membership(group_path, rest_client=keycloak_client)
+    for inst_group_path in institutions.keys():
+        exp = inst_group_path.split('/')[2]
+        exp_users = await get_group_membership(inst_group_path, rest_client=keycloak_client)
         experiment_usernames[exp] = set(exp_users)
 
     root_group = await group_info(mailing_list_group_root, rest_client=keycloak_client)
@@ -39,13 +55,16 @@ async def process(mailing_list_group_root, keycloak_client, dryrun=False):
 
     for exp_group in exp_groups:
         exp = exp_group['name']
-        for group in exp_group['subGroups']:
-            usernames = set(await get_group_membership(group['path'], rest_client=keycloak_client))
+        if exp not in experiment_usernames:
+            logger.error(f'Unknown mailing list experiment {exp}. Skipping {exp_group["path"]} tree')
+            continue
+        for ml_group in exp_group['subGroups']:
+            usernames = set(await get_group_membership(ml_group['path'], rest_client=keycloak_client))
             departed_usernames = usernames - experiment_usernames[exp]
             for username in departed_usernames:
-                logger.info(f'Removing {username} from group {group["path"]} (dryrun={dryrun})')
+                logger.info(f'Removing {username} from group {ml_group["path"]} (dryrun={dryrun})')
                 if not dryrun:
-                    await remove_user_group(group['path'], username, rest_client=keycloak_client)
+                    await remove_user_group(ml_group['path'], username, rest_client=keycloak_client)
 
 
 def listener(address=None, exchange=None, dedup=1, **kwargs):
@@ -71,9 +90,8 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description='Remove from all mailing list groups users who are not part of '
-                    'any institution (which indicates they are no longer with the '
-                    'collaboration).',
+        description='Remove from KeyCloak mailing list groups users who are not part of '
+                    'those groups\' experiment.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--ml-group-root', metavar='GROUP_PATH', default='/mailing-lists',
                         help='root of the mailing list group tree')
