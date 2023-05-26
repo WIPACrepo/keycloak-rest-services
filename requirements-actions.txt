@@ -24,9 +24,9 @@ dnspython==2.3.0
     # via pymongo
 google-api-core==2.11.0
     # via google-api-python-client
-google-api-python-client==2.86.0
+google-api-python-client==2.87.0
     # via wipac-keycloak-rest-services (setup.py)
-google-auth==2.18.1
+google-auth==2.19.0
     # via
     #   google-api-core
     #   google-api-python-client
@@ -56,7 +56,7 @@ oauthlib==3.2.2
     # via requests-oauthlib
 pamqp==3.2.1
     # via aiormq
-protobuf==4.23.1
+protobuf==4.23.2
     # via
     #   google-api-core
     #   googleapis-common-protos
@@ -101,7 +101,7 @@ tornado==6.3.2
     # via wipac-rest-tools
 types-cryptography==3.3.23.2
     # via pyjwt
-typing-extensions==4.6.0
+typing-extensions==4.6.2
     # via
     #   qrcode
     #   wipac-dev-tools
@@ -113,11 +113,11 @@ urllib3==1.26.16
     # via
     #   google-auth
     #   requests
-wipac-dev-tools==1.6.15
+wipac-dev-tools==1.6.16
     # via
     #   wipac-keycloak-rest-services (setup.py)
     #   wipac-rest-tools
-wipac-rest-tools==1.4.18
+wipac-rest-tools==1.4.19
     # via wipac-keycloak-rest-services (setup.py)
 yarl==1.9.2
     # via
