@@ -33,7 +33,7 @@ logger = logging.getLogger('deprovision_mailing_lists')
 async def process(mailing_list_group_root, keycloak_client, dryrun=False):
     """Remove from all mailing list groups users who are not part of the
     experiment the mailing list belongs to.
-     
+
     Active users of an experiment are determined by examining the /institutions
     group hierarchy. It is assumed that experiment group names under /institutions
     match exactly experiment group names under mailing_list_group_root.
