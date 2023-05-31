@@ -1,13 +1,9 @@
-FROM python:3.8
+FROM python:3.10
 
 RUN useradd -m -U keycloak
 
-COPY requirements.txt requirements-actions.txt ./
-RUN pip install --no-cache-dir -r requirements.txt -r requirements-actions.txt
-
 WORKDIR /home/keycloak
-USER keycloak
-
 COPY . .
+RUN pip install -e .[actions]
 
-ENV PYTHONPATH=/home/keycloak
+USER keycloak

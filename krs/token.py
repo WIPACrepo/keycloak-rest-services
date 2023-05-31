@@ -2,11 +2,10 @@
 Get an admin token for KeyCloak.
 """
 import logging
-from functools import partial
 
 import requests
 from wipac_dev_tools import from_environment
-from rest_tools.client import RestClient
+from rest_tools.client import ClientCredentialsAuth, SavedDeviceGrantAuth
 
 
 def get_token(url, client_id, client_secret, client_realm='master'):
@@ -26,27 +25,33 @@ def get_token(url, client_id, client_secret, client_realm='master'):
 
 def get_rest_client(retries=None, timeout=10):
     config = from_environment({
-        'KEYCLOAK_REALM': None,
-        'KEYCLOAK_URL': None,
+        'KEYCLOAK_REALM': 'icecube',
+        'KEYCLOAK_URL': 'https://keycloak.icecube.wisc.edu',
         'KEYCLOAK_CLIENT_ID': 'rest-access',
-        'KEYCLOAK_CLIENT_SECRET': None,
+        'KEYCLOAK_CLIENT_SECRET': '',
         'KEYCLOAK_CLIENT_REALM': 'master',
     })
-    token_func = partial(
-        get_token,
-        config["KEYCLOAK_URL"],
-        client_id=config['KEYCLOAK_CLIENT_ID'],
-        client_secret=config['KEYCLOAK_CLIENT_SECRET'],
-        client_realm=config['KEYCLOAK_CLIENT_REALM'],
-    )
     kwargs = {'timeout': timeout}
     if retries:
         kwargs['retries'] = retries
-    return RestClient(
-        f'{config["KEYCLOAK_URL"]}/auth/admin/realms/{config["KEYCLOAK_REALM"]}',
-        token=token_func,
-        **kwargs
-    )
+    if config['KEYCLOAK_CLIENT_SECRET']:
+        return ClientCredentialsAuth(
+            address=f'{config["KEYCLOAK_URL"]}/auth/admin/realms/{config["KEYCLOAK_REALM"]}',
+            token_url=f'{config["KEYCLOAK_URL"]}/auth/realms/{config["KEYCLOAK_CLIENT_REALM"]}',
+            client_id=config['KEYCLOAK_CLIENT_ID'],
+            client_secret=config['KEYCLOAK_CLIENT_SECRET'],
+            **kwargs
+        )
+    else:
+        if config['KEYCLOAK_CLIENT_ID'] == 'rest-access':
+            config['KEYCLOAK_CLIENT_ID'] = 'rest-access-admin'
+        return SavedDeviceGrantAuth(
+            address=f'{config["KEYCLOAK_URL"]}/auth/admin/realms/{config["KEYCLOAK_REALM"]}',
+            token_url=f'{config["KEYCLOAK_URL"]}/auth/realms/{config["KEYCLOAK_CLIENT_REALM"]}',
+            filename='.keycloak-rest-services-auth',
+            client_id=config['KEYCLOAK_CLIENT_ID'],
+            **kwargs
+        )
 
 
 def main():
@@ -61,6 +66,8 @@ def main():
     parser_get.add_argument('client_secret', help='keycloak client secret')
     parser_get.add_argument('--client_realm', default='master', help='keycloak client realm')
     parser_get.set_defaults(func=get_token)
+    parser_rc = subparsers.add_parser('rc', help='get rest client')
+    parser_rc.set_defaults(func=get_rest_client)
     args = vars(parser.parse_args())
 
     logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
