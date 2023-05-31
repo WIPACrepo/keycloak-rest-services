@@ -2,7 +2,6 @@
 Get an admin token for KeyCloak.
 """
 import logging
-from functools import partial
 
 import requests
 from wipac_dev_tools import from_environment
