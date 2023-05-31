@@ -2,6 +2,9 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.0 (2023-05-31)
+
+
 ## v1.3.10 (2023-05-24)
 ### Other
 * Bump py-versions CI release v2.1 ([#76](https://github.com/WIPACrepo/keycloak-rest-services/issues/76)) ([`4951345`](https://github.com/WIPACrepo/keycloak-rest-services/commit/49513458dc5a4a1e24369880136bddcaa5dee415))
