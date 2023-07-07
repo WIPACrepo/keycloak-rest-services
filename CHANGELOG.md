@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.1 (2023-07-07)
+
+### Other
+
+* Add action to manage institutionless_since attribute ([#78](https://github.com/WIPACrepo/keycloak-rest-services/issues/78)) ([`565474e`](https://github.com/WIPACrepo/keycloak-rest-services/commit/565474e8c84fb64ca9e438ee9f44b0e69580338f))
+
 ## v1.4.0 (2023-05-31)
 
 
