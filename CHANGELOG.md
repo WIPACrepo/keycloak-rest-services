@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.2 (2023-07-11)
+
+### Other
+
+* Try testing list user attrs ([#80](https://github.com/WIPACrepo/keycloak-rest-services/issues/80)) ([`d18c06b`](https://github.com/WIPACrepo/keycloak-rest-services/commit/d18c06bb8e6d807f7245b3b3a4389e5e09ac93d8))
+
 ## v1.4.1 (2023-07-07)
 
 ### Other
