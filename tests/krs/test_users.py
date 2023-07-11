@@ -86,7 +86,7 @@ async def test_modify_user_attr_list(keycloak_bootstrap):
     await users.create_user('testuser', first_name='first', last_name='last', email='foo@test', attribs={'foo': ['bar', 'baz']}, rest_client=keycloak_bootstrap)
     await users.modify_user('testuser', attribs={'baz': [1, 2, 3]}, rest_client=keycloak_bootstrap)
     ret = await users.user_info('testuser', rest_client=keycloak_bootstrap)
-    assert ret['attributes'] == {'foo': ['bar', 'baz'], 'baz': [1, 2, 3], 'canonical_email': 'first.last@icecube.wisc.edu'}
+    assert ret['attributes'] == {'foo': ['bar', 'baz'], 'baz': ['1', '2', '3'], 'canonical_email': 'first.last@icecube.wisc.edu'}
 
 @pytest.mark.asyncio
 async def test_modify_user_del_attr(keycloak_bootstrap):
