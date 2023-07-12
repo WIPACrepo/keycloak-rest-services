@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.3 (2023-07-12)
+
+### Other
+
+* Add action to track users' institutions ([#81](https://github.com/WIPACrepo/keycloak-rest-services/issues/81)) ([`7572b5b`](https://github.com/WIPACrepo/keycloak-rest-services/commit/7572b5be610576589af9ae5f30168f7ebb228da2))
+
 ## v1.4.2 (2023-07-11)
 
 ### Other
