@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.6 (2023-07-13)
+
+### Other
+
+* Add deprovision_mailing_lists action ([#82](https://github.com/WIPACrepo/keycloak-rest-services/issues/82)) ([`3a10436`](https://github.com/WIPACrepo/keycloak-rest-services/commit/3a10436674fed7c6edcdf41fce30e40222ac545a))
+
 ## v1.4.5 (2023-07-13)
 
 ### Other
