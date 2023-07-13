@@ -38,7 +38,7 @@ pycparser==2.21
     # via cffi
 pyjwt[crypto]==2.7.0
     # via wipac-rest-tools
-pymongo==4.4.0
+pymongo==4.4.1
     # via motor
 pypng==0.20220715.0
     # via qrcode
