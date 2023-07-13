@@ -4,7 +4,7 @@ from datetime import datetime
 from krs import users, groups, institutions
 from ..util import keycloak_bootstrap
 
-from actions.update_user_institutions import update_institution_tracking
+from actions.track_user_institutions import update_institution_tracking
 
 @pytest.mark.asyncio
 async def test_update_institutionless_users(keycloak_bootstrap):

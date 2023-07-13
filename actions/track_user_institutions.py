@@ -1,5 +1,5 @@
 """
-Update user attributes that allow detection of changes of users' institutions:
+Update user attributes that track users' institutions:
 * institutions_last_seen: coma-separated list of the user's institutions (group
                           paths) as of the last time this action ran.
 * institutions_last_changed: time in ISO 8601 format when institutions_last_seen
@@ -9,7 +9,7 @@ Note that the reason institutions_last_seen is a comma-separated list is that
 currently our KeyCloak instance can't store lists as user attribute values.
 
 Example::
-    python -m actions.update_user_institutions --dryrun
+    python -m actions.track_user_institutions --dryrun
 """
 import asyncio
 import logging
@@ -21,7 +21,7 @@ from krs.groups import get_group_membership
 from krs.institutions import list_insts
 from krs.users import list_users, modify_user
 
-logger = logging.getLogger('update_user_institutions')
+logger = logging.getLogger('track_user_institutions')
 
 
 async def update_institution_tracking(keycloak_client=None, dryrun=False):
