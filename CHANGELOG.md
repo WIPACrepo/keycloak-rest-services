@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.5 (2023-07-13)
+
+### Other
+
+* Delete update_institutionless_users action ([`88dd2d8`](https://github.com/WIPACrepo/keycloak-rest-services/commit/88dd2d8cebf08ff94f8efb784ebf8f9871fe8f87))
+
 ## v1.4.4 (2023-07-13)
 
 ### Other
