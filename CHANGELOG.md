@@ -2,6 +2,15 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.4 (2023-07-13)
+
+### Other
+
+* <bot> update requirements.txt ([`62b572e`](https://github.com/WIPACrepo/keycloak-rest-services/commit/62b572e9c338cec9f74b0367e083b61b244f0a7d))
+* <bot> update requirements-tests.txt ([`2418a6a`](https://github.com/WIPACrepo/keycloak-rest-services/commit/2418a6a9d54ed944823807832648b74915dab432))
+* <bot> update requirements-actions.txt ([`b210347`](https://github.com/WIPACrepo/keycloak-rest-services/commit/b21034725c8f4eb7ea96ec3682dd0cf61aa51f65))
+* Rename update_user_institutions to track_user_institutions ([`f0cb56b`](https://github.com/WIPACrepo/keycloak-rest-services/commit/f0cb56be4864663dd8a210268fcbc1369425f797))
+
 ## v1.4.3 (2023-07-12)
 
 ### Other
