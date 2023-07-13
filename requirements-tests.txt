@@ -58,7 +58,7 @@ pyflakes==3.0.1
     # via flake8
 pyjwt[crypto]==2.7.0
     # via wipac-rest-tools
-pymongo==4.4.0
+pymongo==4.4.1
     # via motor
 pypng==0.20220715.0
     # via qrcode
