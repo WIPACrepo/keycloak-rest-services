@@ -33,7 +33,7 @@ logger = logging.getLogger('sync_gws_mailing_lists')
 
 
 def get_all_group_members(group_email, gws_members_client):
-    """Get email addresses of all group members"""
+    """Get email addresses of all members of a Google Workspace members"""
     req = gws_members_client.list(groupKey=group_email)
     members = []
     while req is not None:
@@ -74,14 +74,14 @@ async def sync_gws_mailing_lists(gws_members_client, keycloak_client, dryrun=Fal
         kc_emails = [u['attributes']['canonical_email'] for u in kc_users]
         gws_emails = get_all_group_members(group_email, gws_members_client)
 
-        missing_emails = [e for e in kc_emails if e not in gws_emails]
+        missing_emails = set(kc_emails) - set(gws_emails)
         for email in missing_emails:
             logger.info(f"Adding {email} to {group_email} (dryrun={dryrun})")
             debug["added"].add(email)
             if not dryrun:
                 gws_members_client.insert(groupKey=group_email, body={'email': email}).execute()
 
-        unwanted_emails = [e for e in gws_emails if e not in kc_emails]
+        unwanted_emails = set(gws_emails) - set(kc_emails)
         for email in unwanted_emails:
             logger.info(f"Deleting {email} from {group_email} (dryrun={dryrun})")
             debug["deleted"].add(email)
