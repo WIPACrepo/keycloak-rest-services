@@ -27,7 +27,12 @@ INGORE_DIR_ROLES = {
     '/mnt/lfs7/user_test': {'roleAccount', 'appAccount', 'thirdPartyAccount'},
 }
 
-ssh_opts = ['-o', 'UserKnownHostsFile=/dev/null', '-o', 'StrictHostKeyChecking=no']
+ssh_opts = [
+    '-o', 'UserKnownHostsFile=/dev/null',
+    '-o', 'StrictHostKeyChecking=no',
+    '-o', 'HostKeyAlgorithms=+ssh-rsa',
+    '-o', 'PubkeyAcceptedAlgorithms=+ssh-rsa',
+]
 
 
 def ssh(host, *args):
