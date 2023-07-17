@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.8 (2023-07-17)
+
+### Other
+
+* Add sync_gws_mailing_lists action ([#84](https://github.com/WIPACrepo/keycloak-rest-services/issues/84)) ([`02a37ea`](https://github.com/WIPACrepo/keycloak-rest-services/commit/02a37eab1000a105cc5dd027711db85c79167ef4))
+
 ## v1.4.7 (2023-07-17)
 
 ### Other
