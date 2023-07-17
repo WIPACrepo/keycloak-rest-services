@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.7 (2023-07-17)
+
+### Other
+
+* Pin semantic release to old version that worked ([`5aa2595`](https://github.com/WIPACrepo/keycloak-rest-services/commit/5aa259539ae1d08fc1d5929c4c8f6e1fd813a6c8))
+* Talk to old servers via ssh-rsa, like i3mail ([#83](https://github.com/WIPACrepo/keycloak-rest-services/issues/83)) ([`d1da17a`](https://github.com/WIPACrepo/keycloak-rest-services/commit/d1da17af6f7d18e5bbdd8b4392c1d9af7f0ac2fb))
+
 ## v1.4.6 (2023-07-13)
 
 ### Other
