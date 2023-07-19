@@ -79,8 +79,8 @@ async def get_kc_group_canonical_emails(group_path, keycloak_client):
 def sync_gws_group_role(group_email, role, role_emails, gws_members_client, dryrun):
     """Sync Google Workspace group members of the given role to the given email list """
     group_members = get_gws_group_members(group_email, gws_members_client)
-    initial_this_role_emails = [m['email'] for m in group_members if m['role'] == role]
-    initial_other_roles_emails = [m['email'] for m in group_members if m['role'] != role]
+    initial_this_role_emails = {m['email'] for m in group_members if m['role'] == role}
+    initial_other_roles_emails = {m['email'] for m in group_members if m['role'] != role}
     for email in role_emails:
         if email in initial_this_role_emails:
             continue
@@ -94,7 +94,7 @@ def sync_gws_group_role(group_email, role, role_emails, gws_members_client, dryr
             if not dryrun:
                 gws_members_client.insert(groupKey=group_email, body=body).execute()
 
-    for email in set(initial_this_role_emails) - set(role_emails):
+    for email in initial_this_role_emails - set(role_emails):
         logger.info(f"Removing {email} from {group_email} (dryrun={dryrun})")
         if not dryrun:
             gws_members_client.delete(groupKey=group_email, memberKey=email).execute()
