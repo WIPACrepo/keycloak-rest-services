@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.9 (2023-07-19)
+
+### Other
+
+* Make sync_gws_mailing_lists support group member roles ([#85](https://github.com/WIPACrepo/keycloak-rest-services/issues/85)) ([`cd38c3d`](https://github.com/WIPACrepo/keycloak-rest-services/commit/cd38c3de1eec524f06244661e2d89579f1d28c48))
+
 ## v1.4.8 (2023-07-17)
 
 ### Other
