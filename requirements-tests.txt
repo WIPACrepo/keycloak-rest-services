@@ -110,7 +110,7 @@ typing-extensions==4.7.1
     # via
     #   qrcode
     #   wipac-dev-tools
-urllib3==2.0.3
+urllib3==2.0.4
     # via requests
 wipac-dev-tools==1.6.16
     # via
