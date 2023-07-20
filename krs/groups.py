@@ -292,6 +292,7 @@ async def remove_user_group(group_path, username, rest_client=None):
 
 def main():
     import argparse
+    import json
     from pprint import pprint
 
     parser = argparse.ArgumentParser(description='Keycloak group management')
@@ -321,12 +322,19 @@ def main():
     parser_remove_user_group.add_argument('username', help='username of user')
     parser_remove_user_group.add_argument('group_path', help='group path (/parentA/parentB/name)')
     parser_remove_user_group.set_defaults(func=remove_user_group)
+    parser_modify = subparsers.add_parser('modify', help='modify an existing group')
+    parser_modify.add_argument('group_path', help='group path (/parentA/parentB/name)')
+    parser_modify.add_argument('--new-group-path', metavar='PATH', help='change group path (/parentA/parentB/name)')
+    parser_modify.add_argument('attrs', nargs='?', help='set attributes from JSON dictionary, e.g. \'{"foo"=[1,2,3], "bar"="baz"}\'')
+    parser_modify.set_defaults(func=modify_group)
     args = vars(parser.parse_args())
 
     logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
 
     rest_client = get_rest_client()
     func = args.pop('func')
+    if 'attrs' in args:
+        args['attrs'] = json.loads(args['attrs'])
     ret = asyncio.run(func(rest_client=rest_client, **args))
     if ret is not None:
         pprint(ret)
