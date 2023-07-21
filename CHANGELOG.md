@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.10 (2023-07-21)
+
+### Other
+
+* Support for modifying group attributes from command line ([#86](https://github.com/WIPACrepo/keycloak-rest-services/issues/86)) ([`2809902`](https://github.com/WIPACrepo/keycloak-rest-services/commit/2809902d74b9e89d88684034b951a90dd1bb7eee))
+
 ## v1.4.9 (2023-07-19)
 
 ### Other
