@@ -293,6 +293,7 @@ async def remove_user_group(group_path, username, rest_client=None):
 def main():
     import argparse
     from pprint import pprint
+    from collections import defaultdict
 
     parser = argparse.ArgumentParser(description='Keycloak group management')
     subparsers = parser.add_subparsers()
@@ -321,12 +322,31 @@ def main():
     parser_remove_user_group.add_argument('username', help='username of user')
     parser_remove_user_group.add_argument('group_path', help='group path (/parentA/parentB/name)')
     parser_remove_user_group.set_defaults(func=remove_user_group)
+    parser_modify = subparsers.add_parser('modify', help='modify an existing group')
+    parser_modify.add_argument('group_path', help='group path (/parentA/parentB/name)')
+    parser_modify.add_argument('--new-group-path', metavar='PATH', help='change group path (/parentA/parentB/name)')
+    parser_modify.add_argument('attrs', nargs=argparse.REMAINDER,
+                               help='space-separated NAME=VALUE attribute pairs. '
+                                    'To delete NAME, omit VALUE. '
+                                    'To make a list, assign to NAME multiple times.')
+    parser_modify.set_defaults(func=modify_group)
     args = vars(parser.parse_args())
 
     logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
 
     rest_client = get_rest_client()
     func = args.pop('func')
+    if 'attrs' in args:
+        attrs = defaultdict(list)
+        for item in args['attrs']:
+            k,v = item.split('=', 1)
+            if (attrs[k] and not v) or (attrs[k] is None and v):
+                raise Exception('cannot assign to attr and leave it empty')
+            elif v:
+                attrs[k].append(v)  # keycloak stores all attributes as lists
+            else:
+                attrs[k] = None
+        args['attrs'] = attrs
     ret = asyncio.run(func(rest_client=rest_client, **args))
     if ret is not None:
         pprint(ret)
