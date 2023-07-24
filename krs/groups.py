@@ -324,7 +324,7 @@ def main():
     parser_remove_user_group.set_defaults(func=remove_user_group)
     parser_modify = subparsers.add_parser('modify', help='modify an existing group')
     parser_modify.add_argument('group_path', help='group path (/parentA/parentB/name)')
-    parser_modify.add_argument('--new-group-path', metavar='PATH', help='change group path (/parentA/parentB/name)')
+    parser_modify.add_argument('--new-group-path', metavar='PATH', help='change group name (/parentA/parentB/new-name)')
     parser_modify.add_argument('attrs', nargs=argparse.REMAINDER,
                                help='space-separated NAME=VALUE attribute pairs. '
                                     'To delete NAME, omit VALUE. '
