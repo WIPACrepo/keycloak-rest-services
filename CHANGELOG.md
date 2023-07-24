@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.13 (2023-07-24)
+
+### Other
+
+* Handle empty 'email' attr in sync_gws_mailing_lists ([`04eee85`](https://github.com/WIPACrepo/keycloak-rest-services/commit/04eee859fb8cac473b88c66468db7793b636c812))
+
 ## v1.4.12 (2023-07-24)
 
 ### Other
