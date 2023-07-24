@@ -46,7 +46,7 @@ Please contact help@icecube.wisc.edu if you have questions.
         s.send_message(msg)
 
 
-async def deprovision_mailing_lists(removal_grace_days, keycloak_client, smtp_host, dryrun=False):
+async def deprovision_mailing_lists(removal_grace_days, smtp_host, keycloak_client, dryrun=False):
     """Remove from all mailing list groups (subgroups of /mail) the users who
     are not members of experiments listed in the `allow_members_from_experiments`
     attributes of those groups. Users that have recently changed institutions
@@ -122,8 +122,8 @@ def main():
 
     asyncio.run(deprovision_mailing_lists(
         args['removal_grace'],
-        keycloak_client,
         args['smtp_host'],
+        keycloak_client,
         args['dryrun']))
 
 
