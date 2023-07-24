@@ -45,6 +45,7 @@ async def deprovision_mailing_lists(removal_grace_days, keycloak_client, dryrun=
         allowed_experiments = ml_group['attributes'].get('allow_members_from_experiments')
         if not allowed_experiments:
             logger.warning(f"Skipping {ml_group['path']} because allow_members_from_experiments attribute is missing or empty")
+            continue
         if not isinstance(allowed_experiments, list):
             allowed_experiments = [allowed_experiments]
 
