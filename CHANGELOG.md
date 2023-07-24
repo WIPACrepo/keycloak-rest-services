@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.11 (2023-07-24)
+
+### Other
+
+* Fix typo ([`f6b7fcd`](https://github.com/WIPACrepo/keycloak-rest-services/commit/f6b7fcd2b0238a845166e9d009afdd515c39f887))
+* Handle missing allow_members_from_experiments in deprovision_mailing_… ([#89](https://github.com/WIPACrepo/keycloak-rest-services/issues/89)) ([`21e3078`](https://github.com/WIPACrepo/keycloak-rest-services/commit/21e307813a47a68e52088b5886d1f7aace829c17))
+
 ## v1.4.10 (2023-07-21)
 
 ### Other
