@@ -12,6 +12,9 @@ This code relies on the `institutions_last_seen` and `institutions_last_changed`
 user attributes, and, consequently, on the Keycloak Rest Services action that
 updates those attributes.
 
+If an SMTP server is provided on the command line, a notification email will
+be sent to users who are removed from groups.
+
 Example::
        python -m actions.deprovision_mailing_lists --dryrun
 """
