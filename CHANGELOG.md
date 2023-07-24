@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.12 (2023-07-24)
+
+### Other
+
+* Better handle missing 'email' attr in sync_gws_mailing_lists ([`b933136`](https://github.com/WIPACrepo/keycloak-rest-services/commit/b933136be9ccdf90eed565ebd10ac40035f17561))
+
 ## v1.4.11 (2023-07-24)
 
 ### Other
