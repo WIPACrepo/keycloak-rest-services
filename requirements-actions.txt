@@ -4,7 +4,7 @@
 #
 #    pip-compile --extra=actions --output-file=requirements-actions.txt
 #
-aio-pika==9.1.4
+aio-pika==9.1.5
     # via wipac-keycloak-rest-services (setup.py)
 aiormq==6.7.6
     # via aio-pika
@@ -14,7 +14,7 @@ cachetools==5.3.1
     # via
     #   google-auth
     #   wipac-rest-tools
-certifi==2023.5.7
+certifi==2023.7.22
     # via
     #   httpcore
     #   requests
