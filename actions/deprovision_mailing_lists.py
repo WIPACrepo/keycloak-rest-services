@@ -38,7 +38,7 @@ def send_unsubscription_notification(smtp_host, username, list_email):
     content = f"""You have been unsubscribed from {list_email}
 because you are not a member of any of the
 institutions that are allowed for that mailing list.
-    
+
 Please contact help@icecube.wisc.edu if you have questions.
 """
     msg.set_content(content)
