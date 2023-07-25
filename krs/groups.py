@@ -25,6 +25,10 @@ def _recursive_fix_group_attributes(group):
         _recursive_fix_group_attributes(subgroup)
 
 
+class GroupDoesNotExist(Exception):
+    pass
+
+
 async def list_groups(max_groups=10000, rest_client=None):
     """
     List groups in Keycloak.
@@ -62,7 +66,7 @@ async def group_info(group_path, rest_client=None):
     """
     groups = await list_groups(rest_client=rest_client)
     if group_path not in groups:
-        raise Exception(f'group "{group_path}" does not exist')
+        raise GroupDoesNotExist(f'group "{group_path}" does not exist')
 
     group_id = groups[group_path]['id']
     return await group_info_by_id(group_id, rest_client=rest_client)
@@ -82,7 +86,7 @@ async def group_info_by_id(group_id, rest_client=None):
     ret = await rest_client.request('GET', url)
 
     if not ret:
-        raise Exception(f'group "{group_id}" does not exist')
+        raise GroupDoesNotExist(f'group "{group_id}" does not exist')
     _recursive_fix_group_attributes(ret)
     return ret
 
@@ -104,7 +108,7 @@ async def create_group(group_path, attrs=None, rest_client=None):
         parent, groupname = group_path.rsplit('/', 1)
         if parent:
             if parent not in groups:
-                raise Exception(f'parent group {parent} does not exist')
+                raise GroupDoesNotExist(f'parent group {parent} does not exist')
             parent_id = groups[parent]['id']
             url = f'/groups/{parent_id}/children'
         else:
@@ -256,7 +260,7 @@ async def add_user_group(group_path, username, rest_client=None):
     """
     groups = await list_groups(rest_client=rest_client)
     if group_path not in groups:
-        raise Exception(f'group "{group_path}" does not exist')
+        raise GroupDoesNotExist(f'group "{group_path}" does not exist')
 
     info = await user_info(username, rest_client=rest_client)
     membership = await get_user_groups_by_id(info['id'], rest_client=rest_client)
@@ -292,7 +296,7 @@ async def remove_user_group(group_path, username, rest_client=None):
     """
     groups = await list_groups(rest_client=rest_client)
     if group_path not in groups:
-        raise Exception(f'group "{group_path}" does not exist')
+        raise GroupDoesNotExist(f'group "{group_path}" does not exist')
 
     info = await user_info(username, rest_client=rest_client)
     membership = await get_user_groups_by_id(info['id'], rest_client=rest_client)
