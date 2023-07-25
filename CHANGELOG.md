@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.14 (2023-07-25)
+
+### Other
+
+* <bot> update requirements-actions.txt ([`73036fd`](https://github.com/WIPACrepo/keycloak-rest-services/commit/73036fd95c3c83c91693e0e2fa1a97dbcb580c5d))
+* Add unsubscription notification to deprovision_mailing_lists ([#87](https://github.com/WIPACrepo/keycloak-rest-services/issues/87)) ([`bd30ce4`](https://github.com/WIPACrepo/keycloak-rest-services/commit/bd30ce48d41cbec61a70e4be312286727343ba5f))
+
 ## v1.4.13 (2023-07-24)
 
 ### Other
