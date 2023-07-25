@@ -75,7 +75,7 @@ async def test_modify_group_rename(keycloak_bootstrap):
     ret = await groups.group_info('/parent/group', rest_client=keycloak_bootstrap)
     assert ret['attributes'] == {'foo': 'bar'}
 
-    await groups.modify_group('/parent/group', new_group_path='/parent/group-new', rest_client=keycloak_bootstrap)
+    await groups.modify_group('/parent/group', new_group_name='group-new', rest_client=keycloak_bootstrap)
     ret = await groups.group_info('/parent/group-new', rest_client=keycloak_bootstrap)
     assert ret['attributes'] == {'foo': 'bar'}
 

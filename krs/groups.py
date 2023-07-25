@@ -105,7 +105,7 @@ async def create_group(group_path, attrs=None, rest_client=None):
         logger.info(f'group "{group_path}" created')
 
 
-async def modify_group(group_path, attrs={}, new_group_path=None, rest_client=None):
+async def modify_group(group_path, attrs={}, new_group_name=None, rest_client=None):
     """
     Modify attributes for a group.
 
@@ -116,7 +116,7 @@ async def modify_group(group_path, attrs={}, new_group_path=None, rest_client=No
     Args:
         group_path (str): group path (/parent/parent/name)
         attrs (dict): attributes to modify
-        new_group_path (str): new group path (/parent/parent/new-name)
+        new_group_name (str): new group name
     """
     groups = await list_groups(rest_client=rest_client)
     if group_path in groups:
@@ -129,9 +129,9 @@ async def modify_group(group_path, attrs={}, new_group_path=None, rest_client=No
                 ret['attributes'][k] = attrs[k]
             else:
                 ret['attributes'][k] = [attrs[k]]
-        if new_group_path:
-            ret['name'] = new_group_path.rsplit('/')[-1]
-            ret['path'] = new_group_path
+        if new_group_name:
+            ret['name'] = new_group_name
+            ret['path'] = ret['path'].rsplit('/', 1)[0] + '/' + new_group_name
         await rest_client.request('PUT', url, ret)
         logger.info(f'group "{group_path}" modified')
     else:
@@ -324,7 +324,7 @@ def main():
     parser_remove_user_group.set_defaults(func=remove_user_group)
     parser_modify = subparsers.add_parser('modify', help='modify an existing group')
     parser_modify.add_argument('group_path', help='group path (/parentA/parentB/name)')
-    parser_modify.add_argument('--new-group-path', metavar='PATH', help='change group name (/parentA/parentB/new-name)')
+    parser_modify.add_argument('--new-group-name', metavar='NAME', help='change group name')
     parser_modify.add_argument('attrs', nargs=argparse.REMAINDER,
                                help='space-separated NAME=VALUE attribute pairs. '
                                     'To delete NAME, omit VALUE. '
