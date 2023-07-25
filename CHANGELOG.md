@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.16 (2023-07-25)
+
+### Other
+
+* Better handle missing 'email' attr in sync_gws_mailing_lists ([`ea9c41a`](https://github.com/WIPACrepo/keycloak-rest-services/commit/ea9c41adf39795351b1d7efcf5c644a29378dc3d))
+* Make group_info_by_id recursively flatten attribute values ([#91](https://github.com/WIPACrepo/keycloak-rest-services/issues/91)) ([`3f4a83d`](https://github.com/WIPACrepo/keycloak-rest-services/commit/3f4a83d1a250f6a7fd2801dd606f22e1595f90de))
+
 ## v1.4.15 (2023-07-25)
 
 ### Other
