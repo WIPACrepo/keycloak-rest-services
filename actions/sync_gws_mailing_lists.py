@@ -124,15 +124,12 @@ async def sync_gws_mailing_lists(gws_members_client, gws_groups_client, keycloak
     kc_ml_root_group = await group_info('/mail', rest_client=keycloak)
     kc_ml_groups = [sg for sg in kc_ml_root_group['subGroups'] if sg['name'] != '_admin']
     for ml_group in kc_ml_groups:
-        if 'email' not in ml_group['attributes']:
-            logger.error(f"Group {ml_group['path']} doesn't have attribute 'email'. Skipping.")
+        if not ml_group['attributes'].get('email'):
+            logger.error(f"Attribute 'email' of {ml_group['path']} is empty or missing. Skipping.")
             continue
         group_email = ml_group['attributes']['email']
-        if not group_email:
-            logger.error(f"Group {ml_group['path']}'s 'email' attribute is empty. Skipping.")
-            continue
         if group_email not in gws_group_emails:
-            logger.error(f"Group {group_email} doesn't exist in Google Workspace. Skipping.")
+            logger.error(f"Group '{group_email}' doesn't exist in Google Workspace. Skipping.")
             continue
 
         try:
