@@ -69,6 +69,17 @@ async def test_modify_group_del_attr(keycloak_bootstrap):
     assert ret['attributes'] == {'baz': 'foo'}
 
 @pytest.mark.asyncio
+async def test_modify_group_rename(keycloak_bootstrap):
+    await groups.create_group('/parent', rest_client=keycloak_bootstrap)
+    await groups.create_group('/parent/group', attrs={'foo':'bar'}, rest_client=keycloak_bootstrap)
+    ret = await groups.group_info('/parent/group', rest_client=keycloak_bootstrap)
+    assert ret['attributes'] == {'foo': 'bar'}
+
+    await groups.modify_group('/parent/group', new_group_name='group-new', rest_client=keycloak_bootstrap)
+    ret = await groups.group_info('/parent/group-new', rest_client=keycloak_bootstrap)
+    assert ret['attributes'] == {'foo': 'bar'}
+
+@pytest.mark.asyncio
 async def test_group_info_by_id(keycloak_bootstrap):
     with pytest.raises(Exception):
         await groups.group_info('/testgroup', rest_client=keycloak_bootstrap)
