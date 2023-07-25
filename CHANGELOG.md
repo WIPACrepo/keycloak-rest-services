@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.15 (2023-07-25)
+
+### Other
+
+* Clarify function of krs.group --new-group-path cli option ([#88](https://github.com/WIPACrepo/keycloak-rest-services/issues/88)) ([`77442a0`](https://github.com/WIPACrepo/keycloak-rest-services/commit/77442a0cddea53281a7cd0be60b6da0f9c73853e))
+
 ## v1.4.14 (2023-07-25)
 
 ### Other
