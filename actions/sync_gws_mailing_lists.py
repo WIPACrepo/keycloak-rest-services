@@ -127,7 +127,7 @@ async def sync_gws_mailing_lists(gws_members_client, gws_groups_client, keycloak
         if 'email' not in ml_group['attributes']:
             logger.error(f"Group {ml_group['path']} doesn't have attribute 'email'. Skipping.")
             continue
-        group_email = ml_group['attributes']['email'][0]
+        group_email = ml_group['attributes']['email']
         if not group_email:
             logger.error(f"Group {ml_group['path']}'s 'email' attribute is empty. Skipping.")
             continue
