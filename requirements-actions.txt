@@ -30,7 +30,7 @@ exceptiongroup==1.1.2
     # via anyio
 google-api-core==2.11.1
     # via google-api-python-client
-google-api-python-client==2.94.0
+google-api-python-client==2.95.0
     # via wipac-keycloak-rest-services (setup.py)
 google-auth==2.22.0
     # via
