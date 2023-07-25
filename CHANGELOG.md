@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.17 (2023-07-25)
+
+### Other
+
+* Add "group does not exist" exception ([#92](https://github.com/WIPACrepo/keycloak-rest-services/issues/92)) ([`a996550`](https://github.com/WIPACrepo/keycloak-rest-services/commit/a996550b57fd5c448325471aaa5de41752523271))
+
 ## v1.4.16 (2023-07-25)
 
 ### Other
