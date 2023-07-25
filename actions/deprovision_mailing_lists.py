@@ -12,13 +12,18 @@ This code relies on the `institutions_last_seen` and `institutions_last_changed`
 user attributes, and, consequently, on the Keycloak Rest Services action that
 updates those attributes.
 
+If an SMTP server is provided on the command line, a notification email will
+be sent to users who are removed from groups.
+
 Example::
        python -m actions.deprovision_mailing_lists --dryrun
 """
 import asyncio
 import logging
+import smtplib
 
 from datetime import datetime, timedelta
+from email.message import EmailMessage
 
 from krs.token import get_rest_client
 from krs.groups import get_group_membership, group_info, remove_user_group
@@ -28,7 +33,23 @@ from krs.institutions import list_insts
 logger = logging.getLogger('deprovision_mailing_lists')
 
 
-async def deprovision_mailing_lists(removal_grace_days, keycloak_client, dryrun=False):
+def send_unsubscription_notification(smtp_host, username, list_email):
+    msg = EmailMessage()
+    msg['Subject'] = f"You have been unsubscribed from {list_email}"
+    msg['From'] = 'no-reply@icecube.wisc.edu'
+    msg['To'] = f'{username}@icecube.wisc.edu'
+    content = f"""You have been unsubscribed from {list_email}
+because you are not a member of any of the
+institutions that are allowed for that mailing list.
+
+Please contact help@icecube.wisc.edu if you have questions.
+"""
+    msg.set_content(content)
+    with smtplib.SMTP(smtp_host) as s:
+        s.send_message(msg)
+
+
+async def deprovision_mailing_lists(removal_grace_days, smtp_host, keycloak_client, dryrun=False):
     """Remove from all mailing list groups (subgroups of /mail) the users who
     are not members of experiments listed in the `allow_members_from_experiments`
     attributes of those groups. Users that have recently changed institutions
@@ -76,6 +97,9 @@ async def deprovision_mailing_lists(removal_grace_days, keycloak_client, dryrun=
                 logger.info(f'Removing {username} from {ml_group["path"]} (dryrun={dryrun})')
                 if not dryrun:
                     await remove_user_group(ml_group['path'], username, rest_client=keycloak_client)
+                    if smtp_host:
+                        send_unsubscription_notification(
+                            smtp_host, username, ml_group['attributes']['email'][0])
 
 
 def main():
@@ -88,6 +112,9 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--removal-grace', metavar='DAYS', default=3, type=int,
                         help='how much to delay removal of institutionless users')
+    parser.add_argument('--smtp-host', metavar='HOSTNAME',
+                        help='mail server for sending unsubsciption alerts '
+                             '(omit to not send alerts)')
     parser.add_argument('--dryrun', action='store_true', help='dry run')
     parser.add_argument('--log-level', default='info',
                         choices=('debug', 'info', 'warning', 'error'),
@@ -99,7 +126,11 @@ def main():
 
     keycloak_client = get_rest_client()
 
-    asyncio.run(deprovision_mailing_lists(args['removal_grace'], keycloak_client, args['dryrun']))
+    asyncio.run(deprovision_mailing_lists(
+        args['removal_grace'],
+        args['smtp_host'],
+        keycloak_client,
+        args['dryrun']))
 
 
 if __name__ == '__main__':
