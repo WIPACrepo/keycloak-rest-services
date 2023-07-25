@@ -10,6 +10,21 @@ from .token import get_rest_client
 logger = logging.getLogger('krs.groups')
 
 
+def _recursive_fix_group_attributes(group):
+    """
+    Recursively "fix" group tree attributes that are only a single value.
+
+    Translates them from a list to the single value.  Operation
+    is done in-place.
+
+    Args:
+        group (dict): group object
+    """
+    _fix_attributes(group)
+    for subgroup in group['subGroups']:
+        _recursive_fix_group_attributes(subgroup)
+
+
 async def list_groups(max_groups=10000, rest_client=None):
     """
     List groups in Keycloak.
@@ -68,7 +83,7 @@ async def group_info_by_id(group_id, rest_client=None):
 
     if not ret:
         raise Exception(f'group "{group_id}" does not exist')
-    _fix_attributes(ret)
+    _recursive_fix_group_attributes(ret)
     return ret
 
 
