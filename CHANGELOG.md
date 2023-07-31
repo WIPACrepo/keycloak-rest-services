@@ -2,6 +2,15 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.18 (2023-07-26)
+
+### Other
+
+* <bot> update requirements.txt ([`e48d781`](https://github.com/WIPACrepo/keycloak-rest-services/commit/e48d781b5818757b172847b3f2fbe5e6f2c32738))
+* <bot> update requirements-tests.txt ([`f055d4a`](https://github.com/WIPACrepo/keycloak-rest-services/commit/f055d4a1347a238eaf1d77bd038c619bb6412a6a))
+* <bot> update requirements-actions.txt ([`0e4a013`](https://github.com/WIPACrepo/keycloak-rest-services/commit/0e4a0131fb34a7b8b0c4eb867d55237778395d17))
+* Tweak log levels in sync_gws_mailing_lists ([`aec4d30`](https://github.com/WIPACrepo/keycloak-rest-services/commit/aec4d309ec7e674451e6207e5cca800643c4a23a))
+
 ## v1.4.17 (2023-07-25)
 
 ### Other
