@@ -56,7 +56,7 @@ async def test_invalid_group(keycloak_bootstrap, ldap_bootstrap):
 
     await users.create_user('testuser', first_name='first', last_name='last', email='foo@test', rest_client=keycloak_bootstrap)
 
-    with pytest.raises(KeyError):
+    with pytest.raises(groups.GroupDoesNotExist):
         await create_posix_account.process('/foofoo', keycloak_client=keycloak_bootstrap, ldap_client=ldap_bootstrap)
 
 @pytest.mark.asyncio
