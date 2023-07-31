@@ -4,7 +4,7 @@
 #
 #    pip-compile --extra=tests --output-file=requirements-tests.txt
 #
-aio-pika==9.1.5
+aio-pika==9.2.0
     # via wipac-keycloak-rest-services (setup.py)
 aiormq==6.7.7
     # via aio-pika
@@ -26,7 +26,7 @@ dnspython==2.4.1
     # via pymongo
 exceptiongroup==1.1.2
     # via pytest
-flake8==6.0.0
+flake8==6.1.0
     # via wipac-keycloak-rest-services (setup.py)
 idna==3.4
     # via
@@ -50,11 +50,11 @@ pluggy==1.2.0
     # via pytest
 pyasn1==0.5.0
     # via ldap3
-pycodestyle==2.10.0
+pycodestyle==2.11.0
     # via flake8
 pycparser==2.21
     # via cffi
-pyflakes==3.0.1
+pyflakes==3.1.0
     # via flake8
 pyjwt[crypto]==2.8.0
     # via wipac-rest-tools

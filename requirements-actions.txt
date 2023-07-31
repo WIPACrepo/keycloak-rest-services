@@ -4,7 +4,7 @@
 #
 #    pip-compile --extra=actions --output-file=requirements-actions.txt
 #
-aio-pika==9.1.5
+aio-pika==9.2.0
     # via wipac-keycloak-rest-services (setup.py)
 aiormq==6.7.7
     # via aio-pika
@@ -36,7 +36,7 @@ google-auth-httplib2==0.1.0
     # via google-api-python-client
 google-auth-oauthlib==1.0.0
     # via wipac-keycloak-rest-services (setup.py)
-googleapis-common-protos==1.59.1
+googleapis-common-protos==1.60.0
     # via google-api-core
 httplib2==0.22.0
     # via
@@ -73,7 +73,7 @@ pyjwt[crypto]==2.8.0
     # via wipac-rest-tools
 pymongo==4.4.1
     # via motor
-pyparsing==3.1.0
+pyparsing==3.1.1
     # via httplib2
 pypng==0.20220715.0
     # via qrcode

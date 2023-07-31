@@ -127,7 +127,7 @@ async def test_get_user_groups(keycloak_bootstrap):
 
 @pytest.mark.asyncio
 async def test_add_user_group(keycloak_bootstrap):
-    with pytest.raises(Exception):
+    with pytest.raises(groups.GroupDoesNotExist):
         await groups.add_user_group('/testgroup', 'testuser', rest_client=keycloak_bootstrap)
 
     await users.create_user('testuser', first_name='first', last_name='last', email='email@test', rest_client=keycloak_bootstrap)
@@ -139,7 +139,7 @@ async def test_add_user_group(keycloak_bootstrap):
 
 @pytest.mark.asyncio
 async def test_remove_user_group(keycloak_bootstrap):
-    with pytest.raises(Exception):
+    with pytest.raises(groups.GroupDoesNotExist):
         await groups.remove_user_group('/testgroup', 'testuser', rest_client=keycloak_bootstrap)
 
     await users.create_user('testuser', first_name='first', last_name='last', email='email@test', rest_client=keycloak_bootstrap)
@@ -159,7 +159,7 @@ async def test_remove_user_group(keycloak_bootstrap):
 
 @pytest.mark.asyncio
 async def test_get_group_membership(keycloak_bootstrap):
-    with pytest.raises(Exception):
+    with pytest.raises(groups.GroupDoesNotExist):
         await groups.add_user_group('/testgroup', 'testuser', rest_client=keycloak_bootstrap)
 
     await users.create_user('testuser', first_name='first', last_name='last', email='email@test', rest_client=keycloak_bootstrap)
