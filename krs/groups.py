@@ -185,7 +185,7 @@ async def get_group_membership(group_path, rest_client=None):
     """
     groups = await list_groups(rest_client=rest_client)
     if group_path not in groups:
-        raise KeyError(f'group "{group_path}" does not exist')
+        raise GroupDoesNotExist
     group_id = groups[group_path]['id']
 
     return await get_group_membership_by_id(group_id, rest_client=rest_client)
