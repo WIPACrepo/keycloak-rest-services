@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.19 (2023-07-31)
+
+### Other
+
+* Make get_group_membership raise GroupDoesNotExist instead of KeyError ([#93](https://github.com/WIPACrepo/keycloak-rest-services/issues/93)) ([`254b376`](https://github.com/WIPACrepo/keycloak-rest-services/commit/254b3760e7ac7fa16bd85bbf9eeb85b58243f9e8))
+
 ## v1.4.18 (2023-07-26)
 
 ### Other
