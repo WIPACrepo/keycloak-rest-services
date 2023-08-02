@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.21 (2023-08-02)
+
+### Other
+
+* Handling mailing_list_email attr in sync_gws_mailing_lists.py ([#94](https://github.com/WIPACrepo/keycloak-rest-services/issues/94)) ([`b2c35fb`](https://github.com/WIPACrepo/keycloak-rest-services/commit/b2c35fb8c8a93ecc76ad49293af3f38330ec1c4a))
+
 ## v1.4.20 (2023-08-02)
 
 ### Other
