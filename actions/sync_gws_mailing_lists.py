@@ -1,7 +1,8 @@
 """
 Synchronize memberships of Google Workspace groups to their corresponding
 Keycloak mailing list groups. Users are subscribed to Google Workspace groups
-using their KeyCloak `canonical_email` attribute.
+using their KeyCloak `canonical_email` attribute, unless it is overridden
+by `mailing_list_email`.
 
 Only group members whose role is 'MANAGER' or 'MEMBER' are managed. Nothing
 is done with the 'OWNER' members (it's assumed these are managed out of band).
@@ -10,33 +11,37 @@ Keycloak mailing list groups are the subgroups of /mail. Each group must
 have attribute `email` that will be used to map it to a Google Workspace
 group.
 
-KeyCloak client can be configured using environment variables. See krs/token.py
-for details.
+KeyCloak REST client is configured using environment variables. See
+krs/token.py for details.
 
-Domain-wide delegation must be enabled for the service account. See code
-for which scopes are required. Admin API must be enabled in the Google
-Cloud Console project.
+Domain-wide delegation must be enabled for the Google Workspace service
+account. See code for which scopes are required. Admin API must be enabled
+in the Google Cloud Console project.
 
-The delegator principal must have the Google Workspace admin role, have
-access to the service account, and have "Service Account Token Creator"
-role.
+The delegate principal must have Google Workspace admin role, be accessible
+to the service account (in Google Cloud project under IAM), and have
+"Service Account Token Creator" role (in Google Cloud project under IAM).
 """
 import asyncio
 import logging
+
+from asyncache import cached
+from cachetools import Cache
 
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
 
 from krs.token import get_rest_client
-from krs.groups import get_group_membership, group_info
+from krs.groups import get_group_membership, group_info, GroupDoesNotExist
 from krs.users import user_info
 
 
 logger = logging.getLogger('sync_gws_mailing_lists')
 
 
-class GroupDoesNotExist(Exception):
-    pass
+@cached(Cache(maxsize=2500))
+async def cached_user_info(username, rest_client):
+    return await user_info(username, rest_client=rest_client)
 
 
 def get_gws_group_members(group_email, gws_members_client) -> list:
@@ -62,45 +67,65 @@ def get_gws_group_members(group_email, gws_members_client) -> list:
     return ret
 
 
-async def get_kc_group_canonical_emails(group_path, keycloak_client):
-    """Return a list of canonical emails of members of a KeyCloak group."""
+async def get_gws_members_from_keycloak_group(group_path, role, keycloak_client) -> dict:
+    """Return a dict of GWS group member dicts based on member emails of the keycloak group"""
+    ret = {}
+    usernames = await get_group_membership(group_path, rest_client=keycloak_client)
+    users = [await cached_user_info(u, keycloak_client) for u in usernames]
+    for user in users:
+        canonical = user['attributes']['canonical_email']
+        preferred = user['attributes'].get('mailing_list_email')
+        if preferred:
+            # If a user has a preferred mailing list email, also add their canonical
+            # (IceCube) email as a no-mail member, since they may not be able to log
+            # on to groups.google.com with the preferred address (to see archives, etc.)
+            ret[preferred] = {'email': preferred, 'delivery_settings': 'ALL_MAIL', 'role': role}
+            ret[canonical] = {'email': canonical, 'delivery_settings': 'NONE', 'role': role}
+        else:
+            ret[canonical] = {'email': canonical, 'delivery_settings': 'ALL_MAIL', 'role': role}
+    return ret
+
+
+async def sync_kc_group_to_gws(kc_group, group_email, keycloak_client, gws_members_client, dryrun):
+    """
+    Sync a single KeyCloak mailing group to Google Workspace Group.
+
+    Note that only group members whose role is 'MANAGER' or 'MEMBER' are managed.
+    Nothing is done with the 'OWNER' members (it's assumed these are managed out
+    ouf band).
+    """
     try:
-        usernames = await get_group_membership(group_path, rest_client=keycloak_client)
-    except Exception as e:
-        if 'does not exist' in e.args[0]:
-            raise GroupDoesNotExist
-        else:
-            raise
-    users = [await user_info(u, rest_client=keycloak_client) for u in usernames]
-    emails = [u['attributes']['canonical_email'] for u in users]
-    return emails
+        managers = await get_gws_members_from_keycloak_group(
+            kc_group['path'] + '/_admin', 'MANAGER', keycloak_client)
+    except GroupDoesNotExist:
+        managers = {}
+    members = await get_gws_members_from_keycloak_group(
+        kc_group['path'], 'MEMBER', keycloak_client)
+    # A user may be a member of both the mailing list group and its _admin subgroup.
+    # If that's the case, we want to use their manager settings.
+    target_membership = members | managers
+    actual_membership = {member['email']: {'email': member['email'], 'role': member['role']}
+                         for member in get_gws_group_members(group_email, gws_members_client)}
 
-
-def sync_gws_group_role(group_email, role, role_emails, gws_members_client, dryrun):
-    """Sync Google Workspace group members of the given role to the given email list """
-    group_members = get_gws_group_members(group_email, gws_members_client)
-    initial_this_role_emails = {m['email'] for m in group_members if m['role'] == role}
-    initial_other_roles_emails = {m['email'] for m in group_members if m['role'] != role}
-    for email in role_emails:
-        if email in initial_this_role_emails:
-            continue
-        body = {'email': email, 'role': role}
-        if email in initial_other_roles_emails:
-            logger.info(f"Changing {email}'s role in {group_email} to {role} (dryrun={dryrun})")
-            if not dryrun:
-                gws_members_client.patch(groupKey=group_email, memberKey=email, body=body).execute()
-        else:
-            logger.info(f"Adding {email} to {group_email} as {role} (dryrun={dryrun})")
+    for email, body in target_membership.items():
+        if email not in actual_membership:
+            logger.info(f"Inserting {body} into {group_email} (dryrun={dryrun})")
             if not dryrun:
                 gws_members_client.insert(groupKey=group_email, body=body).execute()
+        elif body['role'] != actual_membership[email]['role']:
+            logger.info(f"Patching role of {email} in {group_email} to {body['role']} (dryrun={dryrun})")
+            if not dryrun:
+                gws_members_client.patch(groupKey=group_email, memberKey=email,
+                                         body={'email': email, 'role': body['role']}).execute()
 
-    for email in initial_this_role_emails - set(role_emails):
-        logger.info(f"Removing {email} from {group_email} (dryrun={dryrun})")
-        if not dryrun:
-            gws_members_client.delete(groupKey=group_email, memberKey=email).execute()
+    for email in set(actual_membership) - set(target_membership):
+        if actual_membership[email]['role'] != 'OWNER':
+            logger.info(f"Removing {email} from {group_email} (dryrun={dryrun})")
+            if not dryrun:
+                gws_members_client.delete(groupKey=group_email, memberKey=email).execute()
 
 
-async def sync_gws_mailing_lists(gws_members_client, gws_groups_client, keycloak, dryrun=False):
+async def sync_gws_mailing_lists(gws_members_client, gws_groups_client, keycloak_client, dryrun=False):
     """Synchronize memberships of Google Workspace groups to their corresponding
     Keycloak mailing list groups.
 
@@ -115,13 +140,13 @@ async def sync_gws_mailing_lists(gws_members_client, gws_groups_client, keycloak
     Args:
         gws_members_client (googleapiclient.discovery.Resource): Directory API's Members resource
         gws_groups_client (googleapiclient.discovery.Resource): Directory API's Groups resource
-        keycloak (OpenIDRestClient): REST client to the KeyCloak server
+        keycloak_client (OpenIDRestClient): REST client to the KeyCloak server
         dryrun (bool): perform a mock run with no changes made
     """
     res = gws_groups_client.list(customer='my_customer').execute()
     gws_group_emails = [g['email'] for g in res.get('groups', [])]
 
-    kc_ml_root_group = await group_info('/mail', rest_client=keycloak)
+    kc_ml_root_group = await group_info('/mail', rest_client=keycloak_client)
     kc_ml_groups = [sg for sg in kc_ml_root_group['subGroups'] if sg['name'] != '_admin']
     for ml_group in kc_ml_groups:
         if not ml_group['attributes'].get('email'):
@@ -132,18 +157,7 @@ async def sync_gws_mailing_lists(gws_members_client, gws_groups_client, keycloak
             logger.error(f"Group '{group_email}' doesn't exist in Google Workspace. Skipping.")
             continue
 
-        try:
-            kc_admin_emails = await get_kc_group_canonical_emails(ml_group['path'] + '/_admin', keycloak)
-        except GroupDoesNotExist:
-            logger.warning(f"Group {ml_group['path']} doesn't have '_admin' subgroup.")
-            kc_admin_emails = []
-        sync_gws_group_role(group_email, 'MANAGER', kc_admin_emails, gws_members_client, dryrun)
-
-        kc_member_emails = await get_kc_group_canonical_emails(ml_group['path'], keycloak)
-        # A user may be a member of both the group and its _admin subgroup.
-        # If that's the case, we don't want to overwrite them.
-        kc_member_emails = set(kc_member_emails) - set(kc_admin_emails)
-        sync_gws_group_role(group_email, 'MEMBER', kc_member_emails, gws_members_client, dryrun)
+        await sync_kc_group_to_gws(ml_group, group_email, keycloak_client, gws_members_client, dryrun)
 
 
 def main():
