@@ -14,7 +14,6 @@ cachetools==5.3.1
     # via
     #   asyncache
     #   google-auth
-    #   wipac-keycloak-rest-services (setup.py)
     #   wipac-rest-tools
 certifi==2023.7.22
     # via requests
