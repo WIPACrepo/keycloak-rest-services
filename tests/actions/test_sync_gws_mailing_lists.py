@@ -1,5 +1,4 @@
 import pytest
-import logging
 
 from unittest.mock import MagicMock, call
 
@@ -11,9 +10,7 @@ from actions.sync_gws_mailing_lists import sync_gws_mailing_lists
 
 
 @pytest.mark.asyncio
-async def test_sync_gws_mailing_lists_insert(caplog, keycloak_bootstrap):  # noqa: F811
-    caplog.set_level(logging.INFO)
-
+async def test_sync_gws_mailing_lists_insert(keycloak_bootstrap):  # noqa: F811
     request_members = MagicMock()
     request_members.execute = MagicMock(
         return_value={'members': [
@@ -60,9 +57,7 @@ async def test_sync_gws_mailing_lists_insert(caplog, keycloak_bootstrap):  # noq
 
 
 @pytest.mark.asyncio
-async def test_sync_gws_mailing_lists_delete(caplog, keycloak_bootstrap):  # noqa: F811
-    caplog.set_level(logging.INFO)
-
+async def test_sync_gws_mailing_lists_delete(keycloak_bootstrap):  # noqa: F811
     request_members = MagicMock()
     request_members.execute = MagicMock(
         return_value={'members': [
@@ -95,9 +90,7 @@ async def test_sync_gws_mailing_lists_delete(caplog, keycloak_bootstrap):  # noq
 
 
 @pytest.mark.asyncio
-async def test_sync_gws_mailing_lists_patch(caplog, keycloak_bootstrap):  # noqa: F811
-    caplog.set_level(logging.INFO)
-
+async def test_sync_gws_mailing_lists_patch(keycloak_bootstrap):  # noqa: F811
     request_members = MagicMock()
     request_members.execute.side_effect = [
         {'members': [{'email': 'change.role@icecube.wisc.edu', 'role': 'MEMBER'}]},
