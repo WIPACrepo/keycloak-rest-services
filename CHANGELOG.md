@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.20 (2023-08-02)
+
+### Other
+
+* Use python 3.9 ([#95](https://github.com/WIPACrepo/keycloak-rest-services/issues/95)) ([`3dfd81a`](https://github.com/WIPACrepo/keycloak-rest-services/commit/3dfd81ab9166ac1d68b657c4ea9953d1e531299a))
+
 ## v1.4.19 (2023-07-31)
 
 ### Other
