@@ -125,8 +125,7 @@ async def sync_kc_group_to_gws(kc_group, group_email, keycloak_client, gws_membe
                 gws_members_client.delete(groupKey=group_email, memberKey=email).execute()
 
 
-async def sync_gws_mailing_lists(gws_members_client, gws_groups_client, keycloak_client,
-                                 only_consider_group, dryrun=False):
+async def sync_gws_mailing_lists(gws_members_client, gws_groups_client, keycloak_client, dryrun=False):
     """Synchronize memberships of Google Workspace groups to their corresponding
     Keycloak mailing list groups.
 
@@ -142,25 +141,16 @@ async def sync_gws_mailing_lists(gws_members_client, gws_groups_client, keycloak
         gws_members_client (googleapiclient.discovery.Resource): Directory API's Members resource
         gws_groups_client (googleapiclient.discovery.Resource): Directory API's Groups resource
         keycloak_client (OpenIDRestClient): REST client to the KeyCloak server
-        only_consider_group (str): only consider this mailing group
         dryrun (bool): perform a mock run with no changes made
     """
     res = gws_groups_client.list(customer='my_customer').execute()
     gws_group_emails = [g['email'] for g in res.get('groups', [])]
 
     kc_ml_root_group = await group_info('/mail', rest_client=keycloak_client)
-    if only_consider_group is None:
-        kc_ml_groups = [sg for sg in kc_ml_root_group['subGroups'] if sg['name'] != '_admin']
-    else:
-        logger.warning(f"Only considering group '{only_consider_group}'")
-        kc_ml_groups = [sg for sg in kc_ml_root_group['subGroups'] if sg['name'] == only_consider_group]
-        if not kc_ml_groups:
-            logger.error(f"Group {only_consider_group} not found")
-            return
-
+    kc_ml_groups = [sg for sg in kc_ml_root_group['subGroups'] if sg['name'] != '_admin']
     for ml_group in kc_ml_groups:
         if not ml_group['attributes'].get('email'):
-            logger.error(f"Attribute 'email' of {ml_group['path']} is missing or empty'. Skipping.")
+            logger.warning(f"Attribute 'email' of {ml_group['path']} is missing or empty'. Skipping.")
             continue
         group_email = ml_group['attributes']['email']
         if group_email not in gws_group_emails:
@@ -177,15 +167,13 @@ def main():
         description='Synchronize memberships of Google Workspace groups to their '
                     'corresponding Keycloak mailing list groups.',
         epilog='See module docstring for details.')
+    parser.add_argument('--dryrun', action='store_true', help='dry run')
+    parser.add_argument('--log-level', default='info',
+                        choices=('debug', 'info', 'warning', 'error'), help='logging level')
     parser.add_argument('--sa-credentials', metavar='PATH', required=True,
                         help='file with service account credentials')
     parser.add_argument('--sa-delegator', metavar='ACCOUNT', required=True,
                         help='principal on whose behalf the service account will act')
-    parser.add_argument('--only-list', metavar='NAME',
-                        help='only sync mailing list group NAME')
-    parser.add_argument('--log-level', default='info',
-                        choices=('debug', 'info', 'warning', 'error'), help='logging level')
-    parser.add_argument('--dryrun', action='store_true', help='dry run')
 
     args = vars(parser.parse_args())
 
@@ -202,8 +190,7 @@ def main():
     gws_groups_client = gws_directory.groups()
 
     asyncio.run(sync_gws_mailing_lists(gws_members_client, gws_groups_client,
-                                       keycloak_client, args['only_list'],
-                                       dryrun=args['dryrun']))
+                                       keycloak_client, dryrun=args['dryrun']))
 
 
 if __name__ == '__main__':
