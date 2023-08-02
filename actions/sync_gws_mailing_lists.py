@@ -109,18 +109,18 @@ async def sync_kc_group_to_gws(kc_group, group_email, keycloak_client, gws_membe
 
     for email, body in target_membership.items():
         if email not in actual_membership:
-            logger.info(f"Inserting {body} into {group_email} (dryrun={dryrun})")
+            logger.info(f"Inserting into {group_email} {body} (dryrun={dryrun})")
             if not dryrun:
                 gws_members_client.insert(groupKey=group_email, body=body).execute()
         elif body['role'] != actual_membership[email]['role']:
-            logger.info(f"Patching role of {email} in {group_email} to {body['role']} (dryrun={dryrun})")
+            logger.info(f"Patching in {group_email} role of {email} to {body['role']} (dryrun={dryrun})")
             if not dryrun:
                 gws_members_client.patch(groupKey=group_email, memberKey=email,
                                          body={'email': email, 'role': body['role']}).execute()
 
     for email in set(actual_membership) - set(target_membership):
         if actual_membership[email]['role'] != 'OWNER':
-            logger.info(f"Removing {email} from {group_email} (dryrun={dryrun})")
+            logger.info(f"Removing from {group_email} {email} (dryrun={dryrun})")
             if not dryrun:
                 gws_members_client.delete(groupKey=group_email, memberKey=email).execute()
 
