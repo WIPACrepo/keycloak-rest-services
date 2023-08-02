@@ -8,8 +8,11 @@ aio-pika==9.2.0
     # via wipac-keycloak-rest-services (setup.py)
 aiormq==6.7.7
     # via aio-pika
+asyncache==0.3.1
+    # via wipac-keycloak-rest-services (setup.py)
 cachetools==5.3.1
     # via
+    #   asyncache
     #   google-auth
     #   wipac-rest-tools
 certifi==2023.7.22
