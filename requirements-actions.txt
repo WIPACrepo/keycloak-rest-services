@@ -18,7 +18,7 @@ cffi==1.15.1
     # via cryptography
 charset-normalizer==3.2.0
     # via requests
-cryptography==41.0.2
+cryptography==41.0.3
     # via pyjwt
 dnspython==2.4.1
     # via pymongo
@@ -115,7 +115,7 @@ wipac-dev-tools==1.6.16
     # via
     #   wipac-keycloak-rest-services (setup.py)
     #   wipac-rest-tools
-wipac-rest-tools==1.4.20
+wipac-rest-tools==1.4.21
     # via wipac-keycloak-rest-services (setup.py)
 yarl==1.9.2
     # via
