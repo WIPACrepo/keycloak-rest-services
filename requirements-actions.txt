@@ -121,5 +121,3 @@ yarl==1.9.2
     # via
     #   aio-pika
     #   aiormq
-asyncache
-cachetools
