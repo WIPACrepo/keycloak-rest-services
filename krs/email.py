@@ -39,7 +39,7 @@ HTML_TEMPLATE = """
       <img alt="IceCube Logo" src="https://res.cloudinary.com/icecube/images/c_scale,w_456,h_120/v1611782268/IC-webheader/IC-webheader.png" srcset="https://res.cloudinary.com/icecube/images/c_scale,w_456,h_120/v1611782268/IC-webheader/IC-webheader.png 1x, https://res.cloudinary.com/icecube/images/c_scale,w_912,h_240/v1611782268/IC-webheader/IC-webheader.png 2x" width="228" height="60" />
     </header>
     <div class="main">
-      <h2>IceCube Identity Management</h2>
+      <h2>{headline}</h2>
       <p>{}</p>
     </div>
     <footer>
@@ -53,7 +53,7 @@ HTML_TEMPLATE = """
 """
 
 
-def send_email(recipient, subject, content, sender=None):
+def send_email(recipient, subject, content, headline="IceCube Identity Management", sender=None):
     """
     Send an email message.
 
@@ -61,6 +61,7 @@ def send_email(recipient, subject, content, sender=None):
         recipient (dict): Dict with name and email, or just a string email address
         subject (str): Email subject
         content (str): Email content
+        headline (str): Message headline used in HTML email body
         sender (dict): (optional) Dict with name and email, or just a string email address
     """
     config = from_environment({
@@ -89,7 +90,7 @@ def send_email(recipient, subject, content, sender=None):
         msg['To'] = recipient
 
     msg.set_content(TEMPLATE.format(content))
-    msg.add_alternative(HTML_TEMPLATE.format(content.replace('\n', '<br>')),
+    msg.add_alternative(HTML_TEMPLATE.format(content.replace('\n', '<br>'), headline=headline),
                         subtype='html')
 
     with smtplib.SMTP(config['EMAIL_SMTP_SERVER'], timeout=config['EMAIL_SMTP_TIMEOUT']) as s:
