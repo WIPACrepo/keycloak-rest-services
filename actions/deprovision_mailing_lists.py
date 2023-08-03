@@ -1,6 +1,4 @@
 """
-TODO SMTP server confi
-
 Remove from KeyCloak mailing list groups (subgroups of /mail) users who are
 not members of the experiments listed in their `allow_members_from_experiments`
 attributes. Users that have recently changed institutions will be granted the
