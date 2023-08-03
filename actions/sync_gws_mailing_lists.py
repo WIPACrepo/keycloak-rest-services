@@ -188,7 +188,7 @@ async def sync_gws_mailing_lists(gws_members_client, gws_groups_client, keycloak
         gws_groups_client (googleapiclient.discovery.Resource): Directory API's Groups resource
         keycloak_client (OpenIDRestClient): REST client to the KeyCloak server
         single_group (str): only consider this group instead of all groups
-        send_notifications (boo): whether to send email notifications
+        send_notifications (bool): whether to send email notifications
         dryrun (bool): Perform a mock run with no changes made
     """
     res = gws_groups_client.list(customer='my_customer').execute()
