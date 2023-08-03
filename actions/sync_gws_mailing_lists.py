@@ -196,6 +196,7 @@ async def sync_gws_mailing_lists(gws_members_client, gws_groups_client, keycloak
 
     kc_ml_root_group = await group_info('/mail', rest_client=keycloak_client)
     if single_group:
+        logger.warning(f"Only group {single_group} will be considered.")
         kc_ml_groups = [sg for sg in kc_ml_root_group['subGroups'] if sg['name'] == single_group]
     else:
         kc_ml_groups = [sg for sg in kc_ml_root_group['subGroups'] if sg['name'] != '_admin']
