@@ -40,7 +40,8 @@ async def test_sync_gws_mailing_lists_insert(keycloak_bootstrap):  # noqa: F811
     await modify_user('custom', attribs={'mailing_list_email':'custom@ext'}, rest_client=keycloak_bootstrap)
     await add_user_group('/mail/list', 'custom', rest_client=keycloak_bootstrap)
 
-    await sync_gws_mailing_lists(gws_members_client, gws_groups_client, keycloak_bootstrap, dryrun=False)
+    await sync_gws_mailing_lists(gws_members_client, gws_groups_client, keycloak_bootstrap,
+                                 send_notifications=False, dryrun=False)
 
     assert gws_members_client.insert.call_args_list == \
            [call(groupKey='test@gws', body={'email': 'add.add@icecube.wisc.edu',
@@ -81,7 +82,8 @@ async def test_sync_gws_mailing_lists_delete(keycloak_bootstrap):  # noqa: F811
     await create_user('keep', first_name='keep', last_name='keep', email='keep@test', rest_client=keycloak_bootstrap)
     await add_user_group('/mail/list', 'keep', rest_client=keycloak_bootstrap)
 
-    await sync_gws_mailing_lists(gws_members_client, gws_groups_client, keycloak_bootstrap, dryrun=False)
+    await sync_gws_mailing_lists(gws_members_client, gws_groups_client, keycloak_bootstrap,
+                                 send_notifications=False, dryrun=False)
 
     assert gws_members_client.delete.call_args_list == \
         [call(groupKey='test@gws', memberKey='remove@test')]
@@ -114,7 +116,8 @@ async def test_sync_gws_mailing_lists_patch(keycloak_bootstrap):  # noqa: F811
     await add_user_group('/mail/list', 'change-role', rest_client=keycloak_bootstrap)
     await add_user_group('/mail/list/_admin', 'change-role', rest_client=keycloak_bootstrap)
 
-    await sync_gws_mailing_lists(gws_members_client, gws_groups_client, keycloak_bootstrap, dryrun=False)
+    await sync_gws_mailing_lists(gws_members_client, gws_groups_client, keycloak_bootstrap,
+                                 send_notifications=False, dryrun=False)
 
     assert gws_members_client.patch.call_args_list == \
         [call(groupKey='test@gws', memberKey='change.role@icecube.wisc.edu',
