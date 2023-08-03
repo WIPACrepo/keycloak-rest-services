@@ -228,7 +228,7 @@ def main():
                         help='principal on whose behalf the service account will act')
     parser.add_argument('--send-notifications', action='store_true',
                         help='send email notifications to users')
-    parser.add_argument('--only-group', metavar='NAME',
+    parser.add_argument('--single-group', metavar='NAME',
                         help='only consider group NAME')
     parser.add_argument('--log-level', default='info',
                         choices=('debug', 'info', 'warning', 'error'), help='logging level')
@@ -249,7 +249,7 @@ def main():
     gws_groups_client = gws_directory.groups()
 
     asyncio.run(sync_gws_mailing_lists(gws_members_client, gws_groups_client, keycloak_client,
-                                       args['only_group'], args['send_notifications'],
+                                       args['single_group'], args['send_notifications'],
                                        dryrun=args['dryrun']))
 
 

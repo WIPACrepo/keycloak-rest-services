@@ -119,7 +119,7 @@ def main():
                         help='how much to delay removal of institutionless users')
     parser.add_argument('--send-notifications', action='store_true',
                         help='send email notifications to users')
-    parser.add_argument('--only-group', metavar='NAME',
+    parser.add_argument('--single-group', metavar='NAME',
                         help='only consider group NAME')
     parser.add_argument('--log-level', default='info',
                         choices=('debug', 'info', 'warning', 'error'),
@@ -135,7 +135,7 @@ def main():
     asyncio.run(deprovision_mailing_lists(
         args['removal_grace'],
         args['send_notifications'],
-        args['only_group'],
+        args['single_group'],
         keycloak_client,
         args['dryrun']))
 
