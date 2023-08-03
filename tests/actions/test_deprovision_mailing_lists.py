@@ -49,6 +49,6 @@ async def test_deprovision_mailing_lists(keycloak_bootstrap):
                       rest_client=keycloak_bootstrap)
     await add_user_group('/mail/list', 'homeless', rest_client=keycloak_bootstrap)
 
-    await deprovision_mailing_lists(7, None, keycloak_bootstrap)
+    await deprovision_mailing_lists(7, None, None, keycloak_bootstrap)
     ret = await get_group_membership('/mail/list', rest_client=keycloak_bootstrap)
     assert set(ret) == {'good', 'wrong-exp-grace'}
