@@ -6,7 +6,7 @@ by `mailing_list_email`.
 
 Users can optionally be notified of changes via email. SMTP server is
 controlled by the EMAIL_SMTP_SERVER environmental variable and defaults
-to localhost.
+to localhost. See krs/email.py for more email options.
 
 Only group members whose role is 'MANAGER' or 'MEMBER' are managed. Nothing
 is done with the 'OWNER' members (it's assumed these are managed out of band).
