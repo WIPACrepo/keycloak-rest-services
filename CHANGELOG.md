@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.22 (2023-08-03)
+
+### Other
+
+* Make sync_gws_mailing_lists.py notify users of changes ([#96](https://github.com/WIPACrepo/keycloak-rest-services/issues/96)) ([`7bb5e5c`](https://github.com/WIPACrepo/keycloak-rest-services/commit/7bb5e5c38d3bc0c28807665f472a9338ec1353f2))
+
 ## v1.4.21 (2023-08-02)
 
 ### Other
