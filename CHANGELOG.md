@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.26 (2023-08-04)
+
+### Other
+
+* Fix typos in actions/sync_gws_mailing_lists.py ([`78b34c9`](https://github.com/WIPACrepo/keycloak-rest-services/commit/78b34c9e0d42d9a7b0439e10a6052095ff0961d6))
+
 ## v1.4.25 (2023-08-04)
 
 ### Other
