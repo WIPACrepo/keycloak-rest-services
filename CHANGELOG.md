@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.25 (2023-08-04)
+
+### Other
+
+* Improve notifications by sync_gws_mailing_lists.py ([`eb51b30`](https://github.com/WIPACrepo/keycloak-rest-services/commit/eb51b30eecfae48261fa3af0c70f2b324b4c8915))
+
 ## v1.4.24 (2023-08-04)
 
 ### Other
