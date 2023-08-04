@@ -134,8 +134,8 @@ def main():
 
     asyncio.run(deprovision_mailing_lists(
         args['removal_grace'],
-        args['send_notifications'],
         args['single_group'],
+        args['send_notifications'],
         keycloak_client,
         args['dryrun']))
 
