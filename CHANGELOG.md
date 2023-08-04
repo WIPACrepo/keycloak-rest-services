@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.24 (2023-08-04)
+
+### Other
+
+* Improve text of notifications ([`c0b7856`](https://github.com/WIPACrepo/keycloak-rest-services/commit/c0b785676fb9014051fa0f95800b27b8ee0e516e))
+
 ## v1.4.23 (2023-08-04)
 
 ### Other
