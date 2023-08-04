@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.23 (2023-08-04)
+
+### Other
+
+* Deprovision_mailing_lists.py: fix argument list ([#97](https://github.com/WIPACrepo/keycloak-rest-services/issues/97)) ([`ef90c3f`](https://github.com/WIPACrepo/keycloak-rest-services/commit/ef90c3f6cb4fb91feee5070f485d98373fe8d2e7))
+
 ## v1.4.22 (2023-08-03)
 
 ### Other
