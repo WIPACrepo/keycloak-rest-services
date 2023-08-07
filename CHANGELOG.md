@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.27 (2023-08-07)
+
+### Other
+
+* Actions/util.py: set SSH loglevel to ERROR ([#98](https://github.com/WIPACrepo/keycloak-rest-services/issues/98)) ([`1ea8828`](https://github.com/WIPACrepo/keycloak-rest-services/commit/1ea8828ef43a68fadc698b2064e71f0d4ece0733))
+
 ## v1.4.26 (2023-08-04)
 
 ### Other
