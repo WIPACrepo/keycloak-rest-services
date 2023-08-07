@@ -29,6 +29,7 @@ INGORE_DIR_ROLES = {
 
 ssh_opts = [
     '-o', 'UserKnownHostsFile=/dev/null',
+    '-o', 'LogLevel=ERROR',
     '-o', 'StrictHostKeyChecking=no',
     '-o', 'HostKeyAlgorithms=+ssh-rsa',
     '-o', 'PubkeyAcceptedAlgorithms=+ssh-rsa',

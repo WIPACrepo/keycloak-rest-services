@@ -4,7 +4,7 @@
 #
 #    pip-compile --extra=actions --output-file=requirements-actions.txt
 #
-aio-pika==9.2.0
+aio-pika==9.2.1
     # via wipac-keycloak-rest-services (setup.py)
 aiormq==6.7.7
     # via aio-pika

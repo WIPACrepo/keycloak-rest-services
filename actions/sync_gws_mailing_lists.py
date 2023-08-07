@@ -49,8 +49,8 @@ SUBSCRIPTION_MESSAGE = "You have been subscribed to {group_email} mailing list a
                        "are a member of group {group_path} or {group_path}/_admin.\n\n" \
                        "Note: delivery option NONE is usually used for IceCube addresses " \
                        "of individuals who subscribe to mailing lists with non-IceCube emails. " \
-                       "This allows them to use https://groups.google.com with their " \
-                       "IceCube account and not receive duplicate emails." \
+                       "This allows using https://groups.google.com with the IceCube account " \
+                       "without receiving duplicate emails." \
                        + MESSAGE_FOOTER
 
 ROLE_CHANGE_MESSAGE = "The role of {email} in {group_email} has changed to {role} because " \
