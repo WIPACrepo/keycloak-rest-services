@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.28 (2023-08-07)
+
+### Other
+
+* Ignore mailing_list_email attr if it's an IceCube address ([#99](https://github.com/WIPACrepo/keycloak-rest-services/issues/99)) ([`40bff7d`](https://github.com/WIPACrepo/keycloak-rest-services/commit/40bff7df5fde1aa8aa79b2ceb0d9680f44df0b94))
+
 ## v1.4.27 (2023-08-07)
 
 ### Other
