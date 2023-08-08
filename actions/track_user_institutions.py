@@ -52,7 +52,7 @@ async def update_institution_tracking(keycloak_client=None, notify=True, dryrun=
             user_insts[inst_username].append(inst_path)
 
     all_users = await list_users(rest_client=keycloak_client)
-    for username,userinfo in all_users.items():
+    for username, userinfo in all_users.items():
         insts_actual = user_insts[username]
         # There's currently an issue with our keycloak that prevents using lists
         # as user attribute values. To work-around, institutions_last_seen is
