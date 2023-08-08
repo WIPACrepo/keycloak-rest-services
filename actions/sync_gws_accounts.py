@@ -104,7 +104,7 @@ def create_missing_eligible_accounts(gws_users_client, gws_accounts, ldap_accoun
             created_usernames.append(username)
             if 'canonical_email' in attrs['attributes']:
                 logger.info(f'inserting alias {attrs["attributes"]["canonical_email"]}')
-                for attempt in range(3):
+                for attempt in range(1, 11):
                     time.sleep(5)  # give time for account creation
                     try:
                         gws_users_client.aliases().insert(
@@ -112,11 +112,11 @@ def create_missing_eligible_accounts(gws_users_client, gws_accounts, ldap_accoun
                             body={'alias': attrs['attributes']['canonical_email']}).execute()
                         break
                     except HttpError as e:
-                        logger.debug(f'attempt {attempt+1} to insert alias failed')
-                        logger.debug(e)
+                        logger.warning(f'attempt {attempt} to insert alias failed')
+                        logger.warning(e)
                         continue
                 else:
-                    logger.error(f'giving up on alias creation after {attempt+1} attempts')
+                    logger.error(f'giving up on alias creation after {attempt} attempts')
         else:
             logger.debug(f'ignoring user {username}')
     return created_usernames
