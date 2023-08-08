@@ -51,7 +51,7 @@ async def test_update_institutionless_users(keycloak_bootstrap):
     await groups.add_user_group('/institutions/IceCube/A', 'add-ab', rest_client=keycloak_bootstrap)
     await groups.add_user_group('/institutions/IceCube/B', 'add-ab', rest_client=keycloak_bootstrap)
 
-    await update_institution_tracking(keycloak_client=keycloak_bootstrap)
+    await update_institution_tracking(keycloak_client=keycloak_bootstrap, notify=False, dryrun=False)
 
     all_users = await users.list_users(rest_client=keycloak_bootstrap)
 
