@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.29 (2023-08-08)
+
+### Other
+
+* Actions/sync_gws_accounts.py: be more persistent when creating aliases ([#100](https://github.com/WIPACrepo/keycloak-rest-services/issues/100)) ([`9fd5c9e`](https://github.com/WIPACrepo/keycloak-rest-services/commit/9fd5c9ed090b032d93dd9bf228880c92566c8f5b))
+
 ## v1.4.28 (2023-08-07)
 
 ### Other
