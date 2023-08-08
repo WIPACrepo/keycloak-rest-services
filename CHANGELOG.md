@@ -2,6 +2,22 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.30 (2023-08-08)
+
+### Other
+
+* <bot> update requirements.txt ([`e97ee0c`](https://github.com/WIPACrepo/keycloak-rest-services/commit/e97ee0c74fba3d0993e4a2a9472956964cd5e735))
+* <bot> update requirements.txt ([`29dcc19`](https://github.com/WIPACrepo/keycloak-rest-services/commit/29dcc194c30a9a71319142b7eae7a74a569f76c1))
+* <bot> update requirements.txt ([`ff3cfc9`](https://github.com/WIPACrepo/keycloak-rest-services/commit/ff3cfc973301f406703bc7d71f62de844fcae1c3))
+* <bot> update requirements-tests.txt ([`4115bee`](https://github.com/WIPACrepo/keycloak-rest-services/commit/4115bee7e71a2125cff00cba1781266d9f0c5992))
+* <bot> update requirements-actions.txt ([`71a0b57`](https://github.com/WIPACrepo/keycloak-rest-services/commit/71a0b5792f4bb27a3205f104ce21f4075a3b5c7b))
+* <bot> update requirements.txt ([`1936b18`](https://github.com/WIPACrepo/keycloak-rest-services/commit/1936b185e89c875b9598e3a3cb8a9751aa7b3345))
+* <bot> update requirements-tests.txt ([`5ad974d`](https://github.com/WIPACrepo/keycloak-rest-services/commit/5ad974d9b8b45a96d1ae35747cfb1344895abd07))
+* <bot> update requirements-actions.txt ([`6ca2bc3`](https://github.com/WIPACrepo/keycloak-rest-services/commit/6ca2bc3b1008c5dfaf345f983fa3a88afca5fcfb))
+* <bot> update requirements.txt ([`1d76e4e`](https://github.com/WIPACrepo/keycloak-rest-services/commit/1d76e4e22d82cc3a2f726c876eca6f858b974576))
+* <bot> update requirements-tests.txt ([`d094e9e`](https://github.com/WIPACrepo/keycloak-rest-services/commit/d094e9eff5cd75f41ff1e0dc8ee2de572bf54b4f))
+* <bot> update requirements-actions.txt ([`4abce35`](https://github.com/WIPACrepo/keycloak-rest-services/commit/4abce35a764797fe122574751eb911c034ad9e9e))
+
 ## v1.4.29 (2023-08-08)
 
 ### Other
