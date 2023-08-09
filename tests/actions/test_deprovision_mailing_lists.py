@@ -6,7 +6,7 @@ from krs.groups import create_group, modify_group, add_user_group, get_group_mem
 from krs.users import create_user
 from krs.institutions import create_inst, Region
 
-from actions.deprovision_mailing_lists import deprovision_mailing_lists
+from actions.deprovision_mailing_lists import deprovision_mailing_list_groups
 
 
 @pytest.mark.asyncio
@@ -49,6 +49,6 @@ async def test_deprovision_mailing_lists(keycloak_bootstrap):
                       rest_client=keycloak_bootstrap)
     await add_user_group('/mail/list', 'homeless', rest_client=keycloak_bootstrap)
 
-    await deprovision_mailing_lists(7, None, False, keycloak_bootstrap)
+    await deprovision_mailing_list_groups(7, None, False, keycloak_bootstrap)
     ret = await get_group_membership('/mail/list', rest_client=keycloak_bootstrap)
     assert set(ret) == {'good', 'wrong-exp-grace'}

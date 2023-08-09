@@ -8,6 +8,11 @@ Update user attributes that track users' institutions:
 Note that the reason institutions_last_seen is a comma-separated list is that
 currently our KeyCloak instance can't store lists as user attribute values.
 
+Users that have just become institutionless can optionally be alerted to
+this fact via email. SMTP server is controlled by the EMAIL_SMTP_SERVER
+environmental variable and defaults to localhost. See krs/email.py for
+more email options.
+
 Example::
     python -m actions.track_user_institutions --dryrun
 """
@@ -80,7 +85,7 @@ def main():
         description='Update institutions_last_seen and institutions_last_changed user '
                     'attributes. See file docstring for details.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--notify', action='store_true', help='send notification emails')
+    parser.add_argument('--notify', action='store_true', help='send notification emails (see module docstring)')
     parser.add_argument('--dryrun', action='store_true', help='dry run (implies no notifications)')
     parser.add_argument('--log-level', default='info',
                         choices=('debug', 'info', 'warning', 'error'), help='logging level')
