@@ -23,11 +23,11 @@ charset-normalizer==3.2.0
     # via requests
 cryptography==41.0.3
     # via pyjwt
-dnspython==2.4.1
+dnspython==2.4.2
     # via pymongo
 google-api-core==2.11.1
     # via google-api-python-client
-google-api-python-client==2.95.0
+google-api-python-client==2.96.0
     # via wipac-keycloak-rest-services (setup.py)
 google-auth==2.22.0
     # via
@@ -59,7 +59,7 @@ oauthlib==3.2.2
     # via requests-oauthlib
 pamqp==3.2.1
     # via aiormq
-protobuf==4.23.4
+protobuf==4.24.0
     # via
     #   google-api-core
     #   googleapis-common-protos
