@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.32 (2023-08-09)
+
+### Other
+
+* Deprovision_mailing_lists.py: deprovision _admin subgroup too ([#102](https://github.com/WIPACrepo/keycloak-rest-services/issues/102)) ([`c3751e8`](https://github.com/WIPACrepo/keycloak-rest-services/commit/c3751e819a58d0a4ac9b95d9834402078a58e952))
+
 ## v1.4.31 (2023-08-09)
 
 ### Other
