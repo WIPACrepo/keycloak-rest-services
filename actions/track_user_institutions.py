@@ -26,7 +26,8 @@ logger = logging.getLogger('track_user_institutions')
 
 NEWLY_INSTITUTIONLESS_MESSAGE = """
 You are no longer a member of any IceCube Collaboration institution and
-therefore may lose access to some resources after a grace period.
+therefore may lose access to some resources, such as mailing lists, after
+a grace period.
 
 If you believe this is a mistake, please join the appropriate institution(s)
 on https://user-management.icecube.aq, or email help@icecube.wisc.edu.
