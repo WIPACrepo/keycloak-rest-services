@@ -81,7 +81,7 @@ def main():
                     'attributes. See file docstring for details.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--notify', action='store_true', help='send notification emails')
-    parser.add_argument('--dryrun', action='store_true', help='dry run')
+    parser.add_argument('--dryrun', action='store_true', help='dry run (implies no notifications)')
     parser.add_argument('--log-level', default='info',
                         choices=('debug', 'info', 'warning', 'error'), help='logging level')
 
