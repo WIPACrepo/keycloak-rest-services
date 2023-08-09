@@ -14,9 +14,9 @@ async def test_deprovision_mailing_lists(keycloak_bootstrap):
     await create_group('/institutions', rest_client=keycloak_bootstrap)
     await create_group('/institutions/foo', rest_client=keycloak_bootstrap)
     await create_group('/institutions/bar', rest_client=keycloak_bootstrap)
+
     attrs = {'name': 'Test', 'cite': 'Test', 'abbreviation': 'T', 'is_US': False,
              'region': Region.NORTH_AMERICA}
-
     await create_inst('foo', 'A', attrs, rest_client=keycloak_bootstrap)
     await create_inst('bar', 'B', attrs, rest_client=keycloak_bootstrap)
 
@@ -25,30 +25,39 @@ async def test_deprovision_mailing_lists(keycloak_bootstrap):
     await modify_group('/mail/list',
                        attrs={'allow_members_from_experiments': ['foo']},
                        rest_client=keycloak_bootstrap)
+    await create_group('/mail/list/_admin', rest_client=keycloak_bootstrap)
 
     await create_user('good', first_name='first', last_name='last', email='z@test',
                       attribs={"institutions_last_seen": "/institutions/foo/A",
                                "institutions_last_changed": '2001-01-01T01:01:01.000001'},
                       rest_client=keycloak_bootstrap)
     await add_user_group('/mail/list', 'good', rest_client=keycloak_bootstrap)
+    await add_user_group('/mail/list/_admin', 'good', rest_client=keycloak_bootstrap)
 
     await create_user('wrong-exp', first_name='first', last_name='last', email='a@test',
                       attribs={"institutions_last_seen": "/institutions/bar/B",
                                "institutions_last_changed": '2001-01-01T01:01:01.000001'},
                       rest_client=keycloak_bootstrap)
     await add_user_group('/mail/list', 'wrong-exp', rest_client=keycloak_bootstrap)
+    await add_user_group('/mail/list/_admin', 'wrong-exp', rest_client=keycloak_bootstrap)
 
     await create_user('wrong-exp-grace', first_name='first', last_name='last', email='b@test',
                       attribs={"institutions_last_seen": "/institutions/bar/B",
                                "institutions_last_changed": datetime.now().isoformat()},
                       rest_client=keycloak_bootstrap)
     await add_user_group('/mail/list', 'wrong-exp-grace', rest_client=keycloak_bootstrap)
+    await add_user_group('/mail/list/_admin', 'wrong-exp-grace', rest_client=keycloak_bootstrap)
 
     await create_user('homeless', first_name='first', last_name='last', email='c@test',
                       attribs={},
                       rest_client=keycloak_bootstrap)
     await add_user_group('/mail/list', 'homeless', rest_client=keycloak_bootstrap)
+    await add_user_group('/mail/list/_admin', 'homeless', rest_client=keycloak_bootstrap)
 
     await deprovision_mailing_list_groups(7, None, False, keycloak_bootstrap)
+
     ret = await get_group_membership('/mail/list', rest_client=keycloak_bootstrap)
+    assert set(ret) == {'good', 'wrong-exp-grace'}
+
+    ret = await get_group_membership('/mail/list/_admin', rest_client=keycloak_bootstrap)
     assert set(ret) == {'good', 'wrong-exp-grace'}

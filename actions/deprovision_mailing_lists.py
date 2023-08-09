@@ -54,7 +54,8 @@ async def _deprovision_group(group_path, removal_grace_days, allowed_institution
         user_info_cache (dict): cache for user_info objects
         keycloak_client (RestClient): KeyCloak REST API client
         dryrun (bool): perform a mock run with no changes made
-    Returns: list of usernames that were removed
+    Returns:
+        list of usernames that were removed
     """
     removed_users = []
     ml_group_members = await get_group_membership(group_path, rest_client=keycloak_client)
