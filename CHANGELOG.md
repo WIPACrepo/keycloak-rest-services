@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.31 (2023-08-09)
+
+### Other
+
+* Actions/track_user_institutions.py: notify institutionless users ([#101](https://github.com/WIPACrepo/keycloak-rest-services/issues/101)) ([`3c41046`](https://github.com/WIPACrepo/keycloak-rest-services/commit/3c41046ec019a7c7a10656cfd7a3e25cffd9113a))
+
 ## v1.4.30 (2023-08-08)
 
 ### Other
