@@ -25,9 +25,9 @@ from krs.email import send_email
 logger = logging.getLogger('track_user_institutions')
 
 NEWLY_INSTITUTIONLESS_MESSAGE = """
-You are no longer a member of any IceCube Collaboration institution and
-therefore may lose access to some resources, such as mailing lists, after
-a grace period.
+According to our identity management system, you are no longer a member of
+any institution that is part of the IceCube Collaboration. Consequently,
+you may soon lose access to some resources, such as certain mailing lists.
 
 If you believe this is a mistake, please join the appropriate institution(s)
 on https://user-management.icecube.aq, or email help@icecube.wisc.edu.
@@ -67,6 +67,7 @@ async def update_institution_tracking(keycloak_client=None, notify=True, dryrun=
                        "institutions_last_changed": datetime.now().isoformat()}
             if not dryrun:
                 await modify_user(username, attribs=attribs, rest_client=keycloak_client)
+                logger.info(f"Notifying {username} that they have just become institutionless")
                 if not insts_actual and notify:
                     send_email(userinfo['attributes']['canonical_email'],
                                "You are not longer affiliated with any institution",
