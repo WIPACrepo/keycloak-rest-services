@@ -72,8 +72,8 @@ async def update_institution_tracking(keycloak_client=None, notify=True, dryrun=
                        "institutions_last_changed": datetime.now().isoformat()}
             if not dryrun:
                 await modify_user(username, attribs=attribs, rest_client=keycloak_client)
-                logger.info(f"Notifying {username} that they have just become institutionless")
                 if not insts_actual and notify:
+                    logger.info(f"Notifying {username} that they have just become institutionless")
                     send_email(userinfo['attributes']['canonical_email'],
                                "You are not longer affiliated with any institution",
                                NEWLY_INSTITUTIONLESS_MESSAGE)
