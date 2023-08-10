@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.34 (2023-08-10)
+
+### Other
+
+* Fix logging bug in actions/track_user_institutions.py ([#103](https://github.com/WIPACrepo/keycloak-rest-services/issues/103)) ([`26701a0`](https://github.com/WIPACrepo/keycloak-rest-services/commit/26701a0bb57f29f99af3fbfd95cad6a349783a5c))
+* Actions/sync_gws_accounts.py: be more careful with HttpError ([`1109a4a`](https://github.com/WIPACrepo/keycloak-rest-services/commit/1109a4ac9842f3ea2153cec5dd258b58717b985d))
+
 ## v1.4.33 (2023-08-10)
 
 ### Other
