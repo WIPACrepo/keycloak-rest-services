@@ -112,9 +112,13 @@ def create_missing_eligible_accounts(gws_users_client, gws_accounts, ldap_accoun
                             body={'alias': attrs['attributes']['canonical_email']}).execute()
                         break
                     except HttpError as e:
-                        logger.warning(f'attempt {attempt} to insert alias failed')
-                        logger.warning(e)
-                        continue
+                        if e.status_code == 412:  # precondition failed (user creation not complete?)
+                            logger.warning(f'attempt {attempt} to insert alias failed')
+                            logger.warning(dir(e))
+                            logger.warning(e)
+                            continue
+                        else:
+                            raise
                 else:
                     logger.error(f'giving up on alias creation after {attempt} attempts')
         else:
