@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.33 (2023-08-10)
+
+### Other
+
+* Actions/sync_gws_accounts.py: implement a more aggressive back-off ([`d6d1ca6`](https://github.com/WIPACrepo/keycloak-rest-services/commit/d6d1ca6af454e5f8be8a8fc3018decc98c55a2ce))
+
 ## v1.4.32 (2023-08-09)
 
 ### Other
