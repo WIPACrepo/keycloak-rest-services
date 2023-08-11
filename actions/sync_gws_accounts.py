@@ -104,7 +104,6 @@ def create_missing_eligible_accounts(gws_users_client, gws_accounts, ldap_accoun
             created_usernames.append(username)
             if 'canonical_email' in attrs['attributes']:
                 logger.info(f'inserting alias {attrs["attributes"]["canonical_email"]}')
-                save
                 for attempt in range(1, 8):
                     time.sleep(2 ** attempt)
                     try:
