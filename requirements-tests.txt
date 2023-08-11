@@ -88,7 +88,7 @@ tomli==2.0.1
     # via
     #   coverage
     #   pytest
-tornado==6.3.2
+tornado==6.3.3
     # via wipac-rest-tools
 typing-extensions==4.7.1
     # via
