@@ -120,7 +120,7 @@ def create_missing_eligible_accounts(gws_users_client, gws_accounts, ldap_accoun
                             raise
                 else:
                     logger.error(f'giving up on alias creation after {attempt} attempts')
-                    logger.error(f'Saved exception: {saved_exception}')
+                    logger.error(f'saved exception: {saved_exception}')
         else:
             logger.debug(f'ignoring user {username}')
     return created_usernames
