@@ -100,7 +100,7 @@ six==1.16.0
     # via
     #   google-auth
     #   google-auth-httplib2
-tornado==6.3.2
+tornado==6.3.3
     # via wipac-rest-tools
 typing-extensions==4.7.1
     # via
