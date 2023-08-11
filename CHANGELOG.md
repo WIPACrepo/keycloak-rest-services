@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.35 (2023-08-11)
+
+### Other
+
+* Actions/sync_gws_accounts.py reduce alias retry logging ([#104](https://github.com/WIPACrepo/keycloak-rest-services/issues/104)) ([`684ff83`](https://github.com/WIPACrepo/keycloak-rest-services/commit/684ff83790ae29f2cf101aa6355986a18b83ca78))
+
 ## v1.4.34 (2023-08-10)
 
 ### Other
