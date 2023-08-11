@@ -52,7 +52,7 @@ requests==2.31.0
     #   wipac-rest-tools
 requests-futures==1.0.1
     # via wipac-rest-tools
-tornado==6.3.2
+tornado==6.3.3
     # via wipac-rest-tools
 typing-extensions==4.7.1
     # via
