@@ -2,7 +2,8 @@
 Synchronize memberships of Google Workspace groups to their corresponding
 Keycloak mailing list groups. Users are subscribed to Google Workspace groups
 using their KeyCloak `canonical_email` attribute, unless it is overridden
-by `mailing_list_email`.
+by `mailing_list_email` (unless it's an @icecube.wisc.edu address, in which
+case it's ignored).
 
 Users can optionally be notified of changes via email. SMTP server is
 controlled by the EMAIL_SMTP_SERVER environmental variable and defaults
@@ -91,7 +92,7 @@ def get_gws_group_members(group_email, gws_members_client) -> list:
 
 
 async def get_gws_members_from_keycloak_group(group_path, role, keycloak_client) -> dict:
-    """Return a dict of GWS group member dicts based on member emails of the keycloak group"""
+    """Return a dict of GWS group member object dicts based on member emails of the keycloak group"""
     ret = {}
     usernames = await get_group_membership(group_path, rest_client=keycloak_client)
     # noinspection PyCallingNonCallable
