@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.37 (2023-08-14)
+
+### Other
+
+* Actions/sync_gws_mailing_lists.py: update documentation ([`1d93e69`](https://github.com/WIPACrepo/keycloak-rest-services/commit/1d93e69b996df80bf113d464b2057f6e619778f6))
+
 ## v1.4.36 (2023-08-14)
 
 ### Other
