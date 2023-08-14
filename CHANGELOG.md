@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.36 (2023-08-14)
+
+### Other
+
+* Move unidecode to a full dependency ([#105](https://github.com/WIPACrepo/keycloak-rest-services/issues/105)) ([`adcbee4`](https://github.com/WIPACrepo/keycloak-rest-services/commit/adcbee4b242ca661114baddbdb3f57b05372d00e))
+
 ## v1.4.35 (2023-08-11)
 
 ### Other
