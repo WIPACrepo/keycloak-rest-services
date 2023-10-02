@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.39 (2023-10-02)
+
+### Other
+
+* <bot> update dependencies*.log files(s) ([`c0dea7f`](https://github.com/WIPACrepo/keycloak-rest-services/commit/c0dea7f7a414fd54c96abd7f555fa34b953e216e))
+
 ## v1.4.38 (2023-10-02)
 
 ### Other
