@@ -2,6 +2,15 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.41 (2023-10-02)
+
+### Other
+
+* Use `WIPACrepo/wipac-dev-py-setup-action@v2.6` ([#107](https://github.com/WIPACrepo/keycloak-rest-services/issues/107)) ([`ea1f305`](https://github.com/WIPACrepo/keycloak-rest-services/commit/ea1f3059b0ecde98c67db9bba6f8f80befffcdde))
+* <bot> update setup.cfg ([`af94327`](https://github.com/WIPACrepo/keycloak-rest-services/commit/af943271ad91d427e3339720e2095bc862afe62d))
+* Wipac_cicd.yaml: revert wipac-dev-py-setup-action to 1.14 ([`321524d`](https://github.com/WIPACrepo/keycloak-rest-services/commit/321524df20cc9a67ce4195b9379bbaf0cb99abd3))
+* <bot> update dependencies*.log files(s) ([`8ed111f`](https://github.com/WIPACrepo/keycloak-rest-services/commit/8ed111f4545e80e2fe2ff97ae215ddb28af0e249))
+
 ## v1.4.40 (2023-10-02)
 
 ### Other
