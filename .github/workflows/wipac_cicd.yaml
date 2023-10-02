@@ -86,7 +86,6 @@ jobs:
       - uses: WIPACrepo/wipac-dev-py-setup-action@v2.6
 
   py-versions:
-    needs: [py-setup]
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.versions.outputs.matrix }}
