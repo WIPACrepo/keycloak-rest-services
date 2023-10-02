@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.38 (2023-10-02)
+
+### Other
+
+* Actions/sync_gws_mailing_lists.py: sanitize preferred emails ([#106](https://github.com/WIPACrepo/keycloak-rest-services/issues/106)) ([`ec69c35`](https://github.com/WIPACrepo/keycloak-rest-services/commit/ec69c354989c043855db38db1303089a06d4f7a3))
+
 ## v1.4.37 (2023-08-14)
 
 ### Other
