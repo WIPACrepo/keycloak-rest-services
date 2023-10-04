@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.42 (2023-10-04)
+
+### Other
+
+* Fix create_posix_user re-enable ([#108](https://github.com/WIPACrepo/keycloak-rest-services/issues/108)) ([`a0804bb`](https://github.com/WIPACrepo/keycloak-rest-services/commit/a0804bbde5550ebd368e4b5a9ae7d7e31f41bff8))
+
 ## v1.4.41 (2023-10-02)
 
 ### Other
