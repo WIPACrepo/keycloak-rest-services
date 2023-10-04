@@ -47,6 +47,7 @@ async def process(group_path, keycloak_client=None, dryrun=False, ldap_client=No
 
     # add new users
     for username in sorted(ret):
+        user = users[username]
         if username in users and 'uidNumber' in users[username]:
             if 'loginShell' in user and user['loginShell'] and user['loginShell'] == '/sbin/nologin':
                 # add back an existing account access
@@ -59,7 +60,6 @@ async def process(group_path, keycloak_client=None, dryrun=False, ldap_client=No
         else:
             # new uid/gid
             max_id += 1
-            user = users[username]
             shell = user['attributes']['loginShell'] if 'attributes' in user and 'loginShell' in user['attributes'] else '/bin/bash'
             attribs = {
                 'uidNumber': max_id,
