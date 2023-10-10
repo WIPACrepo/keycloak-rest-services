@@ -23,6 +23,7 @@ GWS_ACCOUNTS = {
 LDAP_ACCOUNTS = {
     'add-to-gws': {'shadowExpire': 99999},
     'add-to-gws-w-alias': {'shadowExpire': 99999},
+    'force-creation': {'shadowExpire': 11111},
     'already-in-gws': {'shadowExpire': 99999},  # noqa: F601
     'ineligible-nologin': {'shadowExpire': 99999},
     'no-shadow-expire': {},
