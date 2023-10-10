@@ -65,7 +65,8 @@ def is_eligible(account_attrs, shadow_expire):
     old_account = days_remaining <= SHADOWEXPIRE_DAYS_REMAINING_CUTOFF_FOR_ELIGIBILITY
     shell = account_attrs.get('attributes', {}).get('loginShell')
     force_create = 'force_creation_in_gws' in account_attrs.get('attributes', {})
-    return force_create or (not old_account
+    return force_create or \
+        (not old_account
             and account_attrs['enabled']
             and shell not in ('/sbin/nologin', None)
             and account_attrs.get('firstName') and account_attrs.get('lastName'))
