@@ -69,11 +69,11 @@ def is_eligible(account_attrs, shadow_expire):
                      'has a non-empty value. This violates semantics. Ignoring user.')
         return False
     force_create = 'force_creation_in_gws' in account_attrs.get('attributes', {})
-    return force_create or \
-        (not old_account
-            and account_attrs['enabled']
-            and shell not in ('/sbin/nologin', None)
-            and account_attrs.get('firstName') and account_attrs.get('lastName'))
+    return (account_attrs['enabled'] and
+            (force_create or (not old_account
+                              and shell not in ('/sbin/nologin', None)
+                              and account_attrs.get('firstName')
+                              and account_attrs.get('lastName'))))
 
 
 def create_missing_eligible_accounts(gws_users_client, gws_accounts, ldap_accounts,
