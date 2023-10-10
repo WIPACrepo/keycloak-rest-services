@@ -20,12 +20,15 @@ KeyCloak REST client is configured using environment variables. See
 krs/token.py for details.
 
 Domain-wide delegation must be enabled for the Google Workspace service
-account. See code for which scopes are required. Admin API must be enabled
-in the Google Cloud Console project.
+account and appropriate scopes authorized. See code for which scopes are
+required. Admin API must be enabled in the Google Cloud Console project.
 
 The delegate principal must have Google Workspace admin role, be accessible
 to the service account (in Google Cloud project under IAM), and have
 "Service Account Token Creator" role (in Google Cloud project under IAM).
+
+This code uses custom keycloak attributes that are documented here:
+https://bookstack.icecube.wisc.edu/ops/books/services/page/custom-keycloak-attributes
 """
 import asyncio
 import logging

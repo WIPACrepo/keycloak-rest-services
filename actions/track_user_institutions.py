@@ -13,6 +13,9 @@ this fact via email. SMTP server is controlled by the EMAIL_SMTP_SERVER
 environmental variable and defaults to localhost. See krs/email.py for
 more email options.
 
+This code uses custom keycloak attributes that are documented here:
+https://bookstack.icecube.wisc.edu/ops/books/services/page/custom-keycloak-attributes
+
 Example::
     python -m actions.track_user_institutions --dryrun
 """

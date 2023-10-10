@@ -7,6 +7,7 @@ from actions.sync_gws_accounts import get_gws_accounts
 KC_ACCOUNTS = {
     'add-to-gws': {'attributes': {'loginShell': '/bin/bash'}, 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln',},
     'add-to-gws-w-alias': {'attributes': {'loginShell': '/bin/bash', 'canonical_email': 'foo@bar.com'}, 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln', },
+    'force_creation': {'attributes': {'loginShell': '/sbin/nologin', 'force_creation_in_gws': ''}, 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln',},
     'already-in-gws': {'attributes': {'loginShell': '/bin/bash'}, 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln',},
     'ineligible-nologin': {'attributes': {'loginShell': '/sbin/nologin'}, 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln',},
     'no-shadow-expire': {'attributes': {'loginShell': '/bin/bash'}, 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln',},
@@ -50,7 +51,7 @@ def test_create_missing_eligible_accounts():
 
     ret = create_missing_eligible_accounts(gws_users_client, GWS_ACCOUNTS, LDAP_ACCOUNTS,
                                            KC_ACCOUNTS, dryrun=False)
-    assert sorted(ret) == sorted(['add-to-gws', 'add-to-gws-w-alias'])
-    assert gws_users_client.insert().execute.call_count == 2
+    assert sorted(ret) == sorted(['add-to-gws', 'add-to-gws-w-alias', 'force-creation'])
+    assert gws_users_client.insert().execute.call_count == 3
     assert gws_users_client.aliases.call_count == 1
     assert gws_users_client.aliases().insert().execute.call_count == 1

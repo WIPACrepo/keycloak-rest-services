@@ -2,6 +2,9 @@
 Sync eligible user accounts from KeyCloak to Google Workspace.
 See is_eligible() for how eligibility is determined.
 
+This code uses custom keycloak attributes that are documented here:
+https://bookstack.icecube.wisc.edu/ops/books/services/page/custom-keycloak-attributes
+
 Example::
 
     python -m actions.sync_gws_accounts --sa-delegator admin-user@icecube.wisc.edu \
@@ -61,7 +64,8 @@ def is_eligible(account_attrs, shadow_expire):
     days_remaining = shadow_expire - today
     old_account = days_remaining <= SHADOWEXPIRE_DAYS_REMAINING_CUTOFF_FOR_ELIGIBILITY
     shell = account_attrs.get('attributes', {}).get('loginShell')
-    return (not old_account
+    force_create = 'force_creation_in_gws' in account_attrs.get('attributes', {})
+    return force_create or (not old_account
             and account_attrs['enabled']
             and shell not in ('/sbin/nologin', None)
             and account_attrs.get('firstName') and account_attrs.get('lastName'))
