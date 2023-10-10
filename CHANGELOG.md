@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.43 (2023-10-10)
+
+### Other
+
+* Implement force_creation_in_gws custom user attribute ([#109](https://github.com/WIPACrepo/keycloak-rest-services/issues/109)) ([`e980721`](https://github.com/WIPACrepo/keycloak-rest-services/commit/e9807218db3a54c0d17f36451079d3184d1c4018))
+
 ## v1.4.42 (2023-10-04)
 
 ### Other
