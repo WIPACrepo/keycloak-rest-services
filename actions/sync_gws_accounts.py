@@ -2,6 +2,9 @@
 Sync eligible user accounts from KeyCloak to Google Workspace.
 See is_eligible() for how eligibility is determined.
 
+This code uses custom keycloak attributes that are documented here:
+https://bookstack.icecube.wisc.edu/ops/books/services/page/custom-keycloak-attributes
+
 Example::
 
     python -m actions.sync_gws_accounts --sa-delegator admin-user@icecube.wisc.edu \
@@ -61,10 +64,16 @@ def is_eligible(account_attrs, shadow_expire):
     days_remaining = shadow_expire - today
     old_account = days_remaining <= SHADOWEXPIRE_DAYS_REMAINING_CUTOFF_FOR_ELIGIBILITY
     shell = account_attrs.get('attributes', {}).get('loginShell')
-    return (not old_account
-            and account_attrs['enabled']
-            and shell not in ('/sbin/nologin', None)
-            and account_attrs.get('firstName') and account_attrs.get('lastName'))
+    if account_attrs.get('attributes', {}).get('force_creation_in_gws'):
+        logger.error(f'Attribute force_creation_in_gws of {account_attrs["username"]} '
+                     'has a non-empty value. This violates semantics. Ignoring user.')
+        return False
+    force_create = 'force_creation_in_gws' in account_attrs.get('attributes', {})
+    return (account_attrs['enabled'] and
+            (force_create or (not old_account
+                              and shell not in ('/sbin/nologin', None)
+                              and account_attrs.get('firstName')
+                              and account_attrs.get('lastName'))))
 
 
 def create_missing_eligible_accounts(gws_users_client, gws_accounts, ldap_accounts,

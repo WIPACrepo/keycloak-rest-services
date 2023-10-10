@@ -1,5 +1,8 @@
 """
 User actions against Keycloak.
+
+This code uses custom keycloak attributes that are documented here:
+https://bookstack.icecube.wisc.edu/ops/books/services/page/custom-keycloak-attributes
 """
 import asyncio
 import logging

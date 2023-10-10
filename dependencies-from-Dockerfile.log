@@ -8,8 +8,8 @@ charset-normalizer==3.3.0
 cryptography==41.0.4
 dnspython==2.4.2
 google-api-core==2.12.0
-google-api-python-client==2.102.0
-google-auth==2.23.2
+google-api-python-client==2.103.0
+google-auth==2.23.3
 google-auth-httplib2==0.1.1
 google-auth-oauthlib==1.1.0
 googleapis-common-protos==1.60.0
