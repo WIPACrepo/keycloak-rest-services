@@ -64,6 +64,10 @@ def is_eligible(account_attrs, shadow_expire):
     days_remaining = shadow_expire - today
     old_account = days_remaining <= SHADOWEXPIRE_DAYS_REMAINING_CUTOFF_FOR_ELIGIBILITY
     shell = account_attrs.get('attributes', {}).get('loginShell')
+    if account_attrs.get('attributes', {}).get('force_creation_in_gws'):
+        logger.error(f'Attribute force_creation_in_gws of {account_attrs["username"]} '
+                     'has a non-empty value. This violates semantics. Ignoring user.')
+        return False
     force_create = 'force_creation_in_gws' in account_attrs.get('attributes', {})
     return force_create or \
         (not old_account
