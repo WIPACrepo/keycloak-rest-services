@@ -7,7 +7,7 @@ from actions.sync_gws_accounts import get_gws_accounts
 KC_ACCOUNTS = {
     'add-to-gws': {'attributes': {'loginShell': '/bin/bash'}, 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln',},
     'add-to-gws-w-alias': {'attributes': {'loginShell': '/bin/bash', 'canonical_email': 'foo@bar.com'}, 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln', },
-    'force_creation': {'attributes': {'loginShell': '/sbin/nologin', 'force_creation_in_gws': ''}, 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln',},
+    'force-creation': {'attributes': {'loginShell': '/sbin/nologin', 'force_creation_in_gws': ''}, 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln',},
     'already-in-gws': {'attributes': {'loginShell': '/bin/bash'}, 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln',},
     'ineligible-nologin': {'attributes': {'loginShell': '/sbin/nologin'}, 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln',},
     'no-shadow-expire': {'attributes': {'loginShell': '/bin/bash'}, 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln',},
