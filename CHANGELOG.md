@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.44 (2023-10-12)
+
+### Other
+
+* Py 3.12 support ([#111](https://github.com/WIPACrepo/keycloak-rest-services/issues/111)) ([`aa54825`](https://github.com/WIPACrepo/keycloak-rest-services/commit/aa54825d6c9398e3e3cab478be4c9436a6aebbee))
+
 ## v1.4.43 (2023-10-10)
 
 ### Other
