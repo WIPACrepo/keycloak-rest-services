@@ -1,3 +1,5 @@
+PS1="\[\e[32m\]TEST "$PS1
+
 export KEYCLOAK_URL=http://localhost:8080
 export KEYCLOAK_USERNAME=admin
 export KEYCLOAK_PASSWORD=admin

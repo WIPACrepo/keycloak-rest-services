@@ -108,7 +108,7 @@ async def get_gws_members_from_keycloak_group(group_path, role, keycloak_client)
             # address. This doesn't make sense and is not allowed.
             preferred = None
         if preferred:
-            # Preferred adresses are controlled by users so we need to do some sanitizing
+            # Preferred addresses are controlled by users so we need to do some sanitizing
             preferred = preferred.lower()
             # If a user has a preferred mailing list email, also add their canonical
             # (IceCube) email as a no-mail member, since they may not be able to log
