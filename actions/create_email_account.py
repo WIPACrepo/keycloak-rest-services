@@ -76,17 +76,6 @@ for username in sorted(set(users)-current_users):
         with open('/etc/dovecot/deny-users', 'a') as f:
             f.write(username+'\\n')
 
-    path = '/mnt/mail/'+username
-    if not os.path.exists(path):
-        logging.debug('Creating directory ' + path)
-        if not dryrun:
-            os.makedirs(path, mode=0o755)
-        if is_root:
-            logging.debug('Changing ownership of %s to %d:%d', path,
-                          user['uid'], user['gid'])
-            if not dryrun:
-                os.chown(path, user['uid'], user['gid'])
-
 if changes and not dryrun:
     logging.info('reloading postfix')
     subprocess.check_call(['/usr/sbin/postmap', '/etc/postfix/local_recipients'])
