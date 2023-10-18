@@ -51,24 +51,6 @@ def get_gws_accounts(gws_users_client):
     return dict((u['primaryEmail'].split('@')[0], u) for u in user_list)
 
 
-def add_to_gmail_group(gws_members_client, email):
-    """Add a user to the enable-gmail group.
-
-    Currently, Google Mail service is only turned on for accounts belonging
-    to enable-gmail. This trivial code is split into a separate function in
-    case retry logic will need to be implemented.
-
-    Args:
-        gws_members_client (googleapiclient.discovery.Resource): Admin API Group Member resource
-        email (str): email of account to be added to the enable-gmail group.
-    """
-    logger.info(f'adding {email} to group enable-gmail')
-    body = {'email': email,
-            'delivery_settings': 'ALL_MAIL',
-            'role': 'MEMBER'}
-    gws_members_client.insert(groupKey='enable-gmail@icecube.wisc.edu', body=body).execute()
-
-
 def add_canonical_alias(gws_users_client, kc_attrs):
     """Add the canonical email address as an alias for the account in kc_attrs.
 
@@ -172,8 +154,8 @@ def is_eligible(account_attrs, shadow_expire):
                               and account_attrs.get('lastName'))))
 
 
-def create_missing_eligible_accounts(gws_users_client, gws_members_client, gws_accounts,
-                                     ldap_accounts, kc_accounts, gws_creds, dryrun):
+def create_missing_eligible_accounts(gws_users_client, gws_accounts, ldap_accounts,
+                                     kc_accounts, gws_creds, dryrun):
     """Create eligible KeyCloak accounts in Google Workspace if not there already.
 
     When creating a new account, also create an email alias if keycloak attributes
@@ -209,7 +191,6 @@ def create_missing_eligible_accounts(gws_users_client, gws_members_client, gws_a
                          'password': ''.join(random.choices(string.ascii_letters, k=16))}
             gws_users_client.insert(body=user_body).execute()
             created_usernames.append(username)
-            add_to_gmail_group(gws_members_client, f'{username}@icecube.wisc.edu')
             if attrs.get('attributes', {}).get('canonical_email'):
                 add_canonical_alias(gws_users_client, attrs)
                 set_canonical_sendas(gws_creds, attrs)
@@ -218,14 +199,14 @@ def create_missing_eligible_accounts(gws_users_client, gws_members_client, gws_a
     return created_usernames
 
 
-async def sync_gws_accounts(gws_users_client, gws_members_client, ldap_client, keycloak_client,
+async def sync_gws_accounts(gws_users_client, ldap_client, keycloak_client,
                             gws_creds, dryrun=False):
     kc_accounts = await list_users(rest_client=keycloak_client)
     gws_accounts = get_gws_accounts(gws_users_client)
     ldap_accounts = ldap_client.list_users(attrs=['shadowExpire'])
 
-    create_missing_eligible_accounts(gws_users_client, gws_members_client, gws_accounts,
-                                     ldap_accounts, kc_accounts, gws_creds, dryrun)
+    create_missing_eligible_accounts(gws_users_client, gws_accounts, ldap_accounts,
+                                     kc_accounts, gws_creds, dryrun)
 
 
 def main():
@@ -257,7 +238,6 @@ def main():
 
     scopes = ['https://www.googleapis.com/auth/admin.directory.user',  # create user
               'https://www.googleapis.com/auth/admin.directory.user.alias',  # add alias
-              'https://www.googleapis.com/auth/admin.directory.group.member',  # group membership
               'https://www.googleapis.com/auth/gmail.settings.sharing']  # sendas setting
     creds = service_account.Credentials.from_service_account_file(
         args['sa_credentials'], subject=args['sa_delegator'], scopes=scopes)
@@ -267,7 +247,6 @@ def main():
 
     asyncio.run(sync_gws_accounts(
         gws_users_client=gws_users_client,
-        gws_members_client=gws_members_client,
         ldap_client=ldap_client,
         keycloak_client=keycloak_client,
         gws_creds=creds,

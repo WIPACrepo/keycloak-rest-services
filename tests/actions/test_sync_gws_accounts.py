@@ -57,15 +57,13 @@ def test_get_gws_accounts():
 
 def test_create_missing_eligible_accounts():
     gws_users_client = MagicMock()
-    gws_members_client = MagicMock()
     gws_creds = None
 
-    ret = create_missing_eligible_accounts(gws_users_client, gws_members_client, GWS_ACCOUNTS,
-                                           LDAP_ACCOUNTS, KC_ACCOUNTS, gws_creds, dryrun=False)
+    ret = create_missing_eligible_accounts(gws_users_client, GWS_ACCOUNTS, LDAP_ACCOUNTS,
+                                           KC_ACCOUNTS, gws_creds, dryrun=False)
 
     assert sorted(ret) == sorted(['add-to-gws', 'add-to-gws-w-alias', 'force-creation'])
 
     assert gws_users_client.insert().execute.call_count == 3
     assert gws_users_client.aliases.call_count == 1
     assert gws_users_client.aliases().insert().execute.call_count == 1
-    assert gws_members_client.insert().execute.call_count == 3
