@@ -167,7 +167,6 @@ def create_missing_eligible_accounts(gws_users_client, gws_accounts, ldap_accoun
 
     Args:
         gws_users_client: Google Admin API Users resource
-        gws_members_client: Google Admin API Group Members resource
         gws_accounts (dict): GWS account attributes keyed by username
         ldap_accounts (dict): LDAP accounts attributes keyed by username
         kc_accounts (dict): KeyCloak account attributes keyed by username
@@ -243,7 +242,6 @@ def main():
         args['sa_credentials'], subject=args['sa_delegator'], scopes=scopes)
     gws_directory = build('admin', 'directory_v1', credentials=creds, cache_discovery=False)
     gws_users_client = gws_directory.users()
-    gws_members_client = gws_directory.members()
 
     asyncio.run(sync_gws_accounts(
         gws_users_client=gws_users_client,
