@@ -57,11 +57,6 @@ with open('/etc/postfix/local_recipients') as f:
     current_users = set([line.split()[0] for line in f.readlines() if line and 'OK' in line])
 dryrun = {dryrun}
 
-is_root = getpass.getuser() == 'root'
-if not is_root:
-    logging.debug('Running as user ' + getpass.getuser())
-    logging.debug('Will not chown')
-
 changes = False
 for username in sorted(set(users)-current_users):
     logging.info('Adding email for user ' + username)
