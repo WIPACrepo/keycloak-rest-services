@@ -68,6 +68,10 @@ for username in sorted(set(users)-current_users):
     changes = True
     user = users[username]
     if not dryrun:
+        with open('/etc/postfix/canonical_sender', 'a') as f:		
+            f.write(username+'     '+user['canonical']+'\\n')		
+        with open('/etc/postfix/canonical_recipient', 'a') as f:		
+            f.write(user['canonical']+'     '+username+'\\n')
         with open('/etc/postfix/local_recipients', 'a') as f:
             f.write(username+'     OK\\n')
         with open('/etc/postfix/transport', 'a') as f:
@@ -78,6 +82,8 @@ for username in sorted(set(users)-current_users):
 
 if changes and not dryrun:
     logging.info('reloading postfix')
+    subprocess.check_call(['/usr/sbin/postmap', '/etc/postfix/canonical_recipient'])		
+    subprocess.check_call(['/usr/sbin/postmap', '/etc/postfix/canonical_sender'])
     subprocess.check_call(['/usr/sbin/postmap', '/etc/postfix/local_recipients'])
     subprocess.check_call(['/usr/sbin/postmap', '/etc/postfix/transport'])
     subprocess.check_call(['/usr/sbin/postfix', 'reload'])
