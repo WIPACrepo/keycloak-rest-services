@@ -57,11 +57,6 @@ with open('/etc/postfix/local_recipients') as f:
     current_users = set([line.split()[0] for line in f.readlines() if line and 'OK' in line])
 dryrun = {dryrun}
 
-is_root = getpass.getuser() == 'root'
-if not is_root:
-    logging.debug('Running as user ' + getpass.getuser())
-    logging.debug('Will not chown')
-
 changes = False
 for username in sorted(set(users)-current_users):
     logging.info('Adding email for user ' + username)
@@ -74,23 +69,18 @@ for username in sorted(set(users)-current_users):
             f.write(user['canonical']+'     '+username+'\\n')
         with open('/etc/postfix/local_recipients', 'a') as f:
             f.write(username+'     OK\\n')
-
-    path = '/mnt/mail/'+username
-    if not os.path.exists(path):
-        logging.debug('Creating directory ' + path)
-        if not dryrun:
-            os.makedirs(path, mode=0o755)
-        if is_root:
-            logging.debug('Changing ownership of %s to %d:%d', path,
-                          user['uid'], user['gid'])
-            if not dryrun:
-                os.chown(path, user['uid'], user['gid'])
+        with open('/etc/postfix/transport', 'a') as f:
+            f.write(username+'@icecube.wisc.edu     relay:aspmx.l.google.com\\n')
+            f.write(user['canonical']+'@icecube.wisc.edu     relay:aspmx.l.google.com\\n')
+        with open('/etc/dovecot/deny-users', 'a') as f:
+            f.write(username+'\\n')
 
 if changes and not dryrun:
     logging.info('reloading postfix')
     subprocess.check_call(['/usr/sbin/postmap', '/etc/postfix/canonical_recipient'])
     subprocess.check_call(['/usr/sbin/postmap', '/etc/postfix/canonical_sender'])
     subprocess.check_call(['/usr/sbin/postmap', '/etc/postfix/local_recipients'])
+    subprocess.check_call(['/usr/sbin/postmap', '/etc/postfix/transport'])
     subprocess.check_call(['/usr/sbin/postfix', 'reload'])
 '''
     actions.util.scp_and_run_sudo(email_server, script, script_name='create_email_accounts.py')

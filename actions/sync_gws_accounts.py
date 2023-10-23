@@ -1,5 +1,6 @@
 """
-Sync eligible user accounts from KeyCloak to Google Workspace.
+Sync eligible user accounts from KeyCloak to Google Workspace and apply
+standard configuration to them.
 See is_eligible() for how eligibility is determined.
 
 This code uses custom keycloak attributes that are documented here:
@@ -18,12 +19,12 @@ import random
 import string
 import time
 
+from google.auth.exceptions import RefreshError
+from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from google.oauth2 import service_account
 
 from krs.ldap import LDAP
-from krs.rabbitmq import RabbitMQListener
 from krs.token import get_rest_client
 from krs.users import list_users
 
@@ -50,6 +51,83 @@ def get_gws_accounts(gws_users_client):
     return dict((u['primaryEmail'].split('@')[0], u) for u in user_list)
 
 
+def add_canonical_alias(gws_users_client, kc_attrs):
+    """Add the canonical email address as an alias for the account in kc_attrs.
+
+    Args:
+        gws_users_client (googleapiclient.discovery.Resource): Admin API Users resource.
+        kc_attrs (dict): KeyCloak dictionary of the user being operated on.
+    """
+    if not kc_attrs.get("attributes", {}).get("canonical_email"):
+        logger.error(f'can\'t set canonical alias because user {kc_attrs["username"]} '
+                     f'doesn\'t have attribute canonical_email')
+        return
+    logger.info(f'adding to {kc_attrs["username"]} alias {kc_attrs["attributes"]["canonical_email"]}')
+    attempt = saved_exception = None  # keep code linter happy
+    for attempt in range(1, 8):
+        time.sleep(2 ** attempt)
+        try:
+            gws_users_client.aliases().insert(
+                userKey=f'{kc_attrs["username"]}@icecube.wisc.edu',
+                body={'alias': kc_attrs["attributes"]["canonical_email"]}).execute()
+            break
+        except HttpError as e:
+            if e.status_code == 412:  # precondition failed (user creation not complete?)
+                saved_exception = e
+                continue
+            else:
+                raise
+    else:
+        logger.error(f'giving up on alias creation after {attempt} attempts')
+        logger.error(f'saved exception: {saved_exception}')
+
+
+def set_canonical_sendas(gws_creds, kc_attrs):
+    """Set gmail sendAs address of the account described by kc_attrs to its canonical email.
+
+    For this to work, gmail has to be enabled for the user and the canonical email needs
+    to be configured as an alias for the user.
+
+    Args:
+        gws_creds: Google API credentials
+        kc_attrs (dict): KeyCloak dictionary of the user being operated on.
+    """
+    if not kc_attrs.get("attributes", {}).get("canonical_email"):
+        logger.error(f'can\'t set canonical sendAs because user {kc_attrs["username"]} '
+                     f'doesn\'t have attribute canonical_email')
+        return
+    logger.info(f'setting sendAs of {kc_attrs["username"]} to {kc_attrs["attributes"]["canonical_email"]}')
+    if gws_creds is None:
+        return  # we are being unit tested
+    creds_delegated = gws_creds.with_subject(f'{kc_attrs["username"]}@icecube.wisc.edu')
+    gmail = build('gmail', 'v1', credentials=creds_delegated, cache_discovery=False)
+    sendas = gmail.users().settings().sendAs()
+    body = {
+        "displayName": f"{kc_attrs['firstName']} {kc_attrs['lastName']}",
+        "sendAsEmail": kc_attrs["attributes"]["canonical_email"],
+        "isDefault": True,
+        "treatAsAlias": True,
+    }
+    attempt = saved_exception = None  # keep code linter happy
+    for attempt in range(1, 9):
+        time.sleep(2 ** attempt)
+        try:
+            sendas.create(userId='me', body=body).execute()
+            break
+        except RefreshError as e:  # insert into group allowing gmail probably still being processed
+            saved_exception = e
+            continue
+        except HttpError as e:
+            if e.status_code == 400:  # bad request: the alias is probably still being created
+                saved_exception = e
+                continue
+            else:
+                raise
+    else:
+        logger.error(f'giving up on sendAs setting after {attempt} attempts')
+        logger.error(f'saved exception: {saved_exception}')
+
+
 def is_eligible(account_attrs, shadow_expire):
     """Return True if the account is eligible for creation in Google Workspace.
 
@@ -58,7 +136,7 @@ def is_eligible(account_attrs, shadow_expire):
         shadow_expire (float): value of shadowExpire LDAP attributes of the account
 
     Return:
-        Whether or not the account is eligible for creation
+        Whether the account is eligible for creation
     """
     today = int(time.time()/3600/24)
     days_remaining = shadow_expire - today
@@ -77,7 +155,7 @@ def is_eligible(account_attrs, shadow_expire):
 
 
 def create_missing_eligible_accounts(gws_users_client, gws_accounts, ldap_accounts,
-                                     kc_accounts, dryrun):
+                                     kc_accounts, gws_creds, dryrun):
     """Create eligible KeyCloak accounts in Google Workspace if not there already.
 
     When creating a new account, also create an email alias if keycloak attributes
@@ -88,17 +166,18 @@ def create_missing_eligible_accounts(gws_users_client, gws_accounts, ldap_accoun
     https://developers.google.com/admin-sdk/directory/reference/rest/v1/users
 
     Args:
-        gws_users_client (googleapiclient.discovery.Resource): Admin API Users resource
+        gws_users_client: Google Admin API Users resource
         gws_accounts (dict): GWS account attributes keyed by username
         ldap_accounts (dict): LDAP accounts attributes keyed by username
         kc_accounts (dict): KeyCloak account attributes keyed by username
+        gws_creds: Google API credentials with domain-wide delegation
         dryrun (bool): perform a trial run with no changes made
 
     Returns:
         List of created usernames (used for unit testing)
     """
     created_usernames = []  # used for unit testing
-    for username,attrs in kc_accounts.items():
+    for username, attrs in kc_accounts.items():
         shadow_expire = ldap_accounts[username].get('shadowExpire', float('-inf'))
         if username not in gws_accounts and is_eligible(attrs, shadow_expire):
             logger.info(f'creating user {username} (dryrun={dryrun})')
@@ -107,67 +186,35 @@ def create_missing_eligible_accounts(gws_users_client, gws_accounts, ldap_accoun
             user_body = {'primaryEmail': f'{username}@icecube.wisc.edu',
                          'name': {
                              'givenName': attrs['firstName'],
-                             'familyName': attrs['lastName'],},
-                         'password': ''.join(random.choices(string.ascii_letters, k=12)),}
+                             'familyName': attrs['lastName']},
+                         'password': ''.join(random.choices(string.ascii_letters, k=16))}
             gws_users_client.insert(body=user_body).execute()
             created_usernames.append(username)
-            if 'canonical_email' in attrs['attributes']:
-                logger.info(f'inserting alias {attrs["attributes"]["canonical_email"]}')
-                for attempt in range(1, 8):
-                    time.sleep(2 ** attempt)
-                    try:
-                        gws_users_client.aliases().insert(
-                            userKey=user_body['primaryEmail'],
-                            body={'alias': attrs['attributes']['canonical_email']}).execute()
-                        break
-                    except HttpError as e:
-                        if e.status_code == 412:  # precondition failed (user creation not complete?)
-                            saved_exception = e
-                            continue
-                        else:
-                            raise
-                else:
-                    logger.error(f'giving up on alias creation after {attempt} attempts')
-                    logger.error(f'saved exception: {saved_exception}')
+            if attrs.get('attributes', {}).get('canonical_email'):
+                add_canonical_alias(gws_users_client, attrs)
+                set_canonical_sendas(gws_creds, attrs)
         else:
-            logger.debug(f'ignoring user {username}')
+            logger.debug(f'ignoring ineligible user {username}')
     return created_usernames
 
 
-async def process(gws_users_client, ldap_client, keycloak_client, dryrun=False):
+async def sync_gws_accounts(gws_users_client, ldap_client, keycloak_client,
+                            gws_creds, dryrun=False):
     kc_accounts = await list_users(rest_client=keycloak_client)
     gws_accounts = get_gws_accounts(gws_users_client)
     ldap_accounts = ldap_client.list_users(attrs=['shadowExpire'])
 
     create_missing_eligible_accounts(gws_users_client, gws_accounts, ldap_accounts,
-                                     kc_accounts, dryrun)
-
-
-def listener(address=None, exchange=None, dedup=1, **kwargs):
-    """Set up RabbitMQ listener"""
-    async def action(message):
-        logger.debug(f'{message}')
-        if message['representation']:
-            await process(**kwargs)
-
-    args = {
-        'routing_key': 'KK.EVENT.ADMIN.#.SUCCESS.USER.#',
-        'dedup': dedup,
-    }
-    if address:
-        args['address'] = address
-    if exchange:
-        args['exchange'] = exchange
-
-    return RabbitMQListener(action, **args)
+                                     kc_accounts, gws_creds, dryrun)
 
 
 def main():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description='Sync eligible user accounts from KeyCloak to Google Workspace. '
-                    'Eligibility is determined by the is_eligible() function.',
+        description='Sync eligible user accounts from KeyCloak to Google Workspace and '
+                    'configure them. Eligibility is determined by the is_eligible() '
+                    'function.',
         epilog='Notes: (1) LDAP and KeyCloak clients are configured using environment '
                'variables. See krs/ldap.py and krs/token.py for details. '
                '(2): Domain-wide delegation must be enabled for the service account. '
@@ -180,10 +227,6 @@ def main():
                         help='file with service account credentials')
     parser.add_argument('--sa-delegator', metavar='ACCOUNT', required=True,
                         help='principal on whose behalf the service account will act')
-    parser.add_argument('--listen', default=False, action='store_true',
-                        help='enable persistent RabbitMQ listener')
-    parser.add_argument('--listen-address', help='RabbitMQ address, including user/pass')
-    parser.add_argument('--listen-exchange', help='RabbitMQ exchange name')
 
     args = vars(parser.parse_args())
 
@@ -192,22 +235,20 @@ def main():
     keycloak_client = get_rest_client()
     ldap_client = LDAP()
 
+    scopes = ['https://www.googleapis.com/auth/admin.directory.user',  # create user
+              'https://www.googleapis.com/auth/admin.directory.user.alias',  # add alias
+              'https://www.googleapis.com/auth/gmail.settings.sharing']  # sendas setting
     creds = service_account.Credentials.from_service_account_file(
-        args['sa_credentials'], subject=args['sa_delegator'],
-        scopes=['https://www.googleapis.com/auth/admin.directory.user',
-                'https://www.googleapis.com/auth/admin.directory.user.alias'])
+        args['sa_credentials'], subject=args['sa_delegator'], scopes=scopes)
     gws_directory = build('admin', 'directory_v1', credentials=creds, cache_discovery=False)
     gws_users_client = gws_directory.users()
 
-    if args['listen']:
-        ret = listener(address=args['listen_address'], exchange=args['listen_exchange'],
-                       keycloak_client=keycloak_client, gws_users_client=gws_users_client,
-                       ldap_client=ldap_client, dryrun=args['dryrun'])
-        loop = asyncio.get_event_loop()
-        loop.create_task(ret.start())
-        loop.run_forever()
-    else:
-        asyncio.run(process(gws_users_client, ldap_client, keycloak_client, dryrun=args['dryrun']))
+    asyncio.run(sync_gws_accounts(
+        gws_users_client=gws_users_client,
+        ldap_client=ldap_client,
+        keycloak_client=keycloak_client,
+        gws_creds=creds,
+        dryrun=args['dryrun']))
 
 
 if __name__ == '__main__':

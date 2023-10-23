@@ -5,14 +5,22 @@ from actions.sync_gws_accounts import get_gws_accounts
 
 
 KC_ACCOUNTS = {
-    'add-to-gws': {'attributes': {'loginShell': '/bin/bash'}, 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln',},
-    'add-to-gws-w-alias': {'attributes': {'loginShell': '/bin/bash', 'canonical_email': 'foo@bar.com'}, 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln', },
-    'force-creation': {'attributes': {'loginShell': '/sbin/nologin', 'force_creation_in_gws': ''}, 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln',},
-    'already-in-gws': {'attributes': {'loginShell': '/bin/bash'}, 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln',},
-    'ineligible-nologin': {'attributes': {'loginShell': '/sbin/nologin'}, 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln',},
-    'no-shadow-expire': {'attributes': {'loginShell': '/bin/bash'}, 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln',},
-    'expired-shadow': {'attributes': {'loginShell': '/bin/bash'}, 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln',},
-    'missing-name': {'attributes': {'loginShell': '/bin/bash'}, 'enabled': True, 'firstName': '', 'lastName': 'Ln',},
+    'add-to-gws': {'attributes': {'loginShell': '/bin/bash'},
+                   'username': 'add-to-gws', 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln',},
+    'add-to-gws-w-alias': {'attributes': {'loginShell': '/bin/bash', 'canonical_email': 'foo@bar.com'},
+                           'username': 'add-to-gws-w-alias', 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln', },
+    'force-creation': {'attributes': {'loginShell': '/sbin/nologin', 'force_creation_in_gws': ''},
+                       'username': 'force-creation', 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln',},
+    'already-in-gws': {'attributes': {'loginShell': '/bin/bash'},
+                       'username': 'already-in-gws', 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln',},
+    'ineligible-nologin': {'attributes': {'loginShell': '/sbin/nologin'},
+                           'username': 'ineligible-nologin', 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln',},
+    'no-shadow-expire': {'attributes': {'loginShell': '/bin/bash'},
+                         'username': 'no-shadow-expire', 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln',},
+    'expired-shadow': {'attributes': {'loginShell': '/bin/bash'},
+                       'username': 'expired-shadow', 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln',},
+    'missing-name': {'attributes': {'loginShell': '/bin/bash'},
+                     'username': 'missing-name', 'enabled': True, 'firstName': '', 'lastName': 'Ln',},
 }
 
 GWS_ACCOUNTS = {
@@ -49,10 +57,13 @@ def test_get_gws_accounts():
 
 def test_create_missing_eligible_accounts():
     gws_users_client = MagicMock()
+    gws_creds = None
 
     ret = create_missing_eligible_accounts(gws_users_client, GWS_ACCOUNTS, LDAP_ACCOUNTS,
-                                           KC_ACCOUNTS, dryrun=False)
+                                           KC_ACCOUNTS, gws_creds, dryrun=False)
+
     assert sorted(ret) == sorted(['add-to-gws', 'add-to-gws-w-alias', 'force-creation'])
+
     assert gws_users_client.insert().execute.call_count == 3
     assert gws_users_client.aliases.call_count == 1
     assert gws_users_client.aliases().insert().execute.call_count == 1
