@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.45 (2023-10-23)
+
+### Other
+
+* <bot> update dependencies*.log files(s) ([`8124e12`](https://github.com/WIPACrepo/keycloak-rest-services/commit/8124e12d3b406526f77991dde087e41a94da3c95))
+* Gmail support ([#112](https://github.com/WIPACrepo/keycloak-rest-services/issues/112)) ([`6661fe3`](https://github.com/WIPACrepo/keycloak-rest-services/commit/6661fe3ef2d200f095b2f3da3956a3b2d62316fb))
+
 ## v1.4.44 (2023-10-12)
 
 ### Other
