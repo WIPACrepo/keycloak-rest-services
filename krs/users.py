@@ -175,10 +175,7 @@ async def modify_user(username, first_name=None, last_name=None, email=None, att
     if not actions_reset:
         actions = list(set(actions) | set(ret['requiredActions']))
     ret['requiredActions'] = actions
-    logger.info(f'{username} {ret}')
     await rest_client.request('PUT', url, ret)
-    ret = await rest_client.request('GET', url)
-    logger.info(f'XXX {ret}')
 
 
 async def set_user_password(username, password=None, temporary=False, rest_client=None):
