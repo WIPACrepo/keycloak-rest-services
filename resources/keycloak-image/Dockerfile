@@ -1,4 +1,4 @@
-FROM jboss/keycloak:15.0.1 as builder
+FROM quay.io/keycloak/keycloak:15.0.1 as builder
 
 # Keycloak core settings
 ENV KC_HTTP_ENABLED="true"
