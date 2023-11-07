@@ -2,6 +2,7 @@ import pytest
 from datetime import datetime
 
 from krs import users, groups, institutions
+# noinspection PyUnresolvedReferences
 from ..util import keycloak_bootstrap
 
 from actions.track_user_institutions import update_institution_tracking
