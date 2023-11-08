@@ -63,7 +63,7 @@ async def test_update_institutionless_users(keycloak_bootstrap):
            "/institutions/IceCube/A,/institutions/IceCube/B"
     assert all_users['remove-b']['attributes']["institutions_last_seen"] == \
            "/institutions/IceCube/A"
-    assert all_users['remove-all']['attributes']["institutions_last_seen"] == ''
+    assert all_users['remove-all']['attributes']["institutions_last_seen"] == 'none'
     assert all_users['add-ab']['attributes']["institutions_last_seen"] == \
            "/institutions/IceCube/A,/institutions/IceCube/B"
     assert datetime.fromisoformat(
