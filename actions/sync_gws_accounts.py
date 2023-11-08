@@ -142,12 +142,15 @@ def is_eligible(account_attrs, shadow_expire):
     days_remaining = shadow_expire - today
     old_account = days_remaining <= SHADOWEXPIRE_DAYS_REMAINING_CUTOFF_FOR_ELIGIBILITY
     shell = account_attrs.get('attributes', {}).get('loginShell')
-    if account_attrs.get('attributes', {}).get('force_creation_in_gws') == 'true':
+    force_creation_in_gws = account_attrs.get('attributes', {}).get('force_creation_in_gws')
+    if force_creation_in_gws == 'true':
         force_create = True
-    else:
-        logger.error(f'Attribute force_creation_in_gws of {account_attrs["username"]} '
-                     'is present, but not set to "true". This violates semantics. Ignoring.')
+    elif force_creation_in_gws is None:
         force_create = False
+    else:
+        logger.error(f'Attribute force_creation_in_gws of {account_attrs["username"]} is '
+                     'defined but not set to "true". This isn\'t allowed. Ignoring user.')
+        return False
     return (account_attrs['enabled'] and
             (force_create or (not old_account
                               and shell not in ('/sbin/nologin', None)

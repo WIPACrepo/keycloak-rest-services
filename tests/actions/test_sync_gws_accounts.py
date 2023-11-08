@@ -6,32 +6,47 @@ from actions.sync_gws_accounts import get_gws_accounts
 
 KC_ACCOUNTS = {
     'add-to-gws': {'attributes': {'loginShell': '/bin/bash'},
-                   'username': 'add-to-gws', 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln',},
-    'add-to-gws-w-alias': {'attributes': {'loginShell': '/bin/bash', 'canonical_email': 'foo@bar.com'},
-                           'username': 'add-to-gws-w-alias', 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln', },
-    'force-creation': {'attributes': {'loginShell': '/sbin/nologin', 'force_creation_in_gws': 'true'},
-                       'username': 'force-creation', 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln',},
+                   'username': 'add-to-gws', 'enabled': True, 'firstName': 'Fn',
+                   'lastName': 'Ln'},
+    'add-to-gws-w-alias': {'attributes': {'loginShell': '/bin/bash',
+                                          'canonical_email': 'foo@bar.com'},
+                           'username': 'add-to-gws-w-alias', 'enabled': True,
+                           'firstName': 'Fn', 'lastName': 'Ln', },
+    'force-creation': {'attributes': {'loginShell': '/sbin/nologin',
+                                      'force_creation_in_gws': 'true'},
+                       'username': 'force-creation', 'enabled': True, 'firstName': 'Fn',
+                       'lastName': 'Ln'},
+    'force-creation-invalid': {'attributes': {'loginShell': '/sbin/nologin',
+                                              'force_creation_in_gws': 'TRUE'},
+                               'username': 'force-creation-invalid', 'enabled': True,
+                               'firstName': 'Fn', 'lastName': 'Ln'},
     'already-in-gws': {'attributes': {'loginShell': '/bin/bash'},
-                       'username': 'already-in-gws', 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln',},
+                       'username': 'already-in-gws', 'enabled': True, 'firstName': 'Fn',
+                       'lastName': 'Ln'},
     'ineligible-nologin': {'attributes': {'loginShell': '/sbin/nologin'},
-                           'username': 'ineligible-nologin', 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln',},
+                           'username': 'ineligible-nologin', 'enabled': True,
+                           'firstName': 'Fn', 'lastName': 'Ln'},
     'no-shadow-expire': {'attributes': {'loginShell': '/bin/bash'},
-                         'username': 'no-shadow-expire', 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln',},
+                         'username': 'no-shadow-expire', 'enabled': True,
+                         'firstName': 'Fn', 'lastName': 'Ln'},
     'expired-shadow': {'attributes': {'loginShell': '/bin/bash'},
-                       'username': 'expired-shadow', 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln',},
+                       'username': 'expired-shadow', 'enabled': True,
+                       'firstName': 'Fn', 'lastName': 'Ln'},
     'missing-name': {'attributes': {'loginShell': '/bin/bash'},
-                     'username': 'missing-name', 'enabled': True, 'firstName': '', 'lastName': 'Ln',},
+                     'username': 'missing-name', 'enabled': True, 'firstName': '',
+                     'lastName': 'Ln'},
 }
 
 GWS_ACCOUNTS = {
-    'gws-only-account': {'primaryEmail': 'gws-only-account@i.w.e', 'suspended': False,},
-    'already-in-gws': {'primaryEmail': 'already-in-gws@i.w.e', 'suspended': False,},  # noqa: F601
+    'gws-only-account': {'primaryEmail': 'gws-only-account@i.w.e', 'suspended': False},
+    'already-in-gws': {'primaryEmail': 'already-in-gws@i.w.e', 'suspended': False},  # noqa: F601
 }
 
 LDAP_ACCOUNTS = {
     'add-to-gws': {'shadowExpire': 99999},
     'add-to-gws-w-alias': {'shadowExpire': 99999},
     'force-creation': {'shadowExpire': 11111},
+    'force-creation-invalid': {'shadowExpire': 11111},
     'already-in-gws': {'shadowExpire': 99999},  # noqa: F601
     'ineligible-nologin': {'shadowExpire': 99999},
     'no-shadow-expire': {},
@@ -42,7 +57,7 @@ LDAP_ACCOUNTS = {
 
 def test_get_gws_accounts():
     request = MagicMock()
-    request.execute = MagicMock(return_value={'users':[a for u,a in GWS_ACCOUNTS.items()]})
+    request.execute = MagicMock(return_value={'users': [a for u, a in GWS_ACCOUNTS.items()]})
     gws_users_client = MagicMock()
     gws_users_client.list = MagicMock(return_value=request)
     gws_users_client.list_next = MagicMock(return_value=None)
