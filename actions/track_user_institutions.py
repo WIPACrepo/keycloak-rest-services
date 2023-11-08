@@ -1,7 +1,8 @@
 """
 Update user attributes that track users' institutions:
 * institutions_last_seen: coma-separated list of the user's institutions (group
-                          paths) as of the last time this action ran.
+                          paths) as of the last time this action ran. Special
+                          value "none" indicates the user is institutionless.
 * institutions_last_changed: time in ISO 8601 format when institutions_last_seen
                              of the user was last updated.
 
@@ -66,12 +67,17 @@ async def update_institution_tracking(keycloak_client=None, notify=True, dryrun=
         # There's currently an issue with our keycloak that prevents using lists
         # as user attribute values. To work-around, institutions_last_seen is
         # stored as comma-separated string.
-        insts_last_seen = userinfo["attributes"].get("institutions_last_seen", '')
-        insts_last_seen = [i.strip() for i in insts_last_seen.split(',') if i.strip()]
+        insts_last_seen_str = userinfo["attributes"].get("institutions_last_seen", "none")
+        if insts_last_seen_str == "none":
+            insts_last_seen = []
+        else:
+            insts_last_seen = [i.strip() for i in insts_last_seen_str.split(',') if i.strip()]
         if set(insts_actual) != set(insts_last_seen):
             logger.info(f"{username}'s institutions have changed from "
                         f"{insts_last_seen} to {insts_actual}")
-            attribs = {"institutions_last_seen": ','.join(insts_actual),
+            # Keycloak 22 deletes attributes set to empty string, so use "none"
+            # instead, to make this code future-proof.
+            attribs = {"institutions_last_seen": (','.join(insts_actual) or "none"),
                        "institutions_last_changed": datetime.now().isoformat()}
             if not dryrun:
                 await modify_user(username, attribs=attribs, rest_client=keycloak_client)
