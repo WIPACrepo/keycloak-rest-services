@@ -71,7 +71,6 @@ for username in sorted(set(users)-current_users):
             f.write(username+'     OK\\n')
         with open('/etc/postfix/transport', 'a') as f:
             f.write(username+'@icecube.wisc.edu     relay:aspmx.l.google.com\\n')
-            f.write(user['canonical']+'@icecube.wisc.edu     relay:aspmx.l.google.com\\n')
         with open('/etc/dovecot/deny-users', 'a') as f:
             f.write(username+'\\n')
 
