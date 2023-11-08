@@ -2,6 +2,14 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.46 (2023-11-08)
+
+### Other
+
+* Introduce special value "none" for institutions_last_seen ([#115](https://github.com/WIPACrepo/keycloak-rest-services/issues/115)) ([`69339a6`](https://github.com/WIPACrepo/keycloak-rest-services/commit/69339a6f1677142cb75be8dc5361a080807045bb))
+* Make local test environment match what we have in github ([#114](https://github.com/WIPACrepo/keycloak-rest-services/issues/114)) ([`b15dd38`](https://github.com/WIPACrepo/keycloak-rest-services/commit/b15dd38c29e089cc6b0444f65055a1ba7e97b0d2))
+* Update_institution_tracking: don't assume canonical_email is defined ([#113](https://github.com/WIPACrepo/keycloak-rest-services/issues/113)) ([`cded189`](https://github.com/WIPACrepo/keycloak-rest-services/commit/cded189577ebfafc98b86b27919e7651d72a972a))
+
 ## v1.4.45 (2023-10-23)
 
 ### Other
