@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.47 (2023-11-08)
+
+### Other
+
+* Actions/create_email_account.py: remove pointless relay of alias ([`0f195e2`](https://github.com/WIPACrepo/keycloak-rest-services/commit/0f195e24a38e2c11018d22e500dbc27277265dfa))
+* Add test_track_user_institutions.py test ([`9065007`](https://github.com/WIPACrepo/keycloak-rest-services/commit/90650078a9f58a2ba932a49cc1674c2d55dbaed1))
+
 ## v1.4.46 (2023-11-08)
 
 ### Other
