@@ -49,9 +49,16 @@ async def test_update_institutionless_users(keycloak_bootstrap):
     kwargs = {'first_name': 'F', 'last_name': 'L', 'email': 'e@test',
               'attribs': {},
               'rest_client': keycloak_bootstrap}
-    await users.create_user('add-ab', **kwargs)
-    await groups.add_user_group('/institutions/IceCube/A', 'add-ab', rest_client=keycloak_bootstrap)
-    await groups.add_user_group('/institutions/IceCube/B', 'add-ab', rest_client=keycloak_bootstrap)
+    await users.create_user('new-add-ab', **kwargs)
+    await groups.add_user_group('/institutions/IceCube/A', 'new-add-ab', rest_client=keycloak_bootstrap)
+    await groups.add_user_group('/institutions/IceCube/B', 'new-add-ab', rest_client=keycloak_bootstrap)
+
+    kwargs = {'first_name': 'F', 'last_name': 'L', 'email': 'f@test',
+              'attribs': {"institutions_last_seen": "none",
+                          "institutions_last_changed": '2023-07-07T13:07:56.400437'},
+              'rest_client': keycloak_bootstrap}
+    await users.create_user('no-inst-add-a', **kwargs)
+    await groups.add_user_group('/institutions/IceCube/A', 'no-inst-add-a', rest_client=keycloak_bootstrap)
 
     await update_institution_tracking(keycloak_client=keycloak_bootstrap, notify=False, dryrun=False)
 
@@ -64,7 +71,9 @@ async def test_update_institutionless_users(keycloak_bootstrap):
     assert all_users['remove-b']['attributes']["institutions_last_seen"] == \
            "/institutions/IceCube/A"
     assert all_users['remove-all']['attributes']["institutions_last_seen"] == 'none'
-    assert all_users['add-ab']['attributes']["institutions_last_seen"] == \
+    assert all_users['new-add-ab']['attributes']["institutions_last_seen"] == \
            "/institutions/IceCube/A,/institutions/IceCube/B"
     assert datetime.fromisoformat(
-        all_users['add-ab']['attributes']["institutions_last_changed"])
+        all_users['new-add-ab']['attributes']["institutions_last_changed"])
+    assert all_users['no-inst-add-a']['attributes']["institutions_last_seen"] == \
+           "/institutions/IceCube/A"
