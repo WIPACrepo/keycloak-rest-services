@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.49 (2023-11-08)
+
+### Other
+
+* Sync_gws_accounts.py: fix logical error ([`6f9a990`](https://github.com/WIPACrepo/keycloak-rest-services/commit/6f9a990f8537726e0f277660fa8adb75c833a4f3))
+
 ## v1.4.48 (2023-11-08)
 
 ### Other
