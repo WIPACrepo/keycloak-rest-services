@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.48 (2023-11-08)
+
+### Other
+
+* Sync_gws_accounts.py: require force_creation_in_gws to be "true" or absent ([`a060c21`](https://github.com/WIPACrepo/keycloak-rest-services/commit/a060c216bd053bcc968aa5c688f9cef14f14d145))
+
 ## v1.4.47 (2023-11-08)
 
 ### Other
