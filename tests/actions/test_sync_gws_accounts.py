@@ -9,7 +9,7 @@ KC_ACCOUNTS = {
                    'username': 'add-to-gws', 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln',},
     'add-to-gws-w-alias': {'attributes': {'loginShell': '/bin/bash', 'canonical_email': 'foo@bar.com'},
                            'username': 'add-to-gws-w-alias', 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln', },
-    'force-creation': {'attributes': {'loginShell': '/sbin/nologin', 'force_creation_in_gws': ''},
+    'force-creation': {'attributes': {'loginShell': '/sbin/nologin', 'force_creation_in_gws': 'true'},
                        'username': 'force-creation', 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln',},
     'already-in-gws': {'attributes': {'loginShell': '/bin/bash'},
                        'username': 'already-in-gws', 'enabled': True, 'firstName': 'Fn', 'lastName': 'Ln',},
