@@ -10,7 +10,7 @@ on:
 jobs:
 
   keycloak-image-build:
-    runs-on: ubuntu-latest
+    runs-on: wipac-k8s
     outputs:
       keycloak-tag: ${{ steps.docker_meta.outputs.tags }}
     steps:
