@@ -46,9 +46,9 @@ async def list_groups(max_groups=10000, rest_client=None):
                 'id': g['id'],
                 'name': g['name'],
                 'path': g['path'],
-                'children': [gg['name'] for gg in g['subGroups']],
+                'children': [gg['name'] for gg in g.get('subGroups', [])],
             }
-            if g['subGroups']:
+            if g.get('subGroups'):
                 add_groups(g['subGroups'])
     add_groups(group_hierarchy)
     return ret
