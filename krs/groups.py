@@ -21,7 +21,7 @@ def _recursive_fix_group_attributes(group):
         group (dict): group object
     """
     _fix_attributes(group)
-    for subgroup in group['subGroups']:
+    for subgroup in group.get('subGroups', []):
         _recursive_fix_group_attributes(subgroup)
 
 
