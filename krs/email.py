@@ -82,7 +82,7 @@ def send_email(recipient, subject, content, headline="IceCube Identity Managemen
             username, domain = sender['email'].split('@')
         else:
             username = sender['email']
-            domain = 'icecube.wisc.edu'
+            domain = ''
         msg['From'] = Address(sender['name'], username, domain)
     else:
         msg['From'] = sender
@@ -92,7 +92,7 @@ def send_email(recipient, subject, content, headline="IceCube Identity Managemen
             username, domain = recipient['email'].split('@')
         else:
             username = recipient['email']
-            domain = 'icecube.wisc.edu'
+            domain = ''
         msg['To'] = (Address(recipient['name'], username, domain),)
     else:
         msg['To'] = recipient
