@@ -78,13 +78,21 @@ def send_email(recipient, subject, content, headline="IceCube Identity Managemen
     msg['Date'] = localtime()
 
     if isinstance(sender, dict):
-        username, domain = sender['email'].split('@')
+        if '@' in sender['email']:
+            username, domain = sender['email'].split('@')
+        else:
+            username = sender['email']
+            domain = ''
         msg['From'] = Address(sender['name'], username, domain)
     else:
         msg['From'] = sender
 
     if isinstance(recipient, dict):
-        username, domain = recipient['email'].split('@')
+        if '@' in recipient['email']:
+            username, domain = recipient['email'].split('@')
+        else:
+            username = recipient['email']
+            domain = ''
         msg['To'] = (Address(recipient['name'], username, domain),)
     else:
         msg['To'] = recipient
