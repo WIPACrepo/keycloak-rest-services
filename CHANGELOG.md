@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.51 (2024-01-04)
+
+### Other
+
+* Krs/email.py: handle addresses without domain ([#119](https://github.com/WIPACrepo/keycloak-rest-services/issues/119)) ([`5b6beba`](https://github.com/WIPACrepo/keycloak-rest-services/commit/5b6beba4f84b888815af227f06a7985ab9d59c6a))
+
 ## v1.4.50 (2024-01-04)
 
 ### Other
