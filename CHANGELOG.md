@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.50 (2024-01-04)
+
+### Other
+
+* Chore: fix keycloak image version for tests ([#118](https://github.com/WIPACrepo/keycloak-rest-services/issues/118)) ([`022b4e5`](https://github.com/WIPACrepo/keycloak-rest-services/commit/022b4e5d46fb5e8e4e75f5cc7d36b1ff7342fe51))
+
 ## v1.4.49 (2023-11-08)
 
 ### Other
