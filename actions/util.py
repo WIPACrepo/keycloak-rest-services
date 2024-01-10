@@ -1,7 +1,11 @@
 import pathlib
 import subprocess
 import tempfile
+import time
 
+import googleapiclient.http
+from google.auth.exceptions import RefreshError
+from googleapiclient.errors import HttpError
 
 QUOTAS = {
     # production dirs
@@ -34,6 +38,56 @@ ssh_opts = [
     '-o', 'HostKeyAlgorithms=+ssh-rsa',
     '-o', 'PubkeyAcceptedAlgorithms=+ssh-rsa',
 ]
+
+
+class RetryError(Exception):
+    def __init__(self, sleep_time_history, exception_history):
+        self.sleep_time_history = sleep_time_history
+        self.exception_history = exception_history
+        super().__init__()
+
+    def __repr__(self):
+        return (f"RetryError(sleep_time_history={self.sleep_time_history}, "
+                f"exception_history={self.exception_history})")
+
+
+def retry_execute(request, max_attempts=8):
+    """Retry calling request.execute() with exponential backoff.
+
+    Args:
+        request: object with .execute() method
+        max_attempts: maximum number of re-attempts
+
+    Returns:
+        Return value of request.execute()
+
+    Raises:
+        RetryError if reached max_attempts
+    """
+    if not isinstance(request, googleapiclient.http.HttpRequest):
+        raise TypeError(f"request's type is {type(request)} instead of googleapiclient.http.HttpRequest")
+    sleep_time_history = []
+    exception_history = []
+    for attempt in range(max_attempts):
+        sleep_time = 2 ** attempt - 1
+        time.sleep(sleep_time)
+        sleep_time_history.append(sleep_time)
+        try:
+            return request.execute()
+        except RefreshError as e:
+            # Refreshing the credentials' access token failed. This can be transient, so retry.
+            exception_history.append(e)
+            continue
+        except HttpError as e:
+            exception_history.append(e)
+            if e.status_code in (400, 412):
+                # Both 400 (bad request) and 412 (precondition failed) could be caused
+                # by a prerequisite resource not being ready, so retrying makes sense.
+                continue
+            else:
+                raise RetryError(sleep_time_history, exception_history)
+    else:
+        raise RetryError(sleep_time_history, exception_history)
 
 
 def ssh(host, *args):
