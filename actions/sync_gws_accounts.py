@@ -19,15 +19,14 @@ import random
 import string
 import time
 
-from google.auth.exceptions import RefreshError
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
 
 from krs.ldap import LDAP
 from krs.token import get_rest_client
 from krs.users import list_users
 
+from actions.util import retry_execute
 
 logger = logging.getLogger('sync_gws_accounts')
 SHADOWEXPIRE_DAYS_REMAINING_CUTOFF_FOR_ELIGIBILITY = -365 * 2
@@ -45,7 +44,7 @@ def get_gws_accounts(gws_users_client):
     user_list = []
     request = gws_users_client.list(customer='my_customer', maxResults=500)
     while request is not None:
-        response = request.execute()
+        response = retry_execute(request)
         user_list.extend(response.get('users', []))
         request = gws_users_client.list_next(request, response)
     return dict((u['primaryEmail'].split('@')[0], u) for u in user_list)
@@ -63,23 +62,9 @@ def add_canonical_alias(gws_users_client, kc_attrs):
                      f'doesn\'t have attribute canonical_email')
         return
     logger.info(f'adding to {kc_attrs["username"]} alias {kc_attrs["attributes"]["canonical_email"]}')
-    attempt = saved_exception = None  # keep code linter happy
-    for attempt in range(1, 8):
-        time.sleep(2 ** attempt)
-        try:
-            gws_users_client.aliases().insert(
-                userKey=f'{kc_attrs["username"]}@icecube.wisc.edu',
-                body={'alias': kc_attrs["attributes"]["canonical_email"]}).execute()
-            break
-        except HttpError as e:
-            if e.status_code == 412:  # precondition failed (user creation not complete?)
-                saved_exception = e
-                continue
-            else:
-                raise
-    else:
-        logger.error(f'giving up on alias creation after {attempt} attempts')
-        logger.error(f'saved exception: {saved_exception}')
+    retry_execute(gws_users_client.aliases().insert(
+        userKey=f'{kc_attrs["username"]}@icecube.wisc.edu',
+        body={'alias': kc_attrs["attributes"]["canonical_email"]}))
 
 
 def set_canonical_sendas(gws_creds, kc_attrs):
@@ -108,24 +93,7 @@ def set_canonical_sendas(gws_creds, kc_attrs):
         "isDefault": True,
         "treatAsAlias": True,
     }
-    attempt = saved_exception = None  # keep code linter happy
-    for attempt in range(1, 9):
-        time.sleep(2 ** attempt)
-        try:
-            sendas.create(userId='me', body=body).execute()
-            break
-        except RefreshError as e:  # insert into group allowing gmail probably still being processed
-            saved_exception = e
-            continue
-        except HttpError as e:
-            if e.status_code == 400:  # bad request: the alias is probably still being created
-                saved_exception = e
-                continue
-            else:
-                raise
-    else:
-        logger.error(f'giving up on sendAs setting after {attempt} attempts')
-        logger.error(f'saved exception: {saved_exception}')
+    retry_execute(sendas.create(userId='me', body=body))
 
 
 def is_eligible(account_attrs, shadow_expire):
@@ -192,21 +160,24 @@ def create_missing_eligible_accounts(gws_users_client, gws_accounts, ldap_accoun
                              'givenName': attrs['firstName'],
                              'familyName': attrs['lastName']},
                          'password': ''.join(random.choices(string.ascii_letters, k=16))}
-            gws_users_client.insert(body=user_body).execute()
+            retry_execute(gws_users_client.insert(body=user_body))
             created_usernames.append(username)
             if attrs.get('attributes', {}).get('canonical_email'):
                 add_canonical_alias(gws_users_client, attrs)
                 set_canonical_sendas(gws_creds, attrs)
         else:
-            logger.debug(f'ignoring ineligible user {username}')
+            logger.debug(f'ignoring existing or ineligible user {username}')
     return created_usernames
 
 
 async def sync_gws_accounts(gws_users_client, ldap_client, keycloak_client,
                             gws_creds, dryrun=False):
+    """This function looks like this to enable unit testing without needing to simulate
+    clients for Google API, LDAP, and KeyCloak.
+    """
     kc_accounts = await list_users(rest_client=keycloak_client)
     gws_accounts = get_gws_accounts(gws_users_client)
-    ldap_accounts = ldap_client.list_users(attrs=['shadowExpire'])
+    ldap_accounts = ldap_client.list_users(attrs=['shadowExpire'])  # noqa pycharm bug?
 
     create_missing_eligible_accounts(gws_users_client, gws_accounts, ldap_accounts,
                                      kc_accounts, gws_creds, dryrun)
