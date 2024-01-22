@@ -79,9 +79,11 @@ def retry_execute(request, max_attempts=8):
             continue
         except HttpError as e:
             exception_history.append(e)
-            if e.status_code in (400, 412):
+            if e.status_code in (400, 412, 500, 503):
                 # Both 400 (bad request) and 412 (precondition failed) could be caused
-                # by a prerequisite resource not being ready, so retrying makes sense.
+                # by a prerequisite resource not being ready.
+                # 503 (service unavailable) could be transient
+                # 500 (internal error) could be transients
                 continue
             else:
                 raise RetryError(sleep_time_history, exception_history)
