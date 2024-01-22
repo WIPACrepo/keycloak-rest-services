@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.52 (2024-01-22)
+
+### Other
+
+* Actions/sync_gws_accounts.py: handle more exceptions ([#120](https://github.com/WIPACrepo/keycloak-rest-services/issues/120)) ([`7825317`](https://github.com/WIPACrepo/keycloak-rest-services/commit/78253174c4bade1609235dbccdffd1599fa7867a))
+
 ## v1.4.51 (2024-01-04)
 
 ### Other
