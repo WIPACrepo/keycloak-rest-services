@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.53 (2024-01-22)
+
+### Other
+
+* Utils.py retry_execute: except HTTP 500 and 503 ([`97d7cc4`](https://github.com/WIPACrepo/keycloak-rest-services/commit/97d7cc440b560180f8f7c69d248f08fb58a9c310))
+
 ## v1.4.52 (2024-01-22)
 
 ### Other
