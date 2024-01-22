@@ -165,16 +165,10 @@ def create_missing_eligible_accounts(gws_users_client, gws_accounts, ldap_accoun
             if attrs.get('attributes', {}).get('canonical_email'):
                 try:
                     add_canonical_alias(gws_users_client, attrs)
-                except:  # noqa
-                    logger.error(f'Exception while adding canonical alias for user {username}. '
-                                 f'Canonical alias and SendAs must be manually set to '
-                                 f'{attrs["attributes"]["canonical_email"]}')
-                    raise
-                try:
                     set_canonical_sendas(gws_creds, attrs)
                 except:  # noqa
-                    logger.error(f'Exception while setting SendAs for user {username}. '
-                                 f'SendAs must be manually set to {attrs["attributes"]["canonical_email"]}')
+                    logger.error(f'Account config failed midway. Canonical alias and/or SendAs of '
+                                 f'{username} must be manually set to {attrs["attributes"]["canonical_email"]}')
                     raise
         else:
             logger.debug(f'ignoring existing or ineligible user {username}')
