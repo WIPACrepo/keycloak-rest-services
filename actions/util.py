@@ -64,8 +64,8 @@ def retry_execute(request, max_attempts=8):
     Raises:
         RetryError if reached max_attempts
     """
-    if not isinstance(request, googleapiclient.http.HttpRequest):
-        raise TypeError(f"request's type is {type(request)} instead of googleapiclient.http.HttpRequest")
+    if not hasattr(request, 'execute'):
+        raise AttributeError(f"{type(request)} object has no attribute 'execute'")
     sleep_time_history = []
     exception_history = []
     for attempt in range(max_attempts):
