@@ -3,7 +3,6 @@ import subprocess
 import tempfile
 import time
 
-import googleapiclient.http
 from google.auth.exceptions import RefreshError
 from googleapiclient.errors import HttpError
 
