@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.54 (2024-01-22)
+
+### Other
+
+* Sync_gws_accounts.py: handle partial account setup situations ([#121](https://github.com/WIPACrepo/keycloak-rest-services/issues/121)) ([`a1fba78`](https://github.com/WIPACrepo/keycloak-rest-services/commit/a1fba782c0988ef1a3529a857089eaebf8fe7e8f))
+
 ## v1.4.53 (2024-01-22)
 
 ### Other
