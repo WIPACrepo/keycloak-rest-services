@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.56 (2024-01-23)
+
+### Other
+
+* Replace --sa-delegator with --sa-subject, which is more accurate ([`e809a3f`](https://github.com/WIPACrepo/keycloak-rest-services/commit/e809a3f9a84b13687fbf375dd0febad6067a96b7))
+
 ## v1.4.55 (2024-01-23)
 
 ### Other
