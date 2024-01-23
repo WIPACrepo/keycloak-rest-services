@@ -23,10 +23,8 @@ Domain-wide delegation must be enabled for the Google Workspace service
 account and appropriate scopes authorized. See code for which scopes are
 required. Admin API must be enabled in the Google Cloud Console project.
 
-The delegate principal must have Google Workspace admin role, be accessible
-to the service account (in Google Cloud project under IAM), and have
-"Service Account Token Creator" role (in Google Cloud project under IAM).
-[Is "service account token creator" role necessary?]
+The admin account on whose behalf the service account will act *may* need to
+have "Service Account Token Creator" role (in Google Cloud project under IAM).
 
 This code uses custom keycloak attributes that are documented here:
 https://bookstack.icecube.wisc.edu/ops/books/services/page/custom-keycloak-attributes
@@ -243,8 +241,8 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         epilog='See module docstring for details, including SMTP server configuration.')
     parser.add_argument('--sa-credentials', metavar='PATH', required=True,
-                        help='file with service account credentials')
-    parser.add_argument('--sa-delegator', metavar='EMAIL', required=True,
+                        help='JSON file with service account credentials')
+    parser.add_argument('--sa-subject', metavar='EMAIL', required=True,
                         help='principal on whose behalf the service account will act')
     parser.add_argument('--send-notifications', action='store_true',
                         help='send email notifications to users')
@@ -261,7 +259,7 @@ def main():
     keycloak_client = get_rest_client()
 
     creds = service_account.Credentials.from_service_account_file(
-        args['sa_credentials'], subject=args['sa_delegator'],
+        args['sa_credentials'], subject=args['sa_subject'],
         scopes=['https://www.googleapis.com/auth/admin.directory.group.member',
                 'https://www.googleapis.com/auth/admin.directory.group'])
     gws_directory = build('admin', 'directory_v1', credentials=creds, cache_discovery=False)

@@ -8,7 +8,7 @@ https://bookstack.icecube.wisc.edu/ops/books/services/page/custom-keycloak-attri
 
 Example::
 
-    python -m actions.sync_gws_accounts --sa-delegator admin-user@icecube.wisc.edu \
+    python -m actions.sync_gws_accounts --sa-subject admin-user@icecube.wisc.edu \
                         --sa-credentials keycloak-directory-sync.json
 
 This will sync eligible user accounts from KeyCloak to Google Workspace.
@@ -198,14 +198,14 @@ def main():
         epilog='Notes: (1) LDAP and KeyCloak clients are configured using environment '
                'variables. See krs/ldap.py and krs/token.py for details. '
                '(2): Domain-wide delegation must be enabled for the service account. '
-               'The delegator principal must have access to the service account '
-               'and have "Service Account Token Creator" role.')
+               'The account on whose behalf the service account will act must have '
+               'have "Service Account Token Creator" role [*not sure*].')
     parser.add_argument('--dryrun', action='store_true', help='dry run')
     parser.add_argument('--log-level', default='info',
                         choices=('debug', 'info', 'warning', 'error'), help='logging level')
     parser.add_argument('--sa-credentials', metavar='PATH', required=True,
-                        help='file with service account credentials')
-    parser.add_argument('--sa-delegator', metavar='ACCOUNT', required=True,
+                        help='JSON file with service account credentials')
+    parser.add_argument('--sa-subject', metavar='ACCOUNT', required=True,
                         help='principal on whose behalf the service account will act')
 
     args = vars(parser.parse_args())
@@ -219,7 +219,7 @@ def main():
               'https://www.googleapis.com/auth/admin.directory.user.alias',  # add alias
               'https://www.googleapis.com/auth/gmail.settings.sharing']  # sendas setting
     creds = service_account.Credentials.from_service_account_file(
-        args['sa_credentials'], subject=args['sa_delegator'], scopes=scopes)
+        args['sa_credentials'], subject=args['sa_subject'], scopes=scopes)
     gws_directory = build('admin', 'directory_v1', credentials=creds, cache_discovery=False)
     gws_users_client = gws_directory.users()
 
