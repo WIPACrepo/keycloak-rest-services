@@ -1,23 +1,23 @@
 """
-Synchronize memberships of Google Workspace groups to their corresponding
-Keycloak mailing list groups. Users are subscribed to Google Workspace groups
-using their KeyCloak `canonical_email` attribute, unless it is overridden
-by `mailing_list_email` (unless it's an @icecube.wisc.edu address, in which
-case it's ignored).
+Synchronize/update memberships of Google Workspace groups to match their
+corresponding Keycloak mailing list groups (subgroups of /mail).
+
+Keycloak mailing list groups are the subgroups of /mail. In order to be
+operated on by this script, mailing list groups must define attribute
+`email` to match them to Google Workspace groups.
+
+Only Google Workspace group members whose role is 'MANAGER' or 'MEMBER'
+are managed. 'OWNER' members should be managed by other means.
+
+Users are subscribed to Google Workspace groups using their KeyCloak
+`canonical_email` attribute, unless it is overridden by `mailing_list_email`.
 
 Users can optionally be notified of changes via email. SMTP server is
 controlled by the EMAIL_SMTP_SERVER environmental variable and defaults
-to localhost. See krs/email.py for more email options.
+to localhost. See send_email() in krs/email.py for more email options.
 
-Only group members whose role is 'MANAGER' or 'MEMBER' are managed. Nothing
-is done with the 'OWNER' members (it's assumed these are managed out of band).
-
-Keycloak mailing list groups are the subgroups of /mail. Each group must
-have attribute `email` that will be used to map it to a Google Workspace
-group.
-
-KeyCloak REST client is configured using environment variables. See
-krs/token.py for details.
+KeyCloak REST client is typically configured using environment variables.
+See krs/token.py for details.
 
 Domain-wide delegation must be enabled for the Google Workspace service
 account and appropriate scopes authorized. See code for which scopes are
@@ -26,6 +26,7 @@ required. Admin API must be enabled in the Google Cloud Console project.
 The delegate principal must have Google Workspace admin role, be accessible
 to the service account (in Google Cloud project under IAM), and have
 "Service Account Token Creator" role (in Google Cloud project under IAM).
+[Is "service account token creator" role necessary?]
 
 This code uses custom keycloak attributes that are documented here:
 https://bookstack.icecube.wisc.edu/ops/books/services/page/custom-keycloak-attributes
@@ -97,7 +98,8 @@ def get_gws_group_members(group_email, gws_members_client) -> list:
 
 
 async def get_gws_members_from_keycloak_group(group_path, role, keycloak_client) -> dict:
-    """Return a dict of GWS group member object dicts based on member emails of the keycloak group"""
+    """Return a dict of GWS group member object dicts based on member emails of the
+    keycloak group"""
     ret = {}
     usernames = await get_group_membership(group_path, rest_client=keycloak_client)
     # noinspection PyCallingNonCallable
@@ -242,7 +244,7 @@ def main():
         epilog='See module docstring for details, including SMTP server configuration.')
     parser.add_argument('--sa-credentials', metavar='PATH', required=True,
                         help='file with service account credentials')
-    parser.add_argument('--sa-delegator', metavar='ACCOUNT', required=True,
+    parser.add_argument('--sa-delegator', metavar='EMAIL', required=True,
                         help='principal on whose behalf the service account will act')
     parser.add_argument('--send-notifications', action='store_true',
                         help='send email notifications to users')

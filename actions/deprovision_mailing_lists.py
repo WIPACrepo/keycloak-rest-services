@@ -1,16 +1,19 @@
 """
 Remove from KeyCloak mailing list groups (subgroups of /mail) users who are
 not members of the experiments listed in their `allow_members_from_experiments`
-attributes. Users that have recently changed institutions will be granted the
-specified grace period before removal.
+attributes.
 
-The grace period is intended to avoid removal of users who are in the midst
-of changing institutions (i.e. when a user is already removed from institution
-A but before their request to be added to institution B has been approved).
+Nothing is done to groups that don't define `allow_members_from_experiments`.
+
+Users that have recently changed institutions will be granted the specified grace
+period to avoid removal of users who are in the midst of changing institutions
+(i.e. when a user is already removed from institution A but before their request
+to be added to institution B has been approved).
 
 This code relies on the `institutions_last_seen` and `institutions_last_changed`
 user attributes, and, consequently, on the Keycloak Rest Services action that
-updates those attributes.
+updates those attributes. Users that don't have `institutions_last_seen` defined
+are assumed to belong to no institution.
 
 Users can optionally be notified of changes via email. SMTP server is
 controlled by the EMAIL_SMTP_SERVER environmental variable and defaults
@@ -152,7 +155,6 @@ def main():
         description='Remove from KeyCloak mailing list groups users who are not part of '
                     'those lists\' allowed institutions/experiments/projects. See file '
                     'docstring for details.',
-        epilog='See module docstring for details.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--removal-grace', metavar='DAYS', default=3, type=int,
                         help='how much to delay removal of institutionless users')
