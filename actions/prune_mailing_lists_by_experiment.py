@@ -1,24 +1,26 @@
 """
-Remove from KeyCloak's controlled mailing list groups (subgroups of /mail)
-users who are not members of the experiments listed in the groups'
-`allow_members_from_experiments` attributes based on the users'
-`institutions_last_seen` attributes (and not the actual institution/experiment
-membership at the time of execution).
+Remove from either the given group, or all mailing list groups (subgroups
+of /mail) users who are not members of the institutions belonging to the
+experiments listed in the groups' `allow_members_from_experiments` attributes
+based on the users' `institutions_last_seen` attributes (and not the actual
+institution membership at the time of execution).
 
-`Allow_members_from_experiments` attribute is a list of experiment names that
-are the names of subgroups of /institutions, such as IceCube, IceCube-Gen2.
+`Allow_members_from_experiments` attribute is a coma-separated list of
+experiment names matching the names of subgroups of /institutions, such
+as IceCube, IceCube-Gen2.
 
 Nothing is done to groups that don't define `allow_members_from_experiments`.
 
-Users that have recently changed institutions will be granted the specified grace
+Users who have recently changed institutions will be granted the specified grace
 period to avoid removal of users who are in the midst of changing institutions
 (i.e. when a user is already removed from institution A but before their request
 to be added to institution B has been approved).
 
 This code relies on the `institutions_last_seen` and `institutions_last_changed`
 user attributes, and, consequently, on the Keycloak Rest Services action that
-updates those attributes. Users that don't have `institutions_last_seen` defined
-are assumed to belong to no institution.
+updates those attributes (track_user_institutions.py at the time of writing).
+Users that don't have `institutions_last_seen` defined are assumed to belong
+to no institution.
 
 Users can optionally be notified of changes via email. SMTP server is
 controlled by the EMAIL_SMTP_SERVER environmental variable and defaults
