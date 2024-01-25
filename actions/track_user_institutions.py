@@ -8,6 +8,8 @@ Update user attributes that track users' institutions:
 
 Note that the reason institutions_last_seen is a comma-separated list is that
 currently our KeyCloak instance can't store lists as user attribute values.
+The special value "none" is necessary because Keycloak 22 (and later?) deletes
+attributes that are empty or are set to the empty string, which can be confusing.
 
 Users that have just become institutionless can optionally be alerted to
 this fact via email. SMTP server is controlled by the EMAIL_SMTP_SERVER

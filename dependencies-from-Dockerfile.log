@@ -5,11 +5,11 @@ cachetools==5.3.2
 certifi==2023.11.17
 cffi==1.16.0
 charset-normalizer==3.3.2
-cryptography==42.0.0
+cryptography==42.0.1
 dnspython==2.5.0
 google-api-core==2.15.0
 google-api-python-client==2.115.0
-google-auth==2.26.2
+google-auth==2.27.0
 google-auth-httplib2==0.2.0
 google-auth-oauthlib==1.2.0
 googleapis-common-protos==1.62.0
