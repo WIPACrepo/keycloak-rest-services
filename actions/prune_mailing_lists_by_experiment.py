@@ -165,7 +165,7 @@ def main():
                     'those lists\' allowed institutions/experiments/projects. See file '
                     'docstring for details.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--removal-grace', metavar='DAYS', default=3, type=int,
+    parser.add_argument('--removal-grace', metavar='DAYS', default=7, type=int,
                         help='how much to delay removal of institutionless users')
     parser.add_argument('--send-notifications', action='store_true',
                         help='send email notifications to users')
