@@ -24,15 +24,15 @@ async def test_sync_authors_mail_group(keycloak_bootstrap):
 
     attrs['authorlist'] = 'true'
     await create_inst('IceCube', 'Good', attrs, rest_client=keycloak_bootstrap)
-    await create_group('/institutions/IceCube/Good/authorlist')
+    await create_group('/institutions/IceCube/Good/authorlist', rest_client=keycloak_bootstrap)
 
     attrs['authorlist'] = 'false'
     await create_inst('IceCube', 'Authorlist_false', attrs, rest_client=keycloak_bootstrap)
-    await create_group('/institutions/IceCube/Authorlist_false/authorlist')
+    await create_group('/institutions/IceCube/Authorlist_false/authorlist', rest_client=keycloak_bootstrap)
 
     attrs['authorlist'] = 'true'
     await create_inst('IceCube', 'No_authorlist_subgroup', attrs, rest_client=keycloak_bootstrap)
-    await create_group('/institutions/IceCube/authorlist')
+    await create_group('/institutions/IceCube/authorlist', rest_client=keycloak_bootstrap)
 
     user_kwargs = [{'first_name': 'F', 'last_name': 'L', 'email': f'{i}@test', 'rest_client': keycloak_bootstrap}
                    for i in range(100)]
