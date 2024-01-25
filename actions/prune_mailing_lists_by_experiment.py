@@ -1,5 +1,5 @@
 """
-Remove from either the given group, or all mailing list groups (subgroups
+Remove from either the given group, or all mailing list groups (i.e. subgroups
 of /mail) users who are not members of the institutions belonging to the
 experiments listed in the groups' `allow_members_from_experiments` attributes
 based on the users' `institutions_last_seen` attributes (and not the actual
@@ -174,7 +174,8 @@ def main():
     parser.add_argument('--log-level', default='info',
                         choices=('debug', 'info', 'warning', 'error'),
                         help='logging level')
-    parser.add_argument('--dryrun', action='store_true', help='dry run')
+    parser.add_argument('--dryrun', action='store_true',
+                        help='dry run: make no changes and send no notifications')
 
     args = vars(parser.parse_args())
 
