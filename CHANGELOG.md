@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.57 (2024-01-25)
+
+### Other
+
+* Rename deprovision_mailing_lists.py to prune_mailing_lists_by_experim… ([#122](https://github.com/WIPACrepo/keycloak-rest-services/issues/122)) ([`28cc4a6`](https://github.com/WIPACrepo/keycloak-rest-services/commit/28cc4a6d6b8ef84bae608776cfbedab4a619d9ed))
+
 ## v1.4.56 (2024-01-23)
 
 ### Other
