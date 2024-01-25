@@ -18,7 +18,7 @@ from krs.groups import get_group_membership, group_info, remove_user_group, add_
 logger = logging.getLogger('sync_authors_mailing_group')
 
 
-async def sync_authors_mail_group(authors_mail_group_path, keycloak_client=None, dryrun=False):
+async def sync_authors_mail_group(authors_mail_group_path, /, *, keycloak_client=None, dryrun=False):
     """XXX
 
     Args:

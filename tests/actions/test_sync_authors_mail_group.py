@@ -11,7 +11,7 @@ from actions.sync_authors_mail_group import sync_authors_mail_group
 
 
 @pytest.mark.asyncio
-async def test_update_institutionless_users(keycloak_bootstrap):
+async def test_sync_authors_mail_group(keycloak_bootstrap):
     await create_group('/mail', rest_client=keycloak_bootstrap)
     await create_group('/mail/authors', rest_client=keycloak_bootstrap)
 
