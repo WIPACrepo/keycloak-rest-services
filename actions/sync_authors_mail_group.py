@@ -38,7 +38,7 @@ async def sync_authors_mail_group(authors_mail_group_path: str,
     """
     # Build the current set of authors from IceCube institutions with enabled authorlists
     inst_paths = await list_insts('IceCube', rest_client=keycloak_client)
-    enabled_inst_paths = [k for k,v in inst_paths.items() if v.get('authorlist') == 'true']
+    enabled_inst_paths = [k for k, v in inst_paths.items() if v.get('authorlist') == 'true']
     logger.debug(f"{enabled_inst_paths=}")
 
     institution_groups = [await group_info(inst_path, rest_client=keycloak_client)
@@ -49,7 +49,7 @@ async def sync_authors_mail_group(authors_mail_group_path: str,
     logger.debug(f"{authorlist_groups=}")
 
     actual_authors = [await get_group_membership(authorlist_group['path'], rest_client=keycloak_client)
-                          for authorlist_group in authorlist_groups]
+                      for authorlist_group in authorlist_groups]
     actual_authors = set(chain.from_iterable(actual_authors))
     logger.debug(f"{actual_authors=}")
 
