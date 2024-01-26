@@ -41,7 +41,8 @@ async def sync_authors_mail_group(authors_mail_group_path: str,
     enabled_inst_paths = [k for k,v in inst_paths.items() if v.get('authorlist') == 'true']
     logger.debug(f"{enabled_inst_paths=}")
 
-    institution_groups = [await group_info(inst_path) for inst_path in enabled_inst_paths]
+    institution_groups = [await group_info(inst_path, rest_client=keycloak_client)
+                          for inst_path in enabled_inst_paths]
     authorlist_groups = [inst_subgroup for inst_group in institution_groups
                          for inst_subgroup in inst_group['subGroups']
                          if inst_subgroup['name'] == 'authorlist']
