@@ -1,5 +1,4 @@
 import pytest
-from datetime import datetime
 
 from krs.groups import create_group, add_user_group, get_group_membership
 from krs.institutions import create_inst, Region
@@ -48,7 +47,7 @@ async def test_sync_authors_mail_group(keycloak_bootstrap):
 
     await create_user('remove-in-disabled-authorlist', **user_kwargs.pop())
     await add_user_group('/mail/authors', 'remove-in-disabled-authorlist', rest_client=keycloak_bootstrap)
-    await add_user_group('/institutions/IceCube/Authorlist_false', 'remove-in-disabled-authorlist', rest_client=keycloak_bootstrap)
+    await add_user_group('/institutions/IceCube/Authorlist_false', 'remove-in-disabled-authorlist', rest_client=keycloak_bootstrap)  # noqa
     await add_user_group('/institutions/IceCube/Authorlist_false/authorlist', 'remove-in-disabled-authorlist', rest_client=keycloak_bootstrap)  # noqa
 
     await sync_authors_mail_group('/mail/authors', keycloak_client=keycloak_bootstrap)
