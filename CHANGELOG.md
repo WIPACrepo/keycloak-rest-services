@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.58 (2024-01-29)
+
+### Other
+
+* Actions/util.py: handle http 404 in retry_execute() ([#124](https://github.com/WIPACrepo/keycloak-rest-services/issues/124)) ([`85e6aa7`](https://github.com/WIPACrepo/keycloak-rest-services/commit/85e6aa7433d27b765c609bf441d1dac76e00d199))
+
 ## v1.4.57 (2024-01-25)
 
 ### Other
