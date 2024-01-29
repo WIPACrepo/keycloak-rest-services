@@ -45,7 +45,7 @@ class RetryError(Exception):
         self.exception_history = exception_history
         super().__init__()
 
-    def __repr__(self):
+    def __str__(self):
         return (f"RetryError(sleep_time_history={self.sleep_time_history}, "
                 f"exception_history={self.exception_history})")
 
@@ -79,11 +79,10 @@ def retry_execute(request, max_attempts=8):
             continue
         except HttpError as e:
             exception_history.append(e)
-            if e.status_code in (400, 412, 500, 503):
-                # Both 400 (bad request) and 412 (precondition failed) could be caused
-                # by a prerequisite resource not being ready.
-                # 503 (service unavailable) could be transient
-                # 500 (internal error) could be transients
+            if e.status_code in (400, 404, 412, 500, 503):
+                # Something required not ready yet: 400 (bad request), 412 (precondition failed).
+                # Possibly transient: 400 (bad request), 404 (not found), 503 (service unavailable),
+                # 500 (internal error).
                 continue
             else:
                 raise RetryError(sleep_time_history, exception_history)
