@@ -1,7 +1,7 @@
 """
-Sync (add/remove) membership of the group /mail/authors (or group specified
+Sync (add/remove) members of the group /mail/authors (or the group specified
 on command line) to the union of members of "authorlist" subgroups of all
-institution of the IceCube experiment whose attribute `authorlist` is 'true'.
+institutions of the IceCube experiment whose attribute `authorlist` is 'true'.
 
 This code uses custom keycloak attributes that are documented here:
 https://bookstack.icecube.wisc.edu/ops/books/services/page/custom-keycloak-attributes
