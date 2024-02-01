@@ -100,7 +100,7 @@ async def _prune_group(group_path, removal_grace_days, allowed_institutions,
 
 
 async def prune_mail_groups(removal_grace_days, single_group,
-                                    send_notifications, keycloak_client, dryrun=False):
+                            send_notifications, keycloak_client, dryrun=False):
     """Remove from all mailing list groups (subgroups of /mail), and their
     _admin subgroups, the users who are not members of the experiments listed
     in the `allow_members_from_experiments` attributes of those groups. Users
