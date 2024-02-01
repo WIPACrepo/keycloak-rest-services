@@ -1,7 +1,7 @@
 """
-Sync (add/remove) members of the group /mail/authors (or the group specified
-on command line) to the union of members of "authorlist" subgroups of all
-institutions of the IceCube experiment whose attribute `authorlist` is 'true'.
+Sync membership of group /mail/authors (or the group specified on command line)
+to the union of members of "authorlist" subgroups of all institutions of the
+IceCube experiment whose attribute `authorlist` is 'true'.
 
 This code uses custom keycloak attributes that are documented here:
 https://bookstack.icecube.wisc.edu/ops/books/services/page/custom-keycloak-attributes
@@ -37,12 +37,13 @@ async def sync_authors_mail_group(authors_mail_group_path: str,
         dryrun (bool): perform a trial run with no changes made
     """
     # Build the current set of authors from IceCube institutions with enabled authorlists
-    inst_paths = await list_insts('IceCube', rest_client=keycloak_client)
-    enabled_inst_paths = [k for k, v in inst_paths.items() if v.get('authorlist') == 'true']
-    logger.debug(f"{enabled_inst_paths=}")
+    institution_paths = await list_insts('IceCube', rest_client=keycloak_client)
+    enabled_institution_paths = [k for k, v in institution_paths.items()
+                                 if v.get('authorlist') == 'true']
+    logger.debug(f"{enabled_institution_paths=}")
 
     institution_groups = [await group_info(inst_path, rest_client=keycloak_client)
-                          for inst_path in enabled_inst_paths]
+                          for inst_path in enabled_institution_paths]
     authorlist_groups = [inst_subgroup for inst_group in institution_groups
                          for inst_subgroup in inst_group['subGroups']
                          if inst_subgroup['name'] == 'authorlist']
