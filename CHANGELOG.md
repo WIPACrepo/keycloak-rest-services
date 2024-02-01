@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.60 (2024-02-01)
+
+### Other
+
+* Implement /mail/authors ([#123](https://github.com/WIPACrepo/keycloak-rest-services/issues/123)) ([`5631eee`](https://github.com/WIPACrepo/keycloak-rest-services/commit/5631eee512057e53f4c5dd9ebb65ad763a0c5830))
+
 ## v1.4.59 (2024-02-01)
 
 ### Other
