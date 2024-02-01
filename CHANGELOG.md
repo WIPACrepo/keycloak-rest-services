@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.59 (2024-02-01)
+
+### Other
+
+* Rename prune_mailing_lists_by_experiment ([#125](https://github.com/WIPACrepo/keycloak-rest-services/issues/125)) ([`7925910`](https://github.com/WIPACrepo/keycloak-rest-services/commit/7925910f2fc73680b11aaba3f023d162bb41441c))
+
 ## v1.4.58 (2024-01-29)
 
 ### Other
