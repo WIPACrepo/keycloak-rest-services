@@ -14,8 +14,8 @@ async def test_sync_authors_mail_group(keycloak_bootstrap):
     await create_group('/mail', rest_client=keycloak_bootstrap)
     await create_group('/mail/authors', rest_client=keycloak_bootstrap)
 
-    await create_group('/institutions', rest_client=keycloak_bootstrap)
-    await create_group('/institutions/IceCube', rest_client=keycloak_bootstrap)
+#    await create_group('/institutions', rest_client=keycloak_bootstrap)
+#    await create_group('/institutions/IceCube', rest_client=keycloak_bootstrap)
 
     # noinspection PyDictCreation
     attrs = {'name': 'Test', 'cite': 'Test', 'abbreviation': 'A', 'is_US': False,
