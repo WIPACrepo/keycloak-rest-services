@@ -14,8 +14,8 @@ async def test_sync_authors_mail_group(keycloak_bootstrap):
     await create_group('/mail', rest_client=keycloak_bootstrap)
     await create_group('/mail/authors', rest_client=keycloak_bootstrap)
 
-#    await create_group('/institutions', rest_client=keycloak_bootstrap)
-#    await create_group('/institutions/IceCube', rest_client=keycloak_bootstrap)
+    await create_group('/institutions', rest_client=keycloak_bootstrap)
+    await create_group('/institutions/IceCube', rest_client=keycloak_bootstrap)
 
     # noinspection PyDictCreation
     attrs = {'name': 'Test', 'cite': 'Test', 'abbreviation': 'A', 'is_US': False,
@@ -33,7 +33,7 @@ async def test_sync_authors_mail_group(keycloak_bootstrap):
     await create_inst('IceCube', 'No_authorlist_subgroup', attrs, rest_client=keycloak_bootstrap)
     await create_group('/institutions/IceCube/authorlist', rest_client=keycloak_bootstrap)
 
-    user_kwargs = [{'first_name': 'F', 'last_name': 'L', 'email': f'{i}@test', 'rest_client': keycloak_bootstrap}
+    user_kwargs = [{'first_name': 'F', 'last_name': 'L', 'email': f'x@test', 'rest_client': keycloak_bootstrap}
                    for i in range(100)]
 
     await create_user('add-to-authors', **user_kwargs.pop())
