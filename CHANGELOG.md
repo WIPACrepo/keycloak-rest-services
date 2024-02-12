@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.62 (2024-02-12)
+
+### Other
+
+* Make exceptions make more sense in retry_execute() from actions/util.py ([#127](https://github.com/WIPACrepo/keycloak-rest-services/issues/127)) ([`f818e44`](https://github.com/WIPACrepo/keycloak-rest-services/commit/f818e4423a4b493ae0378cf0ba92d625ec5a9fdd))
+
 ## v1.4.61 (2024-02-12)
 
 ### Other
