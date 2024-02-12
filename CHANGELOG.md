@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.61 (2024-02-12)
+
+### Other
+
+* Sync_gws_accounts.py: give time to finishing creating dependencies ([#126](https://github.com/WIPACrepo/keycloak-rest-services/issues/126)) ([`662b670`](https://github.com/WIPACrepo/keycloak-rest-services/commit/662b670cef794dac7f2493f5d4102733d8198057))
+
 ## v1.4.60 (2024-02-01)
 
 ### Other
