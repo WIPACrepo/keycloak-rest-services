@@ -117,11 +117,11 @@ async def get_gws_members_from_keycloak_group(group_path, role, keycloak_client)
             # canonical address). Although rare, this may not be a mistake. In this case
             # we don't need to do anything special for the user to have access to
             # groups.google.com.
+            # If, as in most cases, a user's preferred address mailing list address is
+            # not @icecube.wisc.edu, also add their canonical @icecube.wisc.edu email as
+            # a no-mail member, since they may not be able to log on to groups.google.com
+            # with the preferred address (to see archives, etc.)
             if not preferred.endswith('@icecube.wisc.edu'):
-                # If, as in most cases, a user's preferred address mailing list address is
-                # not @icecube.wisc.edu, also add their canonical @icecube.wisc.edu email as
-                # a no-mail member, since they may not be able to log on to groups.google.com
-                # with the preferred address (to see archives, etc.)
                 ret[canonical] = {'email': canonical, 'delivery_settings': 'NONE', 'role': role}
         else:
             # If preferred mailing list address is not set (the most common case),
