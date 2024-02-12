@@ -104,20 +104,28 @@ async def get_gws_members_from_keycloak_group(group_path, role, keycloak_client)
     users = [await cached_user_info(u, keycloak_client) for u in usernames]
     for user in users:
         canonical = user['attributes']['canonical_email']
-        preferred = user['attributes'].get('mailing_list_email')
-        if isinstance(preferred, str) and preferred.lower().endswith('@icecube.wisc.edu'):
-            # User mistakenly configured mailing_list_email to be an @icecube.wisc.edu
-            # address. This doesn't make sense and is not allowed.
-            preferred = None
+        # Preferred addresses are controlled by users, so sanitize
+        preferred = user['attributes'].get('mailing_list_email', '').strip().lower()
+        if preferred == canonical:
+            # If preferred is the same as canonical, the user misunderstood what
+            # mailing_list_email attribute is for, and this can safely be ignored
+            preferred = ''
+
         if preferred:
-            # Preferred addresses are controlled by users, so we need to do some sanitizing
-            preferred = preferred.lower()
-            # If a user has a preferred mailing list email, also add their canonical
-            # (IceCube) email as a no-mail member, since they may not be able to log
-            # on to groups.google.com with the preferred address (to see archives, etc.)
             ret[preferred] = {'email': preferred, 'delivery_settings': 'ALL_MAIL', 'role': role}
-            ret[canonical] = {'email': canonical, 'delivery_settings': 'NONE', 'role': role}
+            # The preferred address could be username@icecube.wisc.edu (it can't be the
+            # canonical address). Although rare, this may not be a mistake. In this case
+            # we don't need to do anything special for the user to have access to
+            # groups.google.com.
+            if not preferred.endswith('@icecube.wisc.edu'):
+                # If, as in most cases, a user's preferred address mailing list address is
+                # not @icecube.wisc.edu, also add their canonical @icecube.wisc.edu email as
+                # a no-mail member, since they may not be able to log on to groups.google.com
+                # with the preferred address (to see archives, etc.)
+                ret[canonical] = {'email': canonical, 'delivery_settings': 'NONE', 'role': role}
         else:
+            # If preferred mailing list address is not set (the most common case),
+            # subscribe using the canonical address
             ret[canonical] = {'email': canonical, 'delivery_settings': 'ALL_MAIL', 'role': role}
     return ret
 
