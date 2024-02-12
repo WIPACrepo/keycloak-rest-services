@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.63 (2024-02-12)
+
+### Other
+
+* Sync_gws_mailing_lists.py: allow username@iwe to be preferred addresses ([#128](https://github.com/WIPACrepo/keycloak-rest-services/issues/128)) ([`0d8a4d6`](https://github.com/WIPACrepo/keycloak-rest-services/commit/0d8a4d6e51c5b2197c92a2cefd5d24db629a24ed))
+
 ## v1.4.62 (2024-02-12)
 
 ### Other
