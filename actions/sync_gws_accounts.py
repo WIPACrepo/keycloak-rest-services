@@ -161,10 +161,12 @@ def create_missing_eligible_accounts(gws_users_client, gws_accounts, ldap_accoun
                              'familyName': attrs['lastName']},
                          'password': ''.join(random.choices(string.ascii_letters, k=16))}
             retry_execute(gws_users_client.insert(body=user_body))
+            time.sleep(3)  # give time to finish user creation before configuring it
             created_usernames.append(username)
             if attrs.get('attributes', {}).get('canonical_email'):
                 try:
                     add_canonical_alias(gws_users_client, attrs)
+                    time.sleep(3)  # give time to finish alias creation before setting is as sendas
                     set_canonical_sendas(gws_creds, attrs)
                 except:  # noqa
                     logger.error(f'Account config failed midway. Canonical alias and/or SendAs of '
