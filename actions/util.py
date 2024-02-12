@@ -73,19 +73,19 @@ def retry_execute(request, max_attempts=8):
         sleep_time_history.append(sleep_time)
         try:
             return request.execute()
-        except RefreshError as e:
+        except RefreshError as exc:
             # Refreshing the credentials' access token failed. This can be transient, so retry.
-            exception_history.append(e)
+            exception_history.append(exc)
             continue
-        except HttpError as e:
-            exception_history.append(e)
-            if e.status_code in (400, 404, 412, 500, 503):
+        except HttpError as exc:
+            exception_history.append(exc)
+            if exc.status_code in (400, 404, 412, 500, 503):
                 # Something required not ready yet: 400 (bad request), 412 (precondition failed).
                 # Possibly transient: 400 (bad request), 404 (not found), 503 (service unavailable),
                 # 500 (internal error).
                 continue
             else:
-                raise RetryError(sleep_time_history, exception_history)
+                raise RetryError(sleep_time_history, exception_history) from exc
     else:
         raise RetryError(sleep_time_history, exception_history)
 
