@@ -103,7 +103,10 @@ async def get_gws_members_from_keycloak_group(group_path, role, keycloak_client)
     # noinspection PyCallingNonCallable
     users = [await cached_user_info(u, keycloak_client) for u in usernames]
     for user in users:
-        canonical = user['attributes']['canonical_email']
+        canonical = user['attributes'].get('canonical_email')
+        if not canonical:
+            # There are malformed accounts out there that don't have canonical_email
+            canonical = f"{user['username']}@icecube.wisc.edu"
         # Preferred addresses are controlled by users, so sanitize
         preferred = user['attributes'].get('mailing_list_email', '').strip().lower()
         if preferred == canonical:
@@ -111,7 +114,12 @@ async def get_gws_members_from_keycloak_group(group_path, role, keycloak_client)
             # mailing_list_email attribute is for, and this can safely be ignored
             preferred = ''
 
-        if preferred:
+        # If preferred mailing list address is not set (the most common case),
+        # subscribe using the canonical address
+        if not preferred:
+            ret[canonical] = {'email': canonical, 'delivery_settings': 'ALL_MAIL', 'role': role}
+        else:
+            # if preferred is set, use it
             ret[preferred] = {'email': preferred, 'delivery_settings': 'ALL_MAIL', 'role': role}
             # The preferred address could be username@icecube.wisc.edu (it can't be the
             # canonical address). Although rare, this may not be a mistake. In this case
@@ -123,10 +131,6 @@ async def get_gws_members_from_keycloak_group(group_path, role, keycloak_client)
             # with the preferred address (to see archives, etc.)
             if not preferred.endswith('@icecube.wisc.edu'):
                 ret[canonical] = {'email': canonical, 'delivery_settings': 'NONE', 'role': role}
-        else:
-            # If preferred mailing list address is not set (the most common case),
-            # subscribe using the canonical address
-            ret[canonical] = {'email': canonical, 'delivery_settings': 'ALL_MAIL', 'role': role}
     return ret
 
 
