@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.64 (2024-02-13)
+
+### Other
+
+* Sync_gws_mailing_lists.py: fix order of operations ([#129](https://github.com/WIPACrepo/keycloak-rest-services/issues/129)) ([`ff26c27`](https://github.com/WIPACrepo/keycloak-rest-services/commit/ff26c2723650f22dbff209fd0098beb828b8a19c))
+
 ## v1.4.63 (2024-02-12)
 
 ### Other
