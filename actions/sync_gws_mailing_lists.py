@@ -68,7 +68,6 @@ The role of {email} in {group_email} has changed to {role} because
 of membership change involving {group_path} and {group_path}/_admin.
 """ + "\n\n" + MESSAGE_FOOTER
 
-
 UNSUBSCRIPTION_MESSAGE = """
 {email} has been unsubscribed from {group_email} mailing list
 because (a) you are no longer a member of either {group_path} or
