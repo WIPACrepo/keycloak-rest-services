@@ -156,6 +156,25 @@ async def sync_kc_group_to_gws(kc_group, group_email, keycloak_client, gws_membe
     actual_membership = {member['email']: {'email': member['email'], 'role': member['role']}
                          for member in get_gws_group_members(group_email, gws_members_client)}
 
+    # Unsubscribe extraneous addresses. This needs to be done before adding new
+    # emails in order to avoid "member already exists" errors when a subscriber
+    # sets their `mailing_list_email` attribute to their username@icecube.wisc.edu
+    # address or a non-canonical alias.
+    for email in set(actual_membership) - set(target_membership):
+        # Unsubscribe if non-owner. Owners are presumed to be managed out-of-band.
+        if actual_membership[email]['role'] != 'OWNER':
+            logger.info(f"Removing from {group_email} {email} (dryrun={dryrun})")
+            if not dryrun:
+                retry_execute(gws_members_client.delete(groupKey=group_email, memberKey=email))
+                if send_notifications:
+                    send_email(email, f"You have been unsubscribed from {group_email}",
+                               UNSUBSCRIPTION_MESSAGE.format(
+                                   group_email=group_email,
+                                   email=email,
+                                   role=actual_membership[email]['role'],
+                                   group_path=kc_group['path']),
+                               headline='IceCube Mailing List Management')
+
     for email, body in target_membership.items():
         if email not in actual_membership:
             logger.info(f"Inserting into {group_email} {body} (dryrun={dryrun})")
@@ -170,7 +189,7 @@ async def sync_kc_group_to_gws(kc_group, group_email, keycloak_client, gws_membe
                                    delivery=body['delivery_settings'],
                                    group_path=kc_group['path']),
                                headline='IceCube Mailing List Management')
-        # if email already subscribed
+        # If email already subscribed, check if we need to update the role
         elif body['role'] != actual_membership[email]['role']:
             logger.info(f"Patching in {group_email} role of {email} to {body['role']} (dryrun={dryrun})")
             if not dryrun:
@@ -182,20 +201,6 @@ async def sync_kc_group_to_gws(kc_group, group_email, keycloak_client, gws_membe
                                    group_email=group_email,
                                    email=email,
                                    role=body['role'],
-                                   group_path=kc_group['path']),
-                               headline='IceCube Mailing List Management')
-
-    for email in set(actual_membership) - set(target_membership):
-        if actual_membership[email]['role'] != 'OWNER':
-            logger.info(f"Removing from {group_email} {email} (dryrun={dryrun})")
-            if not dryrun:
-                retry_execute(gws_members_client.delete(groupKey=group_email, memberKey=email))
-                if send_notifications:
-                    send_email(email, f"You have been unsubscribed from {group_email}",
-                               UNSUBSCRIPTION_MESSAGE.format(
-                                   group_email=group_email,
-                                   email=email,
-                                   role=actual_membership[email]['role'],
                                    group_path=kc_group['path']),
                                headline='IceCube Mailing List Management')
 
