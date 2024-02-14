@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.65 (2024-02-14)
+
+### Other
+
+* Sync_authors_mail_group.py: use authorlist* groups, not just authorlist ([#130](https://github.com/WIPACrepo/keycloak-rest-services/issues/130)) ([`7a876a6`](https://github.com/WIPACrepo/keycloak-rest-services/commit/7a876a6202cec81bab6f7ec4ca47287037b85eee))
+
 ## v1.4.64 (2024-02-13)
 
 ### Other
