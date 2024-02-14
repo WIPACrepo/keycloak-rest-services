@@ -1,6 +1,6 @@
 """
 Sync membership of group /mail/authors (or the group specified on command line)
-to the union of members of "authorlist" subgroups of all institutions of the
+to the union of members of "authorlist*" subgroups of all institutions of the
 IceCube experiment whose attribute `authorlist` is 'true'.
 
 This code uses custom keycloak attributes that are documented here:
@@ -27,7 +27,7 @@ async def sync_authors_mail_group(authors_mail_group_path: str,
                                   keycloak_client: ClientCredentialsAuth,
                                   dryrun: bool = False):
     """Sync (add/remove) members of `authors_mail_group_path` (should be
-    /mail/authors, unless debugging) to the union of members of "authorlist"
+    /mail/authors, unless debugging) to the union of members of "authorlist*"
     subgroups of institution groups with `authorlist` attribute set to 'true'
     that are part of the IceCube experiment.
 
@@ -46,7 +46,7 @@ async def sync_authors_mail_group(authors_mail_group_path: str,
                           for inst_path in enabled_institution_paths]
     authorlist_groups = [inst_subgroup for inst_group in institution_groups
                          for inst_subgroup in inst_group['subGroups']
-                         if inst_subgroup['name'] == 'authorlist']
+                         if inst_subgroup['name'].startswith('authorlist')]
     logger.debug(f"{authorlist_groups=}")
 
     actual_authors = [await get_group_membership(authorlist_group['path'], rest_client=keycloak_client)
@@ -73,7 +73,7 @@ def main():
     import argparse
     parser = argparse.ArgumentParser(
         description='Sync (add/remove) membership of the group /mail/authors '
-                    '(unless overridden) to the union of members of "authorlist" '
+                    '(unless overridden) to the union of members of "authorlist*" '
                     'subgroups of all institution of the IceCube experiment '
                     'whose attribute `authorlist` is "true".',
         epilog="See module docstring for details.",
