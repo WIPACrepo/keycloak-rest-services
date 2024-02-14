@@ -23,6 +23,7 @@ async def test_sync_authors_mail_group(keycloak_bootstrap):
 
     attrs['authorlist'] = 'true'
     await create_inst('IceCube', 'Good', attrs, rest_client=keycloak_bootstrap)
+    await create_group('/institutions/IceCube/Good/authorlist-special', rest_client=keycloak_bootstrap)
     await create_group('/institutions/IceCube/Good/authorlist', rest_client=keycloak_bootstrap)
 
     attrs['authorlist'] = 'false'
@@ -39,7 +40,7 @@ async def test_sync_authors_mail_group(keycloak_bootstrap):
 
     await create_user('add-to-authors', **user_kwargs.pop())
     await add_user_group('/institutions/IceCube/Good', 'add-to-authors', rest_client=keycloak_bootstrap)
-    await add_user_group('/institutions/IceCube/Good/authorlist', 'add-to-authors', rest_client=keycloak_bootstrap)  # noqa
+    await add_user_group('/institutions/IceCube/Good/authorlist-special', 'add-to-authors', rest_client=keycloak_bootstrap)  # noqa
 
     await create_user('remain-in-authors', **user_kwargs.pop())
     await add_user_group('/mail/authors', 'remain-in-authors', rest_client=keycloak_bootstrap)
