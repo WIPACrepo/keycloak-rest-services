@@ -6,6 +6,7 @@ https://bookstack.icecube.wisc.edu/ops/books/services/page/custom-keycloak-attri
 """
 import asyncio
 import logging
+from random import randint
 from unidecode import unidecode
 
 import requests.exceptions
@@ -92,30 +93,47 @@ async def create_user(username, first_name, last_name, email, attribs=None, rest
     """
     if not attribs:
         attribs = {}
-    attribs['canonical_email'] = unidecode(first_name + '.' + last_name).lower().replace(' ', '.') + "@icecube.wisc.edu"
 
-    try:
-        await user_info(username, rest_client=rest_client)
-    except Exception:
-        logger.info(f'creating user "{username}"')
-        logger.info(username)
-        user = {
-            'email': email,
-            'firstName': first_name,
-            'lastName': last_name,
-            'username': username,
-            'enabled': True,
-            'attributes': attribs,
-        }
+    all_users = await list_users(rest_client=rest_client)
 
-        try:
-            await rest_client.request('POST', '/users', user)
-        except requests.exceptions.HTTPError as e:
-            logger.error('Keycloak returned HTTP error %r: %r', e.response.status_code, e.response.text)
-            raise
-        logger.info(f'user "{username}" created')
-    else:
+    if username in all_users:
         logger.info(f'user "{username}" already exists')
+        return
+
+    # Come up with a canonical email for the user, making sure it's not
+    # the same as an existing primary or canonical email. At this time,
+    # it's impossible for a canonical email to match a primary email, but
+    # be paranoid of future changes and check anyway.
+    all_primaries = {uname + '@icecube.wisc.edu' for uname in all_users}
+    all_attrs = [uinfo.get("attributes", {}) for uinfo in all_users.values()]
+    all_canonicals = {attr.get('canonical_email') for attr in all_attrs}
+    all_emails = all_canonicals.union(all_primaries)
+
+    canonical_email = (unidecode(first_name + '.' + last_name).lower().replace(' ', '.')
+                       + '@icecube.wisc.edu')
+    while canonical_email in all_emails:
+        local_part = canonical_email.split('@')[0]
+        # zero-pad the random salt to avoid addresses like like first.last.91,
+        # where 91 could be interpreted as the user's year of birth.
+        canonical_email = f'{local_part}.{randint(0,999):03}@icecube.wisc.edu'
+    attribs['canonical_email'] = canonical_email
+
+    logger.info(f'creating user "{username}"')
+    user = {
+        'email': email,
+        'firstName': first_name,
+        'lastName': last_name,
+        'username': username,
+        'enabled': True,
+        'attributes': attribs,
+    }
+    try:
+        await rest_client.request('POST', '/users', user)
+    except requests.exceptions.HTTPError as e:
+        logger.error('Keycloak returned HTTP error %r: %r', e.response.status_code, e.response.text)
+        raise
+    else:
+        logger.info(f'user "{username}" created')
 
 
 async def modify_user(username, first_name=None, last_name=None, email=None, attribs=None, actions=None, actions_reset=False, rest_client=None):
