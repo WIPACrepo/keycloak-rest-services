@@ -62,6 +62,20 @@ def create_realm(realm, token=None):
                           headers={'Authorization': f'bearer {token}'})
         r.raise_for_status()
         print(f'realm "{realm}" created')
+
+        # Enable unmanaged user attributes. Starting with KeyCloak 24, User Profile
+        # is enabled by default. This means that by default KeyCloak only allows user
+        # attributes that are defined by the user attribute schema. This behavior is
+        # different in our production realm because declarative-user-profile was disabled
+        # when our realm was created. So, enable unmanaged user attributes to make the
+        # test realm behave like our production realm.
+        url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/{realm}/users/profile'
+        r = requests.get(url, headers={'Authorization': f'bearer {token}'})
+        r.raise_for_status()
+        json = r.json()
+        json["unmanagedAttributePolicy"] = "ENABLED"
+        requests.put(url, json=json, headers={'Authorization': f'bearer {token}'})
+        r.raise_for_status()
     else:
         print(f'realm "{realm}" already exists')
 

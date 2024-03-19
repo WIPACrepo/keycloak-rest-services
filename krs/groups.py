@@ -36,7 +36,10 @@ async def list_groups(max_groups=10000, rest_client=None):
     Returns:
         dict: groupname: group details
     """
-    url = f'/groups?max={max_groups}'
+    # Starting with KeyCloak 23, GET /admin/realms/{realm}/groups doesn't populate
+    # subgroups unless "search" parameter is used. It is not clear whether it's
+    # a bug or a feature https://github.com/keycloak/keycloak/issues/27694
+    url = f'/groups?max={max_groups}&search='
     group_hierarchy = await rest_client.request('GET', url)
     ret = {}
 
@@ -87,6 +90,14 @@ async def group_info_by_id(group_id, rest_client=None):
 
     if not ret:
         raise GroupDoesNotExist(f'group "{group_id}" does not exist')
+
+    async def _recursive_populate_subgroups(grp):
+        grp['subGroups'] = [await _recursive_populate_subgroups(g) for g in
+                            await rest_client.request("GET",
+                                                      f"/groups/{grp['id']}/children")]
+        return grp
+
+    await _recursive_populate_subgroups(ret)
     _recursive_fix_group_attributes(ret)
     return ret
 

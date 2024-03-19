@@ -98,7 +98,6 @@ async def create_user(username, first_name, last_name, email, attribs=None, rest
         await user_info(username, rest_client=rest_client)
     except Exception:
         logger.info(f'creating user "{username}"')
-        logger.info(username)
         user = {
             'email': email,
             'firstName': first_name,
