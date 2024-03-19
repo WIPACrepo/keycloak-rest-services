@@ -31,7 +31,10 @@ async def list_insts(experiment=None, filter_func=None, rest_client=None):
     Returns:
         dict: group_path: attrs
     """
-    url = '/groups?briefRepresentation=false&max=10000'
+    # Starting with KeyCloak 23, GET /admin/realms/{realm}/groups doesn't populate
+    # subgroups unless "search" parameter is used. It is not clear whether it's
+    # a bug or a feature https://github.com/keycloak/keycloak/issues/27694
+    url = '/groups?briefRepresentation=false&max=10000&search='
     group_hierarchy = await rest_client.request('GET', url)
     logger.debug('raw list_insts: %r', group_hierarchy)
     ret = {}

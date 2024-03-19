@@ -1,4 +1,4 @@
-FROM quay.io/keycloak/keycloak:22.0.5 as builder
+FROM quay.io/keycloak/keycloak:24.0.1 as builder
 
 # Keycloak core settings
 ENV KC_HTTP_ENABLED="true"
