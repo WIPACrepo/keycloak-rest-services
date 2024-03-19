@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.66 (2024-03-19)
+
+### Other
+
+* Compatibility with newest keycloak ([#132](https://github.com/WIPACrepo/keycloak-rest-services/issues/132)) ([`0dab13f`](https://github.com/WIPACrepo/keycloak-rest-services/commit/0dab13fc3cafbd16ad5f32b15005440d5f85d14f))
+
 ## v1.4.65 (2024-02-14)
 
 ### Other
