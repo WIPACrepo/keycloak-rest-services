@@ -70,7 +70,7 @@ def create_realm(realm, token=None):
         # when our realm was created. So, enable unmanaged user attributes to make the
         # test realm behave like our production realm.
         url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/{realm}/users/profile'
-        r = requests.get(url, headers={'Authorization': f'bearer {token}'}).json()
+        r = requests.get(url, headers={'Authorization': f'bearer {token}'})
         r.raise_for_status()
         json = r.json()
         json["unmanagedAttributePolicy"] = "ENABLED"
