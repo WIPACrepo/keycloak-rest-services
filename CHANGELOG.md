@@ -2,6 +2,14 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.67 (2024-04-01)
+
+### Other
+
+* Use wipac-dev-py-setup-action@v3.1 ([`327db94`](https://github.com/WIPACrepo/keycloak-rest-services/commit/327db94064e12331ffa07a70e80462b5d42f5c32))
+* Sync_gws_mailing_lists.py: better notifications ([`146e337`](https://github.com/WIPACrepo/keycloak-rest-services/commit/146e33780cc4c50515dc7fddbc06c441983db66d))
+* Improve removal notification email text ([#133](https://github.com/WIPACrepo/keycloak-rest-services/issues/133)) ([`77c9d39`](https://github.com/WIPACrepo/keycloak-rest-services/commit/77c9d39cb613864a8eb0c4ae96e6b215d367867d))
+
 ## v1.4.66 (2024-03-19)
 
 ### Other
