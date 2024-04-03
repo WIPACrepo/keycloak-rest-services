@@ -96,9 +96,9 @@ async def _keycloak_doesnt_populate_subgroups(group_id, rest_client):
 
     # Set KEYCLOAK_HAS_GROUP_CHILDREN_ENDPOINT if it hasn't been set yet
     if KEYCLOAK_HAS_GROUP_CHILDREN_ENDPOINT is None:
-        # If probing request we are about to issue fails with a 405 (method not
-        # allowed), at log level INFO, rest_client will log an exception with
-        # traceback, which would be confusing. Therefore, temporarily raise
+        # If the probing request we are about to issue fails with a 405 (method
+        # not allowed), at log level INFO, rest_client will log an exception with
+        # traceback, which would be confusing. As a work-around, temporarily raise
         # the logging level of rest_client if necessary.
         saved_rest_client_log_level = rest_client.logger.getEffectiveLevel()
         if saved_rest_client_log_level == logging.getLevelName('INFO'):
@@ -122,12 +122,11 @@ async def _recursive_populate_subgroups(grp, rest_client=None):
     start = 0
     inc = 50
     page = [None] * inc
-    children = []
     while len(page) == inc:
         url = f"/groups/{grp['id']}/children?max={inc}&first={start}"
         page = await rest_client.request("GET", url)
-        children.extend(await _recursive_populate_subgroups(g, rest_client) for g in page)
-    grp['subGroups'] = children
+        children = list(await _recursive_populate_subgroups(g, rest_client) for g in page)
+        grp['subGroups'].extend(children)
     return grp
 
 
