@@ -119,13 +119,17 @@ async def _keycloak_doesnt_populate_subgroups(group_id, rest_client):
 
 
 async def _recursive_populate_subgroups(grp, rest_client=None):
+    """
+    Recursively
+
+    """
     start = 0
     inc = 50
     page = [None] * inc
     while len(page) == inc:
         url = f"/groups/{grp['id']}/children?max={inc}&first={start}"
         page = await rest_client.request("GET", url)
-        children = list(await _recursive_populate_subgroups(g, rest_client) for g in page)
+        children = list(await _recursive_populate_subgroups(g, rest_client) async for g in page)
         grp['subGroups'].extend(children)
     return grp
 
