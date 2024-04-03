@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.68 (2024-04-03)
+
+### Other
+
+* Pre-keycloak-v23 compatibility ([#135](https://github.com/WIPACrepo/keycloak-rest-services/issues/135)) ([`b6221f6`](https://github.com/WIPACrepo/keycloak-rest-services/commit/b6221f60a5998ee6fe7a70166e25b6da51c25d53))
+
 ## v1.4.67 (2024-04-01)
 
 ### Other
