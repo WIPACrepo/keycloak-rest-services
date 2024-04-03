@@ -3,11 +3,14 @@ Group actions against Keycloak.
 """
 import asyncio
 import logging
+from requests.exceptions import HTTPError
 
 from .users import user_info, _fix_attributes
 from .token import get_rest_client
 
 logger = logging.getLogger('krs.groups')
+
+KEYCLOAK_HAS_GROUP_CHILDREN_ENDPOINT = None
 
 
 def _recursive_fix_group_attributes(group):
@@ -75,6 +78,39 @@ async def group_info(group_path, rest_client=None):
     return await group_info_by_id(group_id, rest_client=rest_client)
 
 
+async def _keycloak_doesnt_populate_subgroups(group_id, rest_client):
+    global KEYCLOAK_HAS_GROUP_CHILDREN_ENDPOINT
+    if KEYCLOAK_HAS_GROUP_CHILDREN_ENDPOINT is None:
+        saved_rest_client_log_level = rest_client.logger.getEffectiveLevel()
+        rest_client.logger.setLevel('WARNING')
+        try:
+            await rest_client.request("GET", f"/groups/{group_id}/children")
+        except HTTPError as exc:
+            if exc.response.status_code == 405:  # Method Not Allowed
+                KEYCLOAK_HAS_GROUP_CHILDREN_ENDPOINT = False
+            else:
+                raise
+        else:
+            KEYCLOAK_HAS_GROUP_CHILDREN_ENDPOINT = True
+        finally:
+            rest_client.logger.setLevel(saved_rest_client_log_level)
+    else:
+        return KEYCLOAK_HAS_GROUP_CHILDREN_ENDPOINT
+
+
+async def _recursive_populate_subgroups(grp, rest_client=None):
+    start = 0
+    inc = 50
+    page = [None] * inc
+    children = []
+    while len(page) == inc:
+        url = f"/groups/{grp['id']}/children?max={inc}&first={start}"
+        page = await rest_client.request("GET", url)
+        children.extend(await _recursive_populate_subgroups(g, rest_client) for g in page)
+    grp['subGroups'] = children
+    return grp
+
+
 async def group_info_by_id(group_id, rest_client=None):
     """
     Get group information.
@@ -91,13 +127,8 @@ async def group_info_by_id(group_id, rest_client=None):
     if not ret:
         raise GroupDoesNotExist(f'group "{group_id}" does not exist')
 
-    async def _recursive_populate_subgroups(grp):
-        grp['subGroups'] = [await _recursive_populate_subgroups(g) for g in
-                            await rest_client.request("GET",
-                                                      f"/groups/{grp['id']}/children")]
-        return grp
-
-    await _recursive_populate_subgroups(ret)
+    if await _keycloak_doesnt_populate_subgroups(group_id, rest_client):
+        await _recursive_populate_subgroups(ret, rest_client)
     _recursive_fix_group_attributes(ret)
     return ret
 
