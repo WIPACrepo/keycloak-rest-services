@@ -13,9 +13,8 @@ async def keycloak_version(rest_client):
         str: version string
     """
     saved_addr = rest_client.address
-    addr_parts = saved_addr.split('/')
     # make the new address look like https://fqdn/auth/admin
-    new_address = '/'.join(addr_parts[:3]) + '/auth/admin'
+    new_address = '/'.join(saved_addr.split('/')) + '/auth/admin'
     try:
         rest_client.address = new_address
         server_info = await rest_client.request('GET', '/serverinfo')
