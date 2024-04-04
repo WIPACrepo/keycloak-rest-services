@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.69 (2024-04-04)
+
+### Other
+
+* Add krs.util.keycloak_version() function ([#136](https://github.com/WIPACrepo/keycloak-rest-services/issues/136)) ([`a464155`](https://github.com/WIPACrepo/keycloak-rest-services/commit/a4641552b5ef5b174e4695cf415690b2d2b02d86))
+
 ## v1.4.68 (2024-04-03)
 
 ### Other
