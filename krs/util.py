@@ -19,5 +19,5 @@ async def keycloak_version(rest_client):
         server_info = await rest_client.request('GET', '/serverinfo')
     finally:
         rest_client.address = saved_addr
-    ver = server_info['version']
+    ver = server_info['systemInfo']['version']
     return ver
