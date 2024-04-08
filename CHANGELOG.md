@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.70 (2024-04-08)
+
+### Other
+
+* Use keycloak 24.0.2 for testing ([#137](https://github.com/WIPACrepo/keycloak-rest-services/issues/137)) ([`430350d`](https://github.com/WIPACrepo/keycloak-rest-services/commit/430350d14058c86150b7dfdec730425b4ce5a189))
+
 ## v1.4.69 (2024-04-04)
 
 ### Other
