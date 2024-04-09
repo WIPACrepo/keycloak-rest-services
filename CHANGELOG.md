@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.71 (2024-04-09)
+
+### Other
+
+* Sync_gws_mailing_lists.py: handle dup owners ([#138](https://github.com/WIPACrepo/keycloak-rest-services/issues/138)) ([`efcaaa5`](https://github.com/WIPACrepo/keycloak-rest-services/commit/efcaaa54f8a028ac7e230485e15c1ddf7e004223))
+
 ## v1.4.70 (2024-04-08)
 
 ### Other
