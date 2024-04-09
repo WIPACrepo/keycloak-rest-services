@@ -11,6 +11,8 @@ are managed. 'OWNER' members should be managed by other means.
 
 Users are subscribed to Google Workspace groups using their KeyCloak
 `canonical_email` attribute, unless it is overridden by `mailing_list_email`.
+Use of `canonical_email`, instead of just username@icecube.wisc.edu, is needed
+for the *VERY* rare case of the keycloak user not being in Google Workspace.
 
 Users can optionally be notified of changes via email. SMTP server is
 controlled by the EMAIL_SMTP_SERVER environmental variable and defaults
@@ -32,15 +34,15 @@ https://bookstack.icecube.wisc.edu/ops/books/services/page/custom-keycloak-attri
 import asyncio
 import logging
 
-from asyncache import cached
+from asyncache import cached  # type: ignore
 from cachetools import Cache
 
-from googleapiclient.discovery import build
-from google.oauth2 import service_account
+from googleapiclient.discovery import build  # type: ignore
+from google.oauth2 import service_account  # type: ignore
 
 from krs.token import get_rest_client
 from krs.groups import get_group_membership, group_info, GroupDoesNotExist
-from krs.users import user_info
+from krs.users import user_info, UserDoesNotExist
 from krs.email import send_email
 
 from actions.util import retry_execute
@@ -116,6 +118,8 @@ async def get_gws_members_from_keycloak_group(group_path, role, keycloak_client)
     # noinspection PyCallingNonCallable
     users = [await cached_user_info(u, keycloak_client) for u in usernames]
     for user in users:
+        # Use of `canonical_email`, instead of just username@icecube.wisc.edu, is needed
+        # for the *VERY* rare case of the keycloak user not being in Google Workspace.
         canonical = user['attributes'].get('canonical_email')
         if not canonical:
             # There are malformed accounts out there that don't have canonical_email
@@ -188,7 +192,29 @@ async def sync_kc_group_to_gws(kc_group, group_email, keycloak_client, gws_membe
                                    group_path=kc_group['path']),
                                headline='IceCube Mailing List Management')
 
+    # Build list of owners' canonical emails. Because owners are managed out of band,
+    # we can have a situation where an owner who is a member of the Keycloak group is
+    # subscribed to the group in Google Workspace as username@icecube.wisc.edu. In
+    # this case we need to make sure we don't try to add them using their canonical
+    # address (because it will fail).
+    actual_owner_canonical_emails = set()
+    for owner_email in [e for e, u in actual_membership.items() if u['role'] == 'OWNER']:
+        if owner_email.endswith('@icecube.wisc.edu'):
+            local_part = owner_email.split('@')[0]
+            try:
+                user = await cached_user_info(local_part, keycloak_client)
+            except UserDoesNotExist:
+                # Move on if local_part is not a username or user only exists in GWS
+                continue
+            actual_owner_canonical_emails.add(user['attributes'].get('canonical_email'))
+
     for email, body in target_membership.items():
+        if email in actual_owner_canonical_emails:
+            # Owners are supposed to be managed out-of-band, but this owner is a member
+            # of the Keycloak group. We can't rely on normal membership check because
+            # the owner may have been configured in Google Workspace using username@i.w.e
+            # instead of the canonical address.
+            continue
         if email not in actual_membership:
             logger.info(f"Inserting into {group_email} {body} (dryrun={dryrun})")
             if not dryrun:
