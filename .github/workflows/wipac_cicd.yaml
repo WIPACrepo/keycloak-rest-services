@@ -139,6 +139,8 @@ jobs:
         env:
           KEYCLOAK_ADMIN: admin
           KEYCLOAK_ADMIN_PASSWORD: admin
+          KC_HTTP_ENABLED: true
+          KC_HTTP_RELATIVE_PATH: /auth
           KK_TO_RMQ_URL: rabbitmq
           CMD: start-dev
         ports:
