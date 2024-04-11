@@ -55,4 +55,8 @@ def test_bootstrap(monkeypatch):
     bootstrap.delete_realm('testrealm', token=tok)
 
 def test_bootstrap_user_mgmt(monkeypatch):
-    bootstrap.user_mgmt_app(f'http://localhost:9999', passwordGrant=True, token=bootstrap.get_token())
+    monkeypatch.setenv('USERNAME', 'admin')
+    monkeypatch.setenv('PASSWORD', 'admin')
+    bootstrap.wait_for_keycloak()
+    tok = bootstrap.get_token()
+    bootstrap.user_mgmt_app(f'http://localhost:9999', passwordGrant=True, token=tok)
