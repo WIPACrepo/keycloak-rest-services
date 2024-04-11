@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.73 (2024-04-11)
+
+### Other
+
+* Revert missing attributes experiment ([#141](https://github.com/WIPACrepo/keycloak-rest-services/issues/141)) ([`c6badc1`](https://github.com/WIPACrepo/keycloak-rest-services/commit/c6badc15ec3f81b082ad929d78427487f0e7476b))
+
 ## v1.4.72 (2024-04-11)
 
 ### Other
