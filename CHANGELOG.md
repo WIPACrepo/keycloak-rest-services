@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.72 (2024-04-11)
+
+### Other
+
+* Bootstrap.py: missing id token attributes experiment ([#140](https://github.com/WIPACrepo/keycloak-rest-services/issues/140)) ([`3fbbf2c`](https://github.com/WIPACrepo/keycloak-rest-services/commit/3fbbf2c42112fede49c160d224eba3d835a5d55b))
+
 ## v1.4.71 (2024-04-09)
 
 ### Other
