@@ -318,7 +318,7 @@ def user_mgmt_app(appurl, passwordGrant=False, token=None):
             'clientAuthenticatorType': 'client-secret',
             'clientId': appname,
             'consentRequired': False,
-            'defaultClientScopes': ['profile', 'email'],
+            'defaultClientScopes': ['profile', 'email', 'groups', 'username'],
             'directAccessGrantsEnabled': passwordGrant,
             'enabled': True,
             'frontchannelLogout': False,
