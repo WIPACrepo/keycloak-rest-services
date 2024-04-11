@@ -53,3 +53,6 @@ def test_bootstrap(monkeypatch):
     tok = bootstrap.get_token()
     bootstrap.delete_service_role('testclient', token=tok)
     bootstrap.delete_realm('testrealm', token=tok)
+
+def test_bootstrap_user_mgmt(monkeypatch):
+    bootstrap.user_mgmt_app(f'http://localhost:9999', passwordGrant=True, token=bootstrap.get_token())
