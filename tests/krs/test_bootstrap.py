@@ -57,6 +57,9 @@ def test_bootstrap(monkeypatch):
 def test_bootstrap_user_mgmt(monkeypatch):
     monkeypatch.setenv('USERNAME', 'admin')
     monkeypatch.setenv('PASSWORD', 'admin')
+    monkeypatch.setenv('KEYCLOAK_REALM', 'testrealm')
+    monkeypatch.setenv('KEYCLOAK_CLIENT_ID', 'testclient')
     bootstrap.wait_for_keycloak()
     tok = bootstrap.get_token()
+    bootstrap.create_realm('testrealm', token=tok)
     bootstrap.user_mgmt_app(f'http://localhost:9999', passwordGrant=True, token=tok)

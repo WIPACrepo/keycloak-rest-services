@@ -359,7 +359,6 @@ def user_mgmt_app(appurl, passwordGrant=False, token=None):
             'name': 'groups',
             'protocol': 'openid-connect',
             'protocolMapper': 'oidc-group-membership-mapper',
-            'type': 'default',
         }
         r = requests.post(url, json=args, headers={'Authorization': f'bearer {token}'})
         r.raise_for_status()
@@ -378,7 +377,6 @@ def user_mgmt_app(appurl, passwordGrant=False, token=None):
             'name': 'username',
             'protocol': 'openid-connect',
             'protocolMapper': 'oidc-usermodel-property-mapper',
-            'type': 'default',
         }
         r = requests.post(url, json=args, headers={'Authorization': f'bearer {token}'})
         r.raise_for_status()
