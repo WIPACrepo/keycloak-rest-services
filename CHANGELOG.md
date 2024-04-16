@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.74 (2024-04-16)
+
+### Other
+
+* Use keycloak 24.0.3 container ([`3312a8b`](https://github.com/WIPACrepo/keycloak-rest-services/commit/3312a8bb8221c0e256dbc246b5ef480f5952c844))
+
 ## v1.4.73 (2024-04-11)
 
 ### Other
