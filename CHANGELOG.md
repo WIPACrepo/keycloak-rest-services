@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.76 (2024-04-17)
+
+### Other
+
+* Update README.md ([`ae6b2a1`](https://github.com/WIPACrepo/keycloak-rest-services/commit/ae6b2a1387e5e0770f16a0e1a8b7d82f69ef0f65))
+
 ## v1.4.75 (2024-04-17)
 
 ### Other
