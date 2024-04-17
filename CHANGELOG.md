@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.75 (2024-04-17)
+
+### Other
+
+* Remove uid/gid from email relay creation ([#142](https://github.com/WIPACrepo/keycloak-rest-services/issues/142)) ([`4fef8a0`](https://github.com/WIPACrepo/keycloak-rest-services/commit/4fef8a04c5e30773bf954ce98884d698da5cfb8c))
+
 ## v1.4.74 (2024-04-16)
 
 ### Other
