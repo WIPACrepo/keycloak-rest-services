@@ -24,7 +24,7 @@ async def test_create(keycloak_bootstrap, patch_ssh_sudo):
     patch_ssh_sudo.assert_called_once()
     assert patch_ssh_sudo.call_args.args[0] == 'test.test.test'
 
-    user_dict = {'testuser': {'canonical': 'first.last', 'uid': 1000, 'gid': 1000}}
+    user_dict = {'testuser': {'canonical': 'first.last'}}
     assert json.loads(patch_ssh_sudo.call_args.args[1].split('\n')[6].split('=',1)[-1]) == user_dict
 
 @pytest.mark.asyncio
@@ -72,5 +72,5 @@ async def test_listener_create(keycloak_bootstrap, tmp_path, listener, patch_ssh
     patch_ssh_sudo.assert_called_once()
     assert patch_ssh_sudo.call_args.args[0] == 'test.test.test'
 
-    user_dict = {'testuser': {'canonical': 'first.last', 'uid': 1000, 'gid': 1000}}
+    user_dict = {'testuser': {'canonical': 'first.last'}}
     assert json.loads(patch_ssh_sudo.call_args.args[1].split('\n')[6].split('=',1)[-1]) == user_dict
