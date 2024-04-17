@@ -20,6 +20,7 @@ Then, start instances of Keycloak, LDAP, and RabbitMQ in other terminals:
     ./resources/start-ldap.sh
     ./resources/start-rabbitmq.sh
 
+Note that version of Keycloak server used for testing is set in `resources/keycloak-image/Dockerfile`.
 
 Keycloak may take a minute to start. If it does not, check your network settings,
 as it does not play well with VPNs and other more exotic network situations.
