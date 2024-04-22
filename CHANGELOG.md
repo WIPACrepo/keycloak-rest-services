@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.77 (2024-04-22)
+
+### Other
+
+* Actions/sync_authors_mail_group.py: parametrize experiment name ([#143](https://github.com/WIPACrepo/keycloak-rest-services/issues/143)) ([`399ffb9`](https://github.com/WIPACrepo/keycloak-rest-services/commit/399ffb9ce1200b978b559a183ae37388b0c61745))
+
 ## v1.4.76 (2024-04-17)
 
 ### Other
