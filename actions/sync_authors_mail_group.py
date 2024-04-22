@@ -1,13 +1,15 @@
 """
-Sync membership of group /mail/authors (or the group specified on command line)
-to the union of members of "authorlist*" subgroups of all institutions of the
-IceCube experiment whose attribute `authorlist` is 'true'.
+Sync membership of the specified authors mail group (at the time of writing
+/mail/authors or /mail/authors-gen2) to the union of members of the authorlist*
+subgroups of all institutions of the specified experiment whose attribute
+`authorlist` is "true".
 
 This code uses custom keycloak attributes that are documented here:
 https://bookstack.icecube.wisc.edu/ops/books/services/page/custom-keycloak-attributes
 
 Example::
-    python -m actions.sync_authors_mail_group --dryrun
+    python -m actions.sync_authors_mail_group --source-experiment IceCube \
+        --target-group /mail/authors --dryrun
 """
 import asyncio
 import logging
@@ -22,22 +24,23 @@ from krs.token import get_rest_client
 logger = logging.getLogger('sync_authors_mailing_group')
 
 
-async def sync_authors_mail_group(authors_mail_group_path: str,
+async def sync_authors_mail_group(source_experiment: str,
+                                  authors_mail_group_path: str,
                                   /, *,
                                   keycloak_client: ClientCredentialsAuth,
                                   dryrun: bool = False):
-    """Sync (add/remove) members of `authors_mail_group_path` (should be
-    /mail/authors, unless debugging) to the union of members of "authorlist*"
-    subgroups of institution groups with `authorlist` attribute set to 'true'
-    that are part of the IceCube experiment.
+    """Sync (add/remove) members of `authors_mail_group_path` to the union of
+    members of "authorlist*" subgroups of institution groups with `authorlist`
+    attribute set to 'true that are part of source_experiment.
 
     Args:
+        source_experiment (str): name of the experiment to consider
         authors_mail_group_path (str): path to the group we are supposed to sync
         keycloak_client (ClientCredentialsAuth): REST client to the KeyCloak server
         dryrun (bool): perform a trial run with no changes made
     """
     # Build the current set of authors from IceCube institutions with enabled authorlists
-    institution_paths = await list_insts('IceCube', rest_client=keycloak_client)
+    institution_paths = await list_insts(source_experiment, rest_client=keycloak_client)
     enabled_institution_paths = [k for k, v in institution_paths.items()
                                  if v.get('authorlist') == 'true']
     logger.debug(f"{enabled_institution_paths=}")
@@ -49,9 +52,9 @@ async def sync_authors_mail_group(authors_mail_group_path: str,
                          if inst_subgroup['name'].startswith('authorlist')]
     logger.debug(f"{authorlist_groups=}")
 
-    actual_authors = [await get_group_membership(authorlist_group['path'], rest_client=keycloak_client)
-                      for authorlist_group in authorlist_groups]
-    actual_authors = set(chain.from_iterable(actual_authors))
+    actual_authors_lists = [await get_group_membership(authorlist_group['path'], rest_client=keycloak_client)
+                            for authorlist_group in authorlist_groups]
+    actual_authors = set(chain.from_iterable(actual_authors_lists))
     logger.debug(f"{actual_authors=}")
 
     current_authors = set(await get_group_membership(authors_mail_group_path, rest_client=keycloak_client))
@@ -72,13 +75,15 @@ async def sync_authors_mail_group(authors_mail_group_path: str,
 def main():
     import argparse
     parser = argparse.ArgumentParser(
-        description='Sync (add/remove) membership of the group /mail/authors '
-                    '(unless overridden) to the union of members of "authorlist*" '
-                    'subgroups of all institution of the IceCube experiment '
-                    'whose attribute `authorlist` is "true".',
-        epilog="See module docstring for details.",
+        description='Sync (add/remove) membership of the given group to the union of '
+                    'members of the "authorlist*" subgroups of all institution of the given '
+                    'experiment whose attribute `authorlist` is "true". This script was '
+                    'written to keep up-to-date /mail/authors and /mail/authors-gen2. '
+                    'See file docstring for details.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--target-group', metavar='PATH', default='/mail/authors',
+    parser.add_argument('--source-experiment', choices=('IceCube', 'IceCube-Gen2'),
+                        help="the experiment whose authorlist* groups should be considered")
+    parser.add_argument('--target-group', metavar='PATH',
                         help='target group')
     parser.add_argument('--dryrun', action='store_true',
                         help='dry run')
@@ -91,6 +96,7 @@ def main():
 
     keycloak_client = get_rest_client()
     asyncio.run(sync_authors_mail_group(
+        args['source_experiment'],
         args['target_group'],
         keycloak_client=keycloak_client,
         dryrun=args['dryrun']))
