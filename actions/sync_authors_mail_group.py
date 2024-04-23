@@ -1,8 +1,10 @@
 """
-Sync membership of the specified authors mail group (at the time of writing
-/mail/authors or /mail/authors-gen2) to the union of members of the authorlist*
-subgroups of all institutions of the specified experiment whose attribute
-`authorlist` is "true".
+Sync membership of the specified authors mail group to the union of members
+of the authorlist* subgroups of all institutions of the specified experiment
+whose attribute `authorlist` is "true".
+
+Originally written to maintain /mail/authors (experiment IceCube) and
+/mail/authors-gen2 (experiment IceCube-Gen2).
 
 This code uses custom keycloak attributes that are documented here:
 https://bookstack.icecube.wisc.edu/ops/books/services/page/custom-keycloak-attributes
@@ -75,15 +77,15 @@ async def sync_authors_mail_group(source_experiment: str,
 def main():
     import argparse
     parser = argparse.ArgumentParser(
-        description='Sync (add/remove) membership of the given group to the union of '
-                    'members of the "authorlist*" subgroups of all institution of the given '
-                    'experiment whose attribute `authorlist` is "true". This script was '
-                    'written to keep up-to-date /mail/authors and /mail/authors-gen2. '
-                    'See file docstring for details.',
+        description='Sync (add/remove) members of the given mail group to the union of '
+                    'members of the "authorlist*" subgroups of all institutions whose '
+                    'attribute `authorlist is "true" that belong to the give experiment. '
+                    'This script was originally written to keep up-to-date /mail/authors '
+                    'and /mail/authors-gen2. See file docstring for details.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--source-experiment', choices=('IceCube', 'IceCube-Gen2'),
+    parser.add_argument('--source-experiment', metavar='NAME', required=True,
                         help="the experiment whose authorlist* groups should be considered")
-    parser.add_argument('--target-group', metavar='PATH',
+    parser.add_argument('--target-group', metavar='PATH', required=True,
                         help='target group')
     parser.add_argument('--dryrun', action='store_true',
                         help='dry run')
