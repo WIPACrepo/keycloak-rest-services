@@ -178,7 +178,8 @@ async def prune_mail_groups(removal_grace_days, single_group,
             removed_users = await _prune_group(group['path'], removal_grace_days,
                                                allowed_institutions, user_info_cache,
                                                keycloak_client, dryrun)
-            logger.info(f"Removed users: {removed_users} ({dryrun=} {send_notifications=})")
+            if removed_users:
+                logger.info(f"Removed users: {removed_users} ({dryrun=} {send_notifications=})")
             if not dryrun and send_notifications:
                 for username in removed_users:
                     logger.info(f"Notifying {username} of removal from {group['path']}")
