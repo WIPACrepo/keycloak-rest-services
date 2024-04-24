@@ -34,7 +34,7 @@ pyasn1==0.6.0
 pyasn1_modules==0.4.0
 pycparser==2.22
 PyJWT==2.8.0
-pymongo==4.6.3
+pymongo==4.7.0
 pyparsing==3.1.2
 pypng==0.20220715.0
 qrcode==7.4.2
@@ -127,7 +127,7 @@ wipac-keycloak-rest-services
 ├── ldap3 [required: Any, installed: 2.9.1]
 │   └── pyasn1 [required: >=0.4.6, installed: 0.6.0]
 ├── motor [required: Any, installed: 3.4.0]
-│   └── pymongo [required: >=4.5,<5, installed: 4.6.3]
+│   └── pymongo [required: >=4.5,<5, installed: 4.7.0]
 │       └── dnspython [required: >=1.16.0,<3.0.0, installed: 2.6.1]
 ├── requests [required: Any, installed: 2.31.0]
 │   ├── certifi [required: >=2017.4.17, installed: 2024.2.2]
