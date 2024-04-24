@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.79 (2024-04-24)
+
+### Other
+
+* <bot> update dependencies*.log files(s) ([`44230dd`](https://github.com/WIPACrepo/keycloak-rest-services/commit/44230ddef1c06add1436cdd365790c93b0b3a4e5))
+* Add script to look up group member emails ([`5299837`](https://github.com/WIPACrepo/keycloak-rest-services/commit/5299837712ff209d1ae3a9d203debe28f138bc7f))
+
 ## v1.4.78 (2024-04-23)
 
 ### Other
