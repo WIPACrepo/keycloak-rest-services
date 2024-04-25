@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.80 (2024-04-25)
+
+### Other
+
+* Make prune_mail_groups_by_experiment.py act recursively ([#144](https://github.com/WIPACrepo/keycloak-rest-services/issues/144)) ([`639b9fe`](https://github.com/WIPACrepo/keycloak-rest-services/commit/639b9fed0dd20013b6175c4587b947a3dbfaa0f7))
+
 ## v1.4.79 (2024-04-24)
 
 ### Other
