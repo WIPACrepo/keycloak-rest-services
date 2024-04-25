@@ -12,10 +12,10 @@ names matching the names of subgroups of /institutions, such as IceCube, IceCube
 Recursive subgroups of a mailing group are not allowed to define their own
 `allow_members_from_experiments`.
 
-Nothing is done to groups that don't define `allow_members_from_experiments`.
+Nothing is done if the top-level group doesn't have `allow_members_from_experiments`.
 
 Users who have recently changed institutions will be granted the specified grace
-period to avoid removal of users who are in the midst of changing institutions
+period in order to avoid removal of users who are in the midst of institution switch
 (i.e. when a user is already removed from institution A but before their request
 to be added to institution B has been approved).
 
@@ -31,8 +31,8 @@ to localhost. See krs/email.py for more email options.
 
 This code uses custom keycloak attributes that are documented here:
 https://bookstack.icecube.wisc.edu/ops/books/services/page/custom-keycloak-attributes
-Please keep that page updated if you make changes related to custom
-keycloak attributes used in this code.
+PLEASE KEEP THAT PAGE UPDATED IF YOU MAKE CHANGES RELATED TO CUSTOM
+KEYCLOAK ATTRIBUTES USED IN THIS CODE.
 
 Example::
        python -m actions.prune_mail_groups_by_experiment --dryrun
@@ -61,7 +61,7 @@ Please contact help@icecube.wisc.edu for support.
 
 
 def group_tree_to_list(root):
-    """Convert a Keycloak group hierarchy to a list.
+    """Convert a Keycloak group dict hierarchy to a list.
 
     The first element of the list is guaranteed to be the root node.
 
@@ -73,6 +73,7 @@ def group_tree_to_list(root):
     result = []
 
     def convert_node(node):
+        # First element of result MUST be the root of the tree
         result.append(node)
         for child in node['subGroups']:
             convert_node(child)
@@ -128,12 +129,15 @@ async def _prune_group(group_path, removal_grace_days, allowed_institutions,
 
 async def prune_mail_groups(removal_grace_days, single_group,
                             send_notifications, keycloak_client, dryrun=False):
-    """Remove from all mailing list groups (subgroups of /mail), and their
-    _admin subgroups, the users who are not members of the experiments listed
-    in the `allow_members_from_experiments` attributes of those groups. Users
-    that have recently changed institutions will be granted the given grace
-    period before removal. Optionally, notify users. Relies on user attributes
-    `institutions_last_seen` and `institutions_last_changed`.
+    """Recursively remove from mail group(s) users who are not members of the
+    experiments listed in the `allow_members_from_experiments` attribute.
+
+    Recursively remove from the given mailing group, or all mailing groups (direct
+    subgroups of /mail), and their _admin subgroups, the users who are not members
+    of the experiments listed in the `allow_members_from_experiments` attributes
+    of those groups. Users that have recently changed institutions will be granted
+    the given grace period before removal. Optionally, notify users. Relies on user
+    attributes `institutions_last_seen` and `institutions_last_changed`.
 
     Args:
         removal_grace_days (int): delay of user removal
@@ -152,13 +156,13 @@ async def prune_mail_groups(removal_grace_days, single_group,
         ml_groups = ml_root_group['subGroups']
 
     for ml_group in ml_groups:
+        # Build a list of allowed institutions
         allowed_experiments = ml_group['attributes'].get('allow_members_from_experiments')
         if not allowed_experiments:
-            logger.warning(f"Skipping {ml_group['path']} because allow_members_from_experiments is missing or empty")
+            logger.info(f"Skipping {ml_group['path']} because allow_members_from_experiments is missing or empty")
             continue
         allowed_experiments_list = (allowed_experiments if isinstance(allowed_experiments, list)
                                     else [allowed_experiments])
-
         allowed_institutions = set()
         for experiment in allowed_experiments_list:
             insts = await list_insts(experiment, rest_client=keycloak_client)
@@ -175,29 +179,28 @@ async def prune_mail_groups(removal_grace_days, single_group,
 
         for group in groups_for_pruning:
             logger.info(f"Pruning group {group['path']}")
-            removed_users = await _prune_group(group['path'], removal_grace_days,
-                                               allowed_institutions, user_info_cache,
-                                               keycloak_client, dryrun)
-            if removed_users:
+            if removed_users := await _prune_group(group['path'], removal_grace_days,
+                                                   allowed_institutions, user_info_cache,
+                                                   keycloak_client, dryrun):
                 logger.info(f"Removed users: {removed_users} ({dryrun=} {send_notifications=})")
-            if not dryrun and send_notifications:
-                for username in removed_users:
-                    logger.info(f"Notifying {username} of removal from {group['path']}")
-                    send_email(username + '@icecube.wisc.edu',
-                               f"You have been removed from {group['path']}",
-                               REMOVAL_MESSAGE.format(
-                                   group_path=group['path'],
-                                   experiments=' '.join(allowed_experiments_list)),
-                               headline="IceCube Mailing List Management")
+                if not dryrun and send_notifications:
+                    for username in removed_users:
+                        logger.info(f"Notifying {username} of removal from {group['path']}")
+                        send_email(username + '@icecube.wisc.edu',
+                                   f"You have been removed from {group['path']}",
+                                   REMOVAL_MESSAGE.format(
+                                       group_path=group['path'],
+                                       experiments=' '.join(allowed_experiments_list)),
+                                   headline="IceCube Mailing List Management")
 
 
 def main():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description='Remove from KeyCloak mailing list groups users who are not part of '
-                    'those lists\' allowed institutions/experiments/projects. See file '
-                    'docstring for details.',
+        description='Recursively remove from KeyCloak mailing list groups users who are '
+                    'not part of those lists\' allowed institutions/experiments/projects. '
+                    'See file docstring for details.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--removal-grace', metavar='DAYS', default=7, type=int,
                         help='how much to delay removal of institutionless users')
