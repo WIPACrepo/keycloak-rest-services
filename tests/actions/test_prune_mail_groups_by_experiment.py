@@ -25,39 +25,39 @@ async def test_prune_mail_groups(keycloak_bootstrap):
     await modify_group('/mail/list',
                        attrs={'allow_members_from_experiments': ['foo']},
                        rest_client=keycloak_bootstrap)
-    await create_group('/mail/list/_admin', rest_client=keycloak_bootstrap)
+    await create_group('/mail/list/subgroup', rest_client=keycloak_bootstrap)
 
     await create_user('good', first_name='first', last_name='last', email='z@test',
                       attribs={"institutions_last_seen": "/institutions/foo/A",
                                "institutions_last_changed": '2001-01-01T01:01:01.000001'},
                       rest_client=keycloak_bootstrap)
     await add_user_group('/mail/list', 'good', rest_client=keycloak_bootstrap)
-    await add_user_group('/mail/list/_admin', 'good', rest_client=keycloak_bootstrap)
+    await add_user_group('/mail/list/subgroup', 'good', rest_client=keycloak_bootstrap)
 
     await create_user('wrong-exp', first_name='first', last_name='last', email='a@test',
                       attribs={"institutions_last_seen": "/institutions/bar/B",
                                "institutions_last_changed": '2001-01-01T01:01:01.000001'},
                       rest_client=keycloak_bootstrap)
     await add_user_group('/mail/list', 'wrong-exp', rest_client=keycloak_bootstrap)
-    await add_user_group('/mail/list/_admin', 'wrong-exp', rest_client=keycloak_bootstrap)
+    await add_user_group('/mail/list/subgroup', 'wrong-exp', rest_client=keycloak_bootstrap)
 
     await create_user('wrong-exp-grace', first_name='first', last_name='last', email='b@test',
                       attribs={"institutions_last_seen": "/institutions/bar/B",
                                "institutions_last_changed": datetime.now().isoformat()},
                       rest_client=keycloak_bootstrap)
     await add_user_group('/mail/list', 'wrong-exp-grace', rest_client=keycloak_bootstrap)
-    await add_user_group('/mail/list/_admin', 'wrong-exp-grace', rest_client=keycloak_bootstrap)
+    await add_user_group('/mail/list/subgroup', 'wrong-exp-grace', rest_client=keycloak_bootstrap)
 
     await create_user('homeless', first_name='first', last_name='last', email='c@test',
                       attribs={},
                       rest_client=keycloak_bootstrap)
     await add_user_group('/mail/list', 'homeless', rest_client=keycloak_bootstrap)
-    await add_user_group('/mail/list/_admin', 'homeless', rest_client=keycloak_bootstrap)
+    await add_user_group('/mail/list/subgroup', 'homeless', rest_client=keycloak_bootstrap)
 
     await prune_mail_groups(7, None, False, keycloak_bootstrap)
 
     ret = await get_group_membership('/mail/list', rest_client=keycloak_bootstrap)
     assert set(ret) == {'good', 'wrong-exp-grace'}
 
-    ret = await get_group_membership('/mail/list/_admin', rest_client=keycloak_bootstrap)
+    ret = await get_group_membership('/mail/list/subgroup', rest_client=keycloak_bootstrap)
     assert set(ret) == {'good', 'wrong-exp-grace'}
