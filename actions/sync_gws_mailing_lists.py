@@ -1,18 +1,66 @@
 """
-Synchronize/update memberships of Google Workspace groups to match their
-corresponding Keycloak mailing list groups (subgroups of /mail).
+Synchronize/update memberships of Google Workspace mailing groups/lists
+to match their corresponding Keycloak "mail groups".
 
-Keycloak mailing list groups are the subgroups of /mail. In order to be
-operated on by this script, mailing list groups must define attribute
-`email` to match them to Google Workspace groups.
+First, some nomenclature. A "[Keycloak] mail group" is a direct subgroup
+of the /mail group. Subgroups of a Keycloak mail group are NOT considered
+here to be mail groups.
+
+In order to be operated on by this script, mail groups must define attribute
+`email` to match them to the corresponding Google Workspace mailing group/list.
+Note the `email` attribute of recursive subgroups, if defined, will be ignored.
 
 Only Google Workspace group members whose role is 'MANAGER' or 'MEMBER'
 are managed. 'OWNER' members should be managed by other means.
+
+This script gathers group members recursively, in a somewhat convoluted way.
+If the Keycloak mailing group (i.e. the direct subgroup of /mail) has subgroups,
+this script will process all of them recursively and add their members to the
+Google Workspace group/mailing list as regular members, unless the subgroup's
+name is "_admin", which are handled as follows.
+ - Members of the Keycloak mailing group's direct subgroup "_admin" (i.e.
+/mail/<GROUP-NAME>/_admin), if it exists, will be subscribed as managers.
+ - Members of all other recursive subgroups named "_admin" will be ignored.
+
+This somewhat awkward procedure was originally devised to support a use
+pattern where membership of the Keycloak mail group is managed by some
+automated process, but the corresponding mailing list needs to have some
+extra members that the process doesn't recognize. And, these extra members
+need to be managed by some users who should not be members of the mailing
+list.
+
+For example, consider this somewhat unrealistic but illustrative example:
+/mail
+    + autolist
+        + _admin
+        + extras
+            + _admin
+
+- /mail/autolist: membership managed automatically by some process.
+    Members of this group will become regular subscribers of the
+    corresponding mailing list.
+- /mail/autolist/_admins: will become the mailing list's managers.
+    Membership management of this group could be either automatic
+    or manual by Keycloak administrators. (This group is for purposes
+    or illustration only. In reality, it wouldn't make sense to have
+    this group since /mail/autolist is managed automatically. However,
+    this group would be necessary if the mailing list were managed
+    manually via https://user-management.icecube.aq)
+- /mail/autolist/extras: will be added to the mailing list as regular
+    members. Members of this group will be managed manually via
+    https://user-management.icecube.aq by folks who are members of
+    /mail/autolist/extras/_admins.
+- /mail/autolist/extras/_admin: managed manually by Keycloak admins.
+    members will not be subscribed to the mailing list.
 
 Users are subscribed to Google Workspace groups using their KeyCloak
 `canonical_email` attribute, unless it is overridden by `mailing_list_email`.
 Use of `canonical_email`, instead of just username@icecube.wisc.edu, is needed
 for the *VERY* rare case of the keycloak user not being in Google Workspace.
+(In this case, the user would send messages to the list from their canonical
+address, as this is what our mail server is configured to do, so that's the
+address they must be subscribed to the list with. Once we stop using our
+own mail server, this requirement will become unnecessary.)
 
 Users can optionally be notified of changes via email. SMTP server is
 controlled by the EMAIL_SMTP_SERVER environmental variable and defaults
@@ -30,6 +78,8 @@ have "Service Account Token Creator" role (in Google Cloud project under IAM).
 
 This code uses custom keycloak attributes that are documented here:
 https://bookstack.icecube.wisc.edu/ops/books/services/page/custom-keycloak-attributes
+PLEASE KEEP THAT PAGE UPDATED IF YOU MAKE CHANGES RELATED TO CUSTOM
+KEYCLOAK ATTRIBUTES USED IN THIS CODE.
 """
 import asyncio
 import logging
@@ -45,7 +95,7 @@ from krs.groups import get_group_membership, group_info, GroupDoesNotExist
 from krs.users import user_info, UserDoesNotExist
 from krs.email import send_email
 
-from actions.util import retry_execute
+from actions.util import retry_execute, group_tree_to_list
 
 logger = logging.getLogger('sync_gws_mailing_lists')
 
@@ -82,7 +132,7 @@ email address for mailing lists.
 """ + "\n\n" + MESSAGE_FOOTER
 
 
-@cached(Cache(maxsize=2500))
+@cached(Cache(maxsize=5000))
 async def cached_user_info(username, rest_client):
     return await user_info(username, rest_client=rest_client)
 
@@ -118,8 +168,7 @@ async def get_gws_members_from_keycloak_group(group_path, role, keycloak_client)
     # noinspection PyCallingNonCallable
     users = [await cached_user_info(u, keycloak_client) for u in usernames]
     for user in users:
-        # Use of `canonical_email`, instead of just username@icecube.wisc.edu, is needed
-        # for the *VERY* rare case of the keycloak user not being in Google Workspace.
+        # See file docstring for the explanation of why we try to use the canonical address.
         canonical = user['attributes'].get('canonical_email')
         if not canonical:
             # There are malformed accounts out there that don't have canonical_email
@@ -158,15 +207,25 @@ async def sync_kc_group_to_gws(kc_group, group_email, keycloak_client, gws_membe
 
     Note that only group members whose role is 'MANAGER' or 'MEMBER' are managed.
     Nothing is done with the 'OWNER' members (it's assumed these are managed out
-    ouf band).
+    ouf band). List of members who ought to be subscribed to the list are determined
+    recursively. See file docstring for important information on how the subgroups
+    named _admin are handled.
     """
+    # First, determine who should be subscribed to the list and who
+    # is currently subscribed.
+
+    # List managers are the members of the _admin subgroup of kc_group.
     try:
         managers = await get_gws_members_from_keycloak_group(
             kc_group['path'] + '/_admin', 'MANAGER', keycloak_client)
     except GroupDoesNotExist:
         managers = {}
-    members = await get_gws_members_from_keycloak_group(
-        kc_group['path'], 'MEMBER', keycloak_client)
+    # Regular list subscribers are the members of all recursive subgroups of
+    # kc_group whose names aren't _admin.
+    members = {}
+    for group in [g for g in group_tree_to_list(kc_group) if g['name'] != '_admin']:
+        members |= await get_gws_members_from_keycloak_group(
+            group['path'], 'MEMBER', keycloak_client)
     # A user may be a member of both the mailing list group and its _admin subgroup.
     # If that's the case, we want to use their manager settings.
     target_membership = members | managers
@@ -260,6 +319,8 @@ async def sync_gws_mailing_lists(gws_members_client, gws_groups_client, keycloak
     have attribute `email` that will be used to map it to a Google Workspace
     group.
 
+    See file docstring for detailed documentation.
+
     Args:
         gws_members_client (googleapiclient.discovery.Resource): Directory API's Members resource
         gws_groups_client (googleapiclient.discovery.Resource): Directory API's Groups resource
@@ -296,7 +357,8 @@ def main():
     parser = argparse.ArgumentParser(
         description='Synchronize memberships of Google Workspace groups to their '
                     'corresponding Keycloak mailing list groups. Optionally, '
-                    'notify users of changes.',
+                    'notify users of changes. See file docstring for detailed '
+                    'documentation',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         epilog='See module docstring for details, including SMTP server configuration.')
     parser.add_argument('--sa-credentials', metavar='PATH', required=True,

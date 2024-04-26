@@ -50,6 +50,28 @@ class RetryError(Exception):
                 f"exception_history={self.exception_history})")
 
 
+def group_tree_to_list(root):
+    """Convert a Keycloak group dict hierarchy to a list.
+
+    The first element of the list is guaranteed to be the root node.
+
+    Args:
+        root (dict): root group dict with subgroups stored as a list under 'subGroups' key
+    Returns:
+        list of group dicts, with first element being the root node
+    """
+    result = []
+
+    def convert_node(node):
+        # First element of result MUST be the root of the tree
+        result.append(node)
+        for child in node['subGroups']:
+            convert_node(child)
+
+    convert_node(root)
+    return result
+
+
 def retry_execute(request, max_attempts=8):
     """Retry calling request.execute() with exponential backoff.
 
