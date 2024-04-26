@@ -139,7 +139,7 @@ async def prune_mail_groups(removal_grace_days, single_group,
         # Build a list of allowed institutions
         allowed_experiments = ml_group['attributes'].get('allow_members_from_experiments')
         if not allowed_experiments:
-            logger.info(f"Skipping {ml_group['path']} because allow_members_from_experiments is missing or empty")
+            logger.warning(f"Skipping {ml_group['path']} because allow_members_from_experiments is missing or empty")
             continue
         allowed_experiments_list = (allowed_experiments if isinstance(allowed_experiments, list)
                                     else [allowed_experiments])
