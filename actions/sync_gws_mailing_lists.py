@@ -319,6 +319,8 @@ async def sync_gws_mailing_lists(gws_members_client, gws_groups_client, keycloak
     have attribute `email` that will be used to map it to a Google Workspace
     group.
 
+    See file docstring for detailed documentation.
+
     Args:
         gws_members_client (googleapiclient.discovery.Resource): Directory API's Members resource
         gws_groups_client (googleapiclient.discovery.Resource): Directory API's Groups resource
@@ -355,7 +357,8 @@ def main():
     parser = argparse.ArgumentParser(
         description='Synchronize memberships of Google Workspace groups to their '
                     'corresponding Keycloak mailing list groups. Optionally, '
-                    'notify users of changes.',
+                    'notify users of changes. See file docstring for detailed '
+                    'documentation',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         epilog='See module docstring for details, including SMTP server configuration.')
     parser.add_argument('--sa-credentials', metavar='PATH', required=True,
