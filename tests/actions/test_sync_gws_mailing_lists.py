@@ -113,8 +113,8 @@ async def test_sync_gws_mailing_lists_delete(keycloak_bootstrap):  # noqa: F811
                                  send_notifications=False, dryrun=False)
 
     assert gws_members_client.delete.call_args_list == [
-        call(groupKey='test@gws', memberKey='remove.subadmin@icecube.wisc.edu'),
         call(groupKey='test@gws', memberKey='remove@test'),
+        call(groupKey='test@gws', memberKey='remove.subadmin@icecube.wisc.edu'),
     ]
     assert gws_members_client.insert.call_count == 0
     assert gws_members_client.patch.call_count == 0
