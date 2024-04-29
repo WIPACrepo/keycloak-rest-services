@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.81 (2024-04-29)
+
+### Other
+
+* Fix tests/actions/sync_gws_mailing_lists.py ([#146](https://github.com/WIPACrepo/keycloak-rest-services/issues/146)) ([`7c01189`](https://github.com/WIPACrepo/keycloak-rest-services/commit/7c01189cdfc9cf258d9992b4c9f2ac6a51a182aa))
+* Make sync_gws_mailing_lists.py act recursively ([#145](https://github.com/WIPACrepo/keycloak-rest-services/issues/145)) ([`d62439d`](https://github.com/WIPACrepo/keycloak-rest-services/commit/d62439d56af395f77d31d5308b1983e8c249c564))
+
 ## v1.4.80 (2024-04-25)
 
 ### Other
