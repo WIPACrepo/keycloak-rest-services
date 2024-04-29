@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.82 (2024-04-29)
+
+### Other
+
+* Fix non-determinism in tests ([`d231f35`](https://github.com/WIPACrepo/keycloak-rest-services/commit/d231f35bfce00f3389588ec0df0574cbc7cdec3f))
+
 ## v1.4.81 (2024-04-29)
 
 ### Other
