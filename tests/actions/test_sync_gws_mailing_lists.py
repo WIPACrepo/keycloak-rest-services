@@ -149,11 +149,13 @@ async def test_sync_gws_mailing_lists_patch(keycloak_bootstrap):  # noqa: F811
     await sync_gws_mailing_lists(gws_members_client, gws_groups_client, keycloak_bootstrap,
                                  send_notifications=False, dryrun=False)
 
-    assert gws_members_client.patch.call_args_list == [
-        call(groupKey='test@gws', memberKey='make.manager@icecube.wisc.edu',
-             body={'email': 'make.manager@icecube.wisc.edu', 'role': 'MANAGER'}),
-        call(groupKey='test@gws', memberKey='make.member@icecube.wisc.edu',
-             body={'email': 'make.member@icecube.wisc.edu', 'role': 'MEMBER'}),
-    ]
+    assert (sorted(map(repr,
+                       gws_members_client.patch.call_args_list)) ==
+            sorted(map(repr, [
+                call(groupKey='test@gws', memberKey='make.manager@icecube.wisc.edu',
+                     body={'email': 'make.manager@icecube.wisc.edu', 'role': 'MANAGER'}),
+                call(groupKey='test@gws', memberKey='make.member@icecube.wisc.edu',
+                     body={'email': 'make.member@icecube.wisc.edu', 'role': 'MEMBER'}),
+            ])))
     assert gws_members_client.insert.call_count == 0
     assert gws_members_client.delete.call_count == 0
