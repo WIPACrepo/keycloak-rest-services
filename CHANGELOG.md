@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.83 (2024-05-01)
+
+### Other
+
+* Remove actions/sync_authors_mail_group.py ([`694937c`](https://github.com/WIPACrepo/keycloak-rest-services/commit/694937cc7c5bd456cca9b44a773e760c88fa9801))
+* Add sync_group_membership.py action ([#148](https://github.com/WIPACrepo/keycloak-rest-services/issues/148)) ([`4e9aa20`](https://github.com/WIPACrepo/keycloak-rest-services/commit/4e9aa20e2e23daead130f0763f2ad146e15d0168))
+
 ## v1.4.82 (2024-04-29)
 
 ### Other
