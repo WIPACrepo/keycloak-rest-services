@@ -47,6 +47,7 @@ async def sync_group_membership(source_group_specs: List[List[str]],
         keycloak_client (ClientCredentialsAuth): REST client to the KeyCloak server
         dryrun (bool): perform a trial run with no changes made
     """
+    # Build the list of all source group paths
     source_group_paths = []
     for root_source_group_path, jsonpath_expr in source_group_specs:
         root_source_group = await group_info(root_source_group_path, rest_client=keycloak_client)  # type: ignore
@@ -56,10 +57,11 @@ async def sync_group_membership(source_group_specs: List[List[str]],
 
     logger.debug(f"Syncing {destination_group_path} to {source_group_paths}")
 
+    # Determine what the current membership is and what it should be
+    current_members = set(await get_group_membership(destination_group_path, rest_client=keycloak_client))
     target_members_lists = [await get_group_membership(source_group_path, rest_client=keycloak_client)
                             for source_group_path in source_group_paths]
     target_members = set(chain.from_iterable(target_members_lists))
-    current_members = set(await get_group_membership(destination_group_path, rest_client=keycloak_client))
 
     # Update membership
     for extraneous_member in current_members - target_members:
