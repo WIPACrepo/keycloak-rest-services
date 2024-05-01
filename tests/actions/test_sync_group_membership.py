@@ -62,11 +62,11 @@ async def test_sync_group_membership(keycloak_bootstrap):
     await add_user_group('/institutions/ExperimentXXX/Irrelevant/authorlist', 'wrong-experiment', rest_client=keycloak_bootstrap)  # noqa
 
     await sync_group_membership(
-        ['/institutions', ''.join([
+        [['/institutions', ''.join([
             '$.subGroups[?name == "Experiment1"]'
             '.subGroups[?attributes.authorlist == "true"]'
             '.subGroups[?name =~ "^authorlist.*"]'
-            '.path'])],
+            '.path'])]],
         '/mail/authors', keycloak_client=keycloak_bootstrap)
 
     authors_users = await get_group_membership('/mail/authors', rest_client=keycloak_bootstrap)

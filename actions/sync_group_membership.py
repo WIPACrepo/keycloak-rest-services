@@ -1,7 +1,7 @@
 """
 Sync membership of the specified destination group to match the union of members
-of the source groups, defined as a jsonpath expression applied to the group
-hierarchy of the specified root group.
+of the source groups, defined as a JSONPath expression applied to the group
+hierarchy at the specified root group.
 
 Originally written to automate management of some /mail/ subgroups (mailing lists).
 
@@ -19,10 +19,10 @@ Example::
 
 import asyncio
 import logging
-from jsonpath_ng.ext import parse  # type: ignore
 from itertools import chain
-from typing import List
+from jsonpath_ng.ext import parse  # type: ignore
 from rest_tools.client.client_credentials import ClientCredentialsAuth
+from typing import List
 
 from krs.groups import get_group_membership, group_info, remove_user_group, add_user_group
 from krs.token import get_rest_client
@@ -30,18 +30,8 @@ from krs.token import get_rest_client
 
 logger = logging.getLogger('sync_group_members')
 
-# all_groups = await list_groups(rest_client=kc)
-# [(k,v) for k,v in all_groups.items() if k.count('/') == 1]
 
-# XXX parse('$.subGroups[*].subGroups[*].subGroups[?name = "authorlist"]').find(insts)
-# [v.value for v in parse("$.subGroups[*].subGroups[?name != '_admin']").find(insts)]
-# [v.value for v in parse("$.subGroups[*].subGroups[?attributes.authorlist == 'true']").find(insts)]
-# [v.value for v in parse("$.subGroups[*].subGroups[?attributes.authorlist == 'true'].path").find(insts)]
-# [v.value for v in parse("$.subGroups[?path == '/institutions/IceCube-Gen2'].subGroups[?attributes.authorlist == \"true\"].path").find(insts)]
-# --source - groups '$.subGroups[?path == "/institutions/IceCube"].subGroups[?attributes.authorlist == "true"].subGroups[?name =~ "^authorlist.*"].path'
-
-
-async def sync_group_membership(source_group_specs: List[str],
+async def sync_group_membership(source_group_specs: List[List[str]],
                                 destination_group_path: str,
                                 /, *,
                                 keycloak_client: ClientCredentialsAuth,
@@ -52,15 +42,16 @@ async def sync_group_membership(source_group_specs: List[str],
     See argparse help and file docstring for documentation.
 
     Args:
-        source_group_specs (List[str]): list of (ROOT_GROUP_PATH, JSONPATH_EXPR) pairs
+        source_group_specs (List[List[str]]): list of (ROOT_GROUP_PATH, JSONPATH_EXPR) pairs
         destination_group_path (str): path to the destination group
         keycloak_client (ClientCredentialsAuth): REST client to the KeyCloak server
         dryrun (bool): perform a trial run with no changes made
     """
     source_group_paths = []
-    for root_group_path, jsonpath_expr in source_group_specs:  # type: ignore
-        source_root_group = await group_info(root_group_path, rest_client=keycloak_client)  # type: ignore
-        source_group_path_matches = [v.value for v in parse(jsonpath_expr).find(source_root_group)]  # type: ignore
+    for root_source_group_path, jsonpath_expr in source_group_specs:
+        root_source_group = await group_info(root_source_group_path, rest_client=keycloak_client)  # type: ignore
+        source_group_path_matches = [v.value for v in
+                                     parse(jsonpath_expr).find(root_source_group)]  # type: ignore
         source_group_paths.extend(source_group_path_matches)
 
     logger.debug(f"Syncing {destination_group_path} to {source_group_paths}")
