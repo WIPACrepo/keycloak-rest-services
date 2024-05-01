@@ -10,7 +10,7 @@ from actions.sync_group_membership import sync_group_membership
 
 
 @pytest.mark.asyncio
-async def test_sync_authors_mail_group(keycloak_bootstrap):
+async def test_sync_group_membership(keycloak_bootstrap):
     await create_group('/mail', rest_client=keycloak_bootstrap)
     await create_group('/mail/authors', rest_client=keycloak_bootstrap)
 
