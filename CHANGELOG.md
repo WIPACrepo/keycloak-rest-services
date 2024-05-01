@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.84 (2024-05-01)
+
+### Other
+
+* <bot> update dependencies*.log files(s) ([`3793ebf`](https://github.com/WIPACrepo/keycloak-rest-services/commit/3793ebfaa24515cf80638bb1506bd5b0ff44476b))
+* Update python version to 3.11 ([`638b97c`](https://github.com/WIPACrepo/keycloak-rest-services/commit/638b97c7860785560c25798c2b22e1ac375dd792))
+
 ## v1.4.83 (2024-05-01)
 
 ### Other
