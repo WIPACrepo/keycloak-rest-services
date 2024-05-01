@@ -23,11 +23,13 @@ google-auth-oauthlib==1.2.0
 googleapis-common-protos==1.63.0
 httplib2==0.22.0
 idna==3.7
+jsonpath-ng==1.6.1
 ldap3==2.9.1
 motor==3.4.0
 multidict==6.0.5
 oauthlib==3.2.2
 pamqp==3.3.0
+ply==3.11
 proto-plus==1.23.0
 protobuf==4.25.3
 pyasn1==0.6.0
@@ -109,6 +111,8 @@ google-auth-oauthlib==1.2.0
         ├── charset-normalizer [required: >=2,<4, installed: 3.3.2]
         ├── idna [required: >=2.5,<4, installed: 3.7]
         └── urllib3 [required: >=1.21.1,<3, installed: 2.2.1]
+jsonpath-ng==1.6.1
+└── ply [required: Any, installed: 3.11]
 pipdeptree==2.19.1
 ├── packaging [required: >=23.1, installed: 24.0]
 └── pip [required: >=23.1.2, installed: 24.0]
