@@ -42,17 +42,16 @@ async def list_users(search=None, rest_client=None):
     Returns:
         dict: username: user info
     """
-    start = 0
     inc = 50
     ret = {}
-    data = [0]*inc
 
-    while len(data) == inc:
-        url = f'/users?&max={inc}&first={start}'
+    num_users = await rest_client.request('GET', '/users/count')
+
+    for start in range(0, num_users, inc):
+        url = f'/users?&max={min(inc, num_users - start)}&first={start}'
         if search:
             url += f'&search={search}'
         data = await rest_client.request('GET', url)
-        start += inc
         for u in data:
             _fix_attributes(u)
             ret[u['username']] = u
