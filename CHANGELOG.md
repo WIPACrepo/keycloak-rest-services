@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.85 (2024-05-02)
+
+### Other
+
+* Fix issue with pagination in list_users with keycloak 23 ([#149](https://github.com/WIPACrepo/keycloak-rest-services/issues/149)) ([`aa0de1f`](https://github.com/WIPACrepo/keycloak-rest-services/commit/aa0de1f01054ce635418ed59b4bc3f04a850c16c))
+
 ## v1.4.84 (2024-05-01)
 
 ### Other
