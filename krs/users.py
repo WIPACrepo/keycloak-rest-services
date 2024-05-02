@@ -45,7 +45,7 @@ async def list_users(search=None, rest_client=None):
     inc = 50
     ret = {}
 
-    num_users = await kc.request('GET', '/users/count')
+    num_users = await rest_client.request('GET', '/users/count')
 
     for start in range(0, num_users, inc):
         url = f'/users?&max={min(inc, num_users - start)}&first={start}'
