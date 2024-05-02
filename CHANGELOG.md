@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.86 (2024-05-02)
+
+### Other
+
+* <bot> update dependencies*.log files(s) ([`f343a1e`](https://github.com/WIPACrepo/keycloak-rest-services/commit/f343a1ef649aab74fb2a8f88abde268b2c349e79))
+* Dockerfile back to python 3.10 from 3.11 (it wasn't the problem) ([`1c9346d`](https://github.com/WIPACrepo/keycloak-rest-services/commit/1c9346dbae3b5850ff974ad02e5aace9be94b05a))
+
 ## v1.4.85 (2024-05-02)
 
 ### Other
