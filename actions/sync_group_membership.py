@@ -85,8 +85,7 @@ def main():
         epilog="This code uses the extended JSONPath parser from the `jsonpath_ng` module. "
                "For JSONPath syntax and expressions, see https://github.com/h2non/jsonpath-ng/.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--source', nargs=2, metavar=('ROOT_PATH', 'JSONPATH_EXPR'),
-                        required=True, action='append',
+    parser.add_argument('--source', nargs=2, metavar=('ROOT_PATH', 'JSONPATH_EXPR'), action='append',
                         help="source group(s), defined as a JSONPath expression JSONPATH_EXPR "
                              "to be applied to the Keycloak group hierarchy rooted at ROOT_PATH. "
                              "The expression must evaluate to a list of absolute group paths. "
@@ -97,8 +96,11 @@ def main():
                              "(3) See epilog for more information. "
                              "(4) See file docstring for a good example of a non-trivial "
                              "JSONPath expression.")
-    parser.add_argument('--destination', metavar='PATH', required=True,
+    parser.add_argument('--destination', metavar='PATH',
                         help='target group path')
+    parser.add_argument('--auto', metavar='ROOT_PATH',
+                        help='automatically sync direct subgroups of ROOT_PATH using configuration '
+                             'stored in their attributes')
     parser.add_argument('--dryrun', action='store_true',
                         help='dry run')
     parser.add_argument('--log-level', default='info',
