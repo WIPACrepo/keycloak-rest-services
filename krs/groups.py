@@ -38,6 +38,95 @@ class GroupDoesNotExist(Exception):
     pass
 
 
+async def find_groups(attrs=None, tree=False, *, rest_client):
+    """
+    Find groups based on values of custom attributes.
+
+    The `attrs` parameter is a dictionary whose key-value pairs will be
+    searched for in custom attributes of all groups. If `attrs` is None,
+    all groups will match. `attrs` is not allowed to be empty, because it
+    will cause the group hierarchy query endpoint in Keycloak REST API to
+    return counter-intutive results (as of KeyCloak 23.0.3).
+
+    If `tree` is False, return a list of matching GroupRepresentation objects
+    with empty subGroup attributes. If `tree` is True, return a list of trees
+    whose leaves are the matching groups (a single tree will contain all the
+    matching groups that share the same root may contain ma matches).
+
+    Note: to get the complete group tree hierarchy, use attrs=None and tree=True.
+
+    Args:
+        attrs (dict): key-value pairs to search for in custom attributes
+        tree (bool): present results as GroupRepresentation tree(s)
+        rest_client (RestClient): Keycloak rest client
+
+    Keycloak REST API GroupRepresentation reference:
+    https://www.keycloak.org/docs-api/24.0.3/rest-api/index.html#GroupRepresentation
+
+    Returns:
+        list: list of Keycloak REST API GroupRepresentation
+    """
+    url = "/groups?briefRepresentation=false"
+    if attrs is None:
+        url += "&q="
+    elif attrs:
+        url += f"&q={' '.join(f'{key}:{value}' for key, value in attrs.items())}"
+    else:
+        raise ValueError("Parameter attrs is not allowed to be empty")
+
+    url += f"&populateHierarchy={'true' if tree else 'false'}"
+
+    return await rest_client.request('GET', url)
+
+async def query_groups(query=None, brief=False, search=None, hierarchy=None, *, rest_client):
+    """
+    Query Keycloak group hierarchy.
+
+    Usages (behavior of Keycloak 23.0.3):
+        Top-level groups without subGroups:
+                query=None, search=None, hierarchy=None
+        Fully populated group hierarchy trees (one tree per top-level group):
+                query=None, search='', hierarchy=True
+        All groups, as a flat list, with empty subGroups:
+                query='', search=None, hierarchy=False
+                query=None, search='', hierarchy=False
+        All groups, as a flat list, with populated subGroups:
+                not possible as of KeyCloak 23.0.3.
+        Groups with matching attributes, with empty subGroups, without parents:
+                query=something, hierarchy=False
+        Groups with matching attributes without subGroups, as leaves of absolute trees:
+                query=something, hierarchy=True
+        Matching groups with subGroups populated:
+                not possible as of KeyCloak 23.0.3.
+
+    The search parameter filters groups performs infix
+
+    Keycloak's behavior when it comes to popuplating returned groups' subGroup
+    attribute can be unintuitive and has been known to change without notice. If
+    passing hierarchy=True doesn't get you the results you want, try also passing
+    search=''.
+
+    The search parameter does filtering using infix matching on group name.
+
+    If a query is specified, search value seems to be ignored.
+
+    GroupRepresentation reference:
+    https://www.keycloak.org/docs-api/24.0.3/rest-api/index.html#GroupRepresentation
+
+    REST API /groups endpoint reference:
+    https://www.keycloak.org/docs-api/24.0.3/rest-api/index.html#_groups
+
+    Args:
+        query (dict): REST API `q` parameter: key-value pairs to look for in groups' attributes
+        brief (bool): REST API `briefRepresentation` parameter (include attributes or not)
+        search (str): REST API `search` parameter (infix on group name)
+        hierarchy (bool): REST API `populateHierarchy` parameter
+
+    Returns:
+        list: list of Keycloak REST API GroupRepresentation
+    """
+    pass
+
 async def list_groups(max_groups=10000, rest_client=None):
     """
     List groups in Keycloak.
