@@ -275,11 +275,10 @@ async def test_get_group_hierarchy(keycloak_bootstrap):
     actual = replace_group_lists_with_dicts(test_hierarchy)
 
     # recursive test if dict sub is contained in dict sup
+    # assumes lists have been converted to dicts (above),
     def dict_is_contained(sub, sup):
         if isinstance(sub, dict):
             return all(dict_is_contained(sub[k], sup[k]) for k in sub)
-        elif isinstance(sub, list):
-            return all(dict_is_contained(sb, sp) for sb, sp in zip(sorted(sub), sorted(sup)))
         else:
             return sub == sup
 
