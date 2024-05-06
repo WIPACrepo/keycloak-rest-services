@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.87 (2024-05-06)
+
+### Other
+
+* Have krs.groups.list_groups include attributes ([#150](https://github.com/WIPACrepo/keycloak-rest-services/issues/150)) ([`26c87f0`](https://github.com/WIPACrepo/keycloak-rest-services/commit/26c87f04e7436de3ff2e5c5e1519f35872e7a2e3))
+
 ## v1.4.86 (2024-05-02)
 
 ### Other
