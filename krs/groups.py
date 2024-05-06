@@ -69,7 +69,6 @@ async def get_group_hierarchy(*, rest_client):
     return ret
 
 
-
 async def list_groups(max_groups=10000, rest_client=None):
     """
     List all groups in Keycloak.
