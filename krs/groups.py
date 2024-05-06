@@ -39,6 +39,36 @@ class GroupDoesNotExist(Exception):
     pass
 
 
+async def get_group_hierarchy(*, rest_client):
+    """
+    Return the entire group hierarchy tree.
+
+    Return value is a list of top-level GroupRepresentation dicts with
+    subGroups recursively populated.
+
+    This function is intended to hide quirks of Keycloak REST API's /groups
+    endpoint, whose behavior can be counter-intuitive and has been known
+    to change without notice.
+
+    Keycloak REST API GroupRepresentation reference:
+    https://www.keycloak.org/docs-api/24.0.3/rest-api/index.html#GroupRepresentation
+
+    Args:
+        rest_client (RestClient): Keycloak rest client
+
+    Returns:
+        list: list of top-level groups as GroupRepresentations
+    """
+    # As of Keycloak 23.0.3, subGroups are not populated regardless of
+    # the value of `populateHierarchy` of unless `q` or `search` parameters
+    # are used. Using `search=` is much faster than using `q=`.
+    url = "/groups?briefRepresentation=false&populateHierarchy=true&search="
+    ret = await rest_client.request('GET', url)
+    for grp in ret:
+        _recursive_fix_group_attributes(grp)
+    return ret
+
+
 async def list_groups(max_groups=10000, rest_client=None):
     """
     List all groups in Keycloak.

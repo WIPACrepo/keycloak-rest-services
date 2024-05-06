@@ -222,3 +222,66 @@ async def test_add_user_group_multiple(keycloak_bootstrap):
     assert ret == []
     ret = await groups.get_group_membership('/testgroup', rest_client=keycloak_bootstrap)
     assert ret == []
+
+
+@pytest.mark.asyncio
+async def test_get_group_hierarchy(keycloak_bootstrap):
+    attrs = {'key':'value'}
+    hierarchy = [
+        {'name': 'a', 'path': '/a', 'subGroupCount': 2, 'attributes': attrs,
+         'subGroups': [
+             {'name': 'a-sub1', 'path': '/a/a-sub1', 'subGroupCount': 0, 'attributes': attrs, 'subGroups': []},
+             {'name': 'a-sub2', 'path': '/a/a-sub2', 'subGroupCount': 0, 'attributes': attrs, 'subGroups': []},
+         ]},
+        {'name': 'b', 'path': '/b', 'subGroupCount': 1, 'attributes': attrs,
+         'subGroups': [
+             {'name': 'b-sub', 'path': '/b/b-sub', 'subGroupCount': 1, 'attributes': attrs,
+              'subGroups': [
+                  {'name': 'b-sub-sub', 'path': '/b/b-sub/b-sub-sub', 'subGroupCount': 0, 'attributes': attrs, 'subGroups': []},
+              ]},
+         ]},
+        {'name': 'c', 'path': '/c', 'subGroupCount': 0, 'attributes': attrs, 'subGroups': []},
+    ]
+
+    await groups.create_group('/a', attrs=attrs, rest_client=keycloak_bootstrap)
+    await groups.create_group('/a/a-sub1', attrs=attrs, rest_client=keycloak_bootstrap)
+    await groups.create_group('/a/a-sub2', attrs=attrs, rest_client=keycloak_bootstrap)
+    await groups.create_group('/b', attrs=attrs, rest_client=keycloak_bootstrap)
+    await groups.create_group('/b/b-sub', attrs=attrs, rest_client=keycloak_bootstrap)
+    await groups.create_group('/b/b-sub/b-sub-sub', attrs=attrs, rest_client=keycloak_bootstrap)
+    await groups.create_group('/c', attrs=attrs, rest_client=keycloak_bootstrap)
+
+    test_hierarchy = await groups.get_group_hierarchy(rest_client=keycloak_bootstrap)
+
+    # subGroups are lists, but the problem is lists is that [1,2] != [2,1],
+    # and subGroup lists can't be sorted. This function will convert subGroups
+    # into dicts, which are easier to compare
+    def replace_group_lists_with_dicts(arg):
+        # make [{'name': 'foo', ...}, {'name': 'bar', ...}] into
+        # {'foo': {'name': 'foo', ...}, 'bar': {'name': 'bar', ...}}
+        ret = {}
+        if isinstance(arg, list):
+            for elt in arg:
+                ret[elt['name']] = replace_group_lists_with_dicts(elt)
+            return ret
+        elif isinstance(arg, dict):
+            for k in arg:
+                ret[k] = replace_group_lists_with_dicts(arg[k])
+            return ret
+        else:
+            return arg
+
+    expected = replace_group_lists_with_dicts(hierarchy)
+    actual = replace_group_lists_with_dicts(test_hierarchy)
+
+    # recursive test if dict sub is contained in dict sup
+    # assumes lists have been converted to dicts (above),
+    def dict_is_contained(sub, sup):
+        if isinstance(sub, dict):
+            return all(dict_is_contained(sub[k], sup[k]) for k in sub)
+        else:
+            return sub == sup
+
+    from pprint import pformat
+    assert dict_is_contained(expected, actual), \
+        f"{pformat(expected)}\n!=\n{pformat(actual)}"
