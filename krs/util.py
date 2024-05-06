@@ -25,11 +25,11 @@ async def keycloak_version(rest_client):
 
 def fix_singleton_attributes(user_or_group):
     """
-    Replace in place values of user_or_group["attributes"] that are lists
-    with a single element with that element.
+    Replace in place the values of user_or_group["attributes"] dictionary
+    that are lists with a single element with that element.
 
-    In Keycloak, all attribute values of user and group representations are
-    lists, even if they have only a single value. This function addresses
+    In Keycloak, all custom attribute values of user and group representations
+    are lists, even if they have only a single value. This function addresses
     that inconvenience.
 
     Args:

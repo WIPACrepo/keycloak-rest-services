@@ -39,50 +39,6 @@ class GroupDoesNotExist(Exception):
     pass
 
 
-async def query_groups(attrs=None, tree=False, *, rest_client):
-    """
-    Return a list of GroupRepresentations whose custom attributes match
-    `attrs`.
-
-    The `attrs` parameter is a dictionary whose key-value pairs will be
-    searched for in custom attributes of all groups. If `attrs` is None
-    or empty all groups will match.
-
-    If `tree` is False, return a list of matching GroupRepresentation
-    objects with empty subGroup attributes. If `tree` is True, return
-    a list of trees whose leaves are the matching groups (a single tree
-    will be returned for each set of matches that share the same root).
-
-    Note: to get the complete group tree hierarchy, use attrs=None and
-    tree=True.
-
-    This function is intended to hide quirks of Keycloak REST API's /groups
-    endpoint, whose behavior can be counter-intuitive and has been known
-    to change without notice. The `search` API parameter is not used to
-    avoid confusion because it is ignored when the `q` parameter is used.
-
-    Keycloak REST API GroupRepresentation reference:
-    https://www.keycloak.org/docs-api/24.0.3/rest-api/index.html#GroupRepresentation
-
-    Args:
-        attrs (dict): key-value pairs to search for in custom attributes
-        tree (bool): present results as GroupRepresentation tree(s)
-        rest_client (RestClient): Keycloak rest client
-
-    Returns:
-        list: list of Keycloak REST API GroupRepresentation
-    """
-    url = "/groups?briefRepresentation=false"
-    if attrs:
-        url += f"&q={' '.join(f'{key}:{value}' for key, value in attrs.items())}"
-    else:
-        url += "&q="
-    url += f"&populateHierarchy={'true' if tree else 'false'}"
-
-    ret = await rest_client.request('GET', url)
-    return [_recursive_fix_group_attributes(grp) for grp in ret]
-
-
 async def list_groups(max_groups=10000, rest_client=None):
     """
     List all groups in Keycloak.
@@ -95,17 +51,19 @@ async def list_groups(max_groups=10000, rest_client=None):
     # Starting with KeyCloak 23, GET /admin/realms/{realm}/groups doesn't populate
     # subgroups unless "search" parameter is used. It is not clear whether it's
     # a bug or a feature https://github.com/keycloak/keycloak/issues/27694
-    url = f'/groups?max={max_groups}&search='
+    url = f'/groups?max={max_groups}&briefRepresentation=false&search='
     group_hierarchy = await rest_client.request('GET', url)
     ret = {}
 
     def add_groups(groups):
         for g in groups:
+            fix_singleton_attributes(g)
             ret[g['path']] = {
                 'id': g['id'],
                 'name': g['name'],
                 'path': g['path'],
                 'children': [gg['name'] for gg in g['subGroups']],
+                'attributes': g.get('attributes', {}),
             }
             if g['subGroups']:
                 add_groups(g['subGroups'])
