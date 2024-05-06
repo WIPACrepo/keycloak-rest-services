@@ -6,9 +6,9 @@ from enum import Enum
 import json
 import logging
 
-from .util import fix_singleton_attributes
 from . import groups
 from .token import get_rest_client
+from .util import fix_singleton_attributes
 
 logger = logging.getLogger('krs.institutions')
 

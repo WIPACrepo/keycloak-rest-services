@@ -5,8 +5,8 @@ import asyncio
 import logging
 from requests.exceptions import HTTPError
 
-from .users import user_info
 from .token import get_rest_client
+from .users import user_info
 from .util import fix_singleton_attributes
 
 logger = logging.getLogger('krs.groups')
