@@ -11,24 +11,9 @@ from unidecode import unidecode
 import requests.exceptions
 
 from .token import get_rest_client
+from .util import fix_singleton_attributes
 
 logger = logging.getLogger('krs.users')
-
-
-def _fix_attributes(user):
-    """
-    "Fix" user attributes that are only a single value.
-
-    Translates them from a list to the single value.  Operation
-    is done in-place.
-
-    Args:
-        user (dict): user object
-    """
-    if 'attributes' in user:
-        for k in user['attributes']:
-            if len(user['attributes'][k]) == 1:
-                user['attributes'][k] = user['attributes'][k][0]
 
 
 class UserDoesNotExist(Exception):
@@ -53,7 +38,7 @@ async def list_users(search=None, rest_client=None):
             url += f'&search={search}'
         data = await rest_client.request('GET', url)
         for u in data:
-            _fix_attributes(u)
+            fix_singleton_attributes(u)
             ret[u['username']] = u
     return ret
 
@@ -73,7 +58,7 @@ async def user_info(username, rest_client=None):
 
     if not ret:
         raise UserDoesNotExist(f'user "{username}" does not exist')
-    _fix_attributes(ret[0])
+    fix_singleton_attributes(ret[0])
     return ret[0]
 
 

@@ -50,6 +50,24 @@ class RetryError(Exception):
                 f"exception_history={self.exception_history})")
 
 
+def fix_singleton_attributes(user_or_group):
+    """
+    Replace in place values of user_or_group["attributes"] that are lists
+    with a single element with that element.
+
+    In Keycloak, all attribute values of user and group representations are
+    lists, even if they have only a single value. This function addresses
+    that inconvenience.
+
+    Args:
+        user_or_group (dict): user or group object
+    """
+    if 'attributes' in user_or_group:
+        for k in user_or_group['attributes']:
+            if len(user_or_group['attributes'][k]) == 1:
+                user_or_group['attributes'][k] = user_or_group['attributes'][k][0]
+
+
 def group_tree_to_list(root):
     """Convert a Keycloak group dict hierarchy to a list.
 

@@ -6,7 +6,7 @@ from enum import Enum
 import json
 import logging
 
-from .users import _fix_attributes
+from .util import fix_singleton_attributes
 from . import groups
 from .token import get_rest_client
 
@@ -48,11 +48,11 @@ async def list_insts(experiment=None, filter_func=None, rest_client=None):
                 # this is an institution group
                 if experiment and parts[2] != experiment:
                     continue
-                _fix_attributes(g)
+                fix_singleton_attributes(g)
                 authorlists = {}
                 for subg in g['subGroups']:
                     if subg['name'].startswith('authorlist-'):
-                        _fix_attributes(subg)
+                        fix_singleton_attributes(subg)
                         authorlists[subg['name'].replace('authorlist-', '')] = subg['attributes'].get('cite', '')
                 if authorlists:
                     g['attributes']['authorlists'] = authorlists
