@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.88 (2024-05-06)
+
+### Other
+
+* Add krs.groups.get_group_hierarchy ([#151](https://github.com/WIPACrepo/keycloak-rest-services/issues/151)) ([`ec96a7c`](https://github.com/WIPACrepo/keycloak-rest-services/commit/ec96a7cbd9410119417c301c063b7a31ed6f51e4))
+
 ## v1.4.87 (2024-05-06)
 
 ### Other
