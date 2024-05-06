@@ -21,3 +21,21 @@ async def keycloak_version(rest_client):
     finally:
         rest_client.address = saved_addr
     return server_info['systemInfo']['version']
+
+
+def fix_singleton_attributes(user_or_group):
+    """
+    Replace in place the values of user_or_group["attributes"] dictionary
+    that are lists with a single element with that element.
+
+    In Keycloak, all custom attribute values of user and group representations
+    are lists, even if they have only a single value. This function addresses
+    that inconvenience.
+
+    Args:
+        user_or_group (dict): user or group object
+    """
+    if 'attributes' in user_or_group:
+        for k in user_or_group['attributes']:
+            if len(user_or_group['attributes'][k]) == 1:
+                user_or_group['attributes'][k] = user_or_group['attributes'][k][0]

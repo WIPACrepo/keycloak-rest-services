@@ -5,8 +5,9 @@ import asyncio
 import logging
 from requests.exceptions import HTTPError
 
-from .users import user_info, _fix_attributes
 from .token import get_rest_client
+from .users import user_info
+from .util import fix_singleton_attributes
 
 logger = logging.getLogger('krs.groups')
 
@@ -21,7 +22,7 @@ KEYCLOAK_HAS_GROUP_CHILDREN_ENDPOINT = None
 
 def _recursive_fix_group_attributes(group):
     """
-    Recursively "fix" group tree attributes that are only a single value.
+    Recursively "fix" group tree attributes that are singleton lists.
 
     Translates them from a list to the single value.  Operation
     is done in-place.
@@ -29,7 +30,7 @@ def _recursive_fix_group_attributes(group):
     Args:
         group (dict): group object
     """
-    _fix_attributes(group)
+    fix_singleton_attributes(group)
     for subgroup in group['subGroups']:
         _recursive_fix_group_attributes(subgroup)
 
@@ -40,7 +41,9 @@ class GroupDoesNotExist(Exception):
 
 async def list_groups(max_groups=10000, rest_client=None):
     """
-    List groups in Keycloak.
+    List all groups in Keycloak.
+
+    Returns a dict of simplified group representations keyed on group path.
 
     Returns:
         dict: groupname: group details
@@ -48,17 +51,19 @@ async def list_groups(max_groups=10000, rest_client=None):
     # Starting with KeyCloak 23, GET /admin/realms/{realm}/groups doesn't populate
     # subgroups unless "search" parameter is used. It is not clear whether it's
     # a bug or a feature https://github.com/keycloak/keycloak/issues/27694
-    url = f'/groups?max={max_groups}&search='
+    url = f'/groups?max={max_groups}&briefRepresentation=false&search='
     group_hierarchy = await rest_client.request('GET', url)
     ret = {}
 
     def add_groups(groups):
         for g in groups:
+            fix_singleton_attributes(g)
             ret[g['path']] = {
                 'id': g['id'],
                 'name': g['name'],
                 'path': g['path'],
                 'children': [gg['name'] for gg in g['subGroups']],
+                'attributes': g.get('attributes', {}),
             }
             if g['subGroups']:
                 add_groups(g['subGroups'])
