@@ -41,13 +41,15 @@ Example::
 import asyncio
 import logging
 import sys
+from datetime import datetime, timedelta
 from itertools import chain
 from jsonpath_ng.ext import parse  # type: ignore
 from rest_tools.client.client_credentials import ClientCredentialsAuth
 from typing import List
 
-from krs.groups import get_group_membership, group_info, remove_user_group, add_user_group
+from krs.groups import get_group_membership, group_info, remove_user_group, add_user_group, get_group_hierarchy
 from krs.token import get_rest_client
+from krs.users import user_info, modify_user
 
 
 logger = logging.getLogger('sync_composite_groups')
@@ -85,6 +87,7 @@ def auto_sync(*args, **kwargs):
 
 async def sync_composite_group(target_path: str,
                                constituents_expr: str,
+                               opts: dict,
                                /, *,
                                keycloak_client: ClientCredentialsAuth,
                                dryrun: bool = False,
@@ -101,12 +104,8 @@ async def sync_composite_group(target_path: str,
         dryrun (bool): perform a trial run with no changes made
     """
     # Build the list of all source group paths
-    source_group_paths = []
-    for root_source_group_path, jsonpath_expr in constituents_expr:
-        root_source_group = await group_info(root_source_group_path, rest_client=keycloak_client)  # type: ignore
-        source_group_path_matches = [v.value for v in
-                                     parse(jsonpath_expr).find(root_source_group)]  # type: ignore
-        source_group_paths.extend(source_group_path_matches)
+    group_hierarchy = get_group_hierarchy(rest_client=keycloak_client)
+    source_group_paths = [v.value for v in parse(constituents_expr).find(group_hierarchy)]
 
     logger.debug(f"Syncing {target_path} to {source_group_paths}")
 
@@ -116,11 +115,44 @@ async def sync_composite_group(target_path: str,
                             for source_group_path in source_group_paths]
     target_members = set(chain.from_iterable(target_members_lists))
 
-    # Update membership
+    removal_grace_user_attr_name = f"{target_path}_removal_grace_ends"
+    removal_grace_days = opts.get('sync_composite_groups_member_removal_grace_days')
+
+    # Reset removal grace times of normal members (will be set if they rejoined a
+    # constituent group before removal grace period expired)
+    for current_member in current_members:
+        user = await user_info(current_member, rest_client=keycloak_client)
+        if user['attributes'].get(removal_grace_user_attr_name):
+            await modify_user(current_member, attribs={removal_grace_user_attr_name: None})
+
+    # Process members that don't belong to any constituent group
     for extraneous_member in current_members - target_members:
-        logger.info(f"removing {extraneous_member} from {target_path} {dryrun=}")
-        if not dryrun:
+        logger.info(f"{extraneous_member} shouldn't be in {target_path} {dryrun=}")
+        if dryrun:
+            continue
+        user = await user_info(extraneous_member, rest_client=keycloak_client)
+        if not removal_grace_days:
+            await modify_user(extraneous_member, attribs={removal_grace_user_attr_name: None})
+            logger.info(f"removing {extraneous_member} from {target_path} {dryrun=}")
             await remove_user_group(target_path, extraneous_member, rest_client=keycloak_client)
+
+        else:
+            if grace_ends_str := user['attributes'].get(removal_grace_user_attr_name):
+                grace_ends = datetime.fromisoformat(grace_ends_str)
+                if datetime.now() > grace_ends:
+                    await modify_user(extraneous_member, attribs={removal_grace_user_attr_name: None})
+                    logger.info(f"removing {extraneous_member} from {target_path} {dryrun=}")
+                    await remove_user_group(target_path, extraneous_member, rest_client=keycloak_client)
+                else:
+                    logger.debug(f"too early to remove")
+            else:
+                # if removal grace attribute absent, set it
+                # XXX what if no grace period
+                removal_grace_date = datetime.now() + timedelta(days=removal_grace_days)
+                await modify_user(extraneous_member,
+                                  attribs={removal_grace_user_attr_name:
+                                               removal_grace_date.isoformat()})
+
 
     for missing_member in target_members - current_members:
         logger.info(f"adding {missing_member} to {target_path} {dryrun=}")
