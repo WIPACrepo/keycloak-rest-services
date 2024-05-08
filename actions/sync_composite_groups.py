@@ -42,12 +42,14 @@ import asyncio
 import logging
 import sys
 from datetime import datetime, timedelta
+from functools import partial
 from itertools import chain
 from jsonpath_ng.ext import parse  # type: ignore
 from rest_tools.client.client_credentials import ClientCredentialsAuth
 from typing import List
 
-from krs.groups import get_group_membership, group_info, remove_user_group, add_user_group, get_group_hierarchy
+from krs.email import send_email
+from krs.groups import get_group_membership, group_info, remove_user_group, add_user_group, get_group_hierarchy, list_groups
 from krs.token import get_rest_client
 from krs.users import user_info, modify_user
 
@@ -75,14 +77,28 @@ async def manual_sync(target_path: str,
     attrs['sync_composite_groups_constituents_expr'] = constituents_expr
 
     return await sync_composite_group(target_path,
+                                      attrs['sync_composite_groups_constituents_expr'],
                                       attrs,
                                       keycloak_client=keycloak_client,
                                       dryrun=dryrun,
                                       no_email=no_email)
 
 
-def auto_sync(*args, **kwargs):
-    pass
+async def auto_sync(keycloak_client, dryrun):
+    # At the moment, it's faster to list all groups and pick the ones
+    # we need in python, than to query groups via REST API
+    all_groups = await list_groups(rest_client=keycloak_client)
+    enabled_group_paths = [v['path'] for v in all_groups.values()
+                           if v.get('attributes', {}).get('sync_composite_groups_enable') == 'true']
+
+    for enabled_group_path in enabled_group_paths:
+        enabled_group = await group_info(enabled_group_path, rest_client=keycloak_client)
+        attrs = enabled_group['attributes']
+        await sync_composite_group(enabled_group_path,
+                                   attrs['sync_composite_groups_constituents_expr'],
+                                   attrs,
+                                   keycloak_client=keycloak_client,
+                                   dryrun=dryrun)
 
 
 async def sync_composite_group(target_path: str,
@@ -99,65 +115,121 @@ async def sync_composite_group(target_path: str,
 
     Args:
         constituents_expr (List[List[str]]): list of (ROOT_GROUP_PATH, JSONPATH_EXPR) pairs
+        opts (dict): XXX
         target_path (str): path to the destination group
         keycloak_client (ClientCredentialsAuth): REST client to the KeyCloak server
         dryrun (bool): perform a trial run with no changes made
+        no_email (bool): XXX
     """
-    # Build the list of all source group paths
-    group_hierarchy = get_group_hierarchy(rest_client=keycloak_client)
-    source_group_paths = [v.value for v in parse(constituents_expr).find(group_hierarchy)]
+    # Set up partials to make the code easier to read
+    _get_group_hierarchy = partial(get_group_hierarchy, rest_client=keycloak_client)
+    _get_group_membership = partial(get_group_membership, rest_client=keycloak_client)
+    _user_info = partial(user_info, rest_client=keycloak_client)
+    _modify_user = partial(modify_user, rest_client=keycloak_client)
+    _remove_user_group = partial(remove_user_group, rest_client=keycloak_client)
+    _add_user_group = partial(add_user_group, rest_client=keycloak_client)
 
+    # Build the list of all constituent groups' paths
+    group_hierarchy = _get_group_hierarchy()
+    source_group_paths = [v.value for v in parse(constituents_expr).find(group_hierarchy)]
     logger.debug(f"Syncing {target_path} to {source_group_paths}")
 
     # Determine what the current membership is and what it should be
-    current_members = set(await get_group_membership(target_path, rest_client=keycloak_client))
-    target_members_lists = [await get_group_membership(source_group_path, rest_client=keycloak_client)
+    current_members = set(await _get_group_membership(target_path))
+    target_members_lists = [await _get_group_membership(source_group_path)
                             for source_group_path in source_group_paths]
     target_members = set(chain.from_iterable(target_members_lists))
 
-    removal_grace_user_attr_name = f"{target_path}_removal_grace_ends"
+    # Get all config values into own variables to make code easier to read
+    removal_scheduled_user_attr_name = f"{target_path}_removal_scheduled_at"
     removal_grace_days = opts.get('sync_composite_groups_member_removal_grace_days')
+    removal_pending_message = (opts.get('sync_composite_groups_member_removal_pending_message', '')
+                               .replace('@@', '\n'))
+    removal_averted_message = (opts.get('sync_composite_groups_member_removal_averted_message', '')
+                               .replace('@@', '\n'))
+    removal_occurred_message = (opts.get('sync_composite_groups_member_removal_occurred_message', '')
+                                .replace('@@', '\n'))
+    welcome_message = opts.get('sync_composite_groups_member_welcome_message', '').replace('@@', '\n')
+    notification_email_cc = opts.get('sync_composite_groups_notification_email_cc')
 
     # Reset removal grace times of normal members (will be set if they rejoined a
     # constituent group before removal grace period expired)
     for current_member in current_members:
-        user = await user_info(current_member, rest_client=keycloak_client)
-        if user['attributes'].get(removal_grace_user_attr_name):
-            await modify_user(current_member, attribs={removal_grace_user_attr_name: None})
+        user = await _user_info(current_member)
+        attrs = user['attributes']
+        if attrs.get(removal_scheduled_user_attr_name):
+            logger.info(f"Clearing {current_member}'s {removal_scheduled_user_attr_name} attribute ({dryrun=})")
+            if dryrun:
+                continue
+            await _modify_user(current_member, attribs={removal_scheduled_user_attr_name: None})
+            if not removal_averted_message or no_email:
+                continue
+            address = attrs.get('mailing_list_email') or f"{user['username']}@icecube.wisc.edu"
+            send_email(address, f"You are no longer scheduled for removal from {target_path}",
+                       removal_averted_message.format(
+                           first_name=user['firstName'], email=address, group_path=target_path),
+                       cc=notification_email_cc)
 
-    # Process members that don't belong to any constituent group
+    # Process members that don't belong to any constituent group,
+    # removing them if grace period undefined or expired
     for extraneous_member in current_members - target_members:
         logger.info(f"{extraneous_member} shouldn't be in {target_path} {dryrun=}")
         if dryrun:
             continue
-        user = await user_info(extraneous_member, rest_client=keycloak_client)
-        if not removal_grace_days:
-            await modify_user(extraneous_member, attribs={removal_grace_user_attr_name: None})
-            logger.info(f"removing {extraneous_member} from {target_path} {dryrun=}")
-            await remove_user_group(target_path, extraneous_member, rest_client=keycloak_client)
+        user = await _user_info(extraneous_member)
+        attrs = user['attributes']
 
-        else:
-            if grace_ends_str := user['attributes'].get(removal_grace_user_attr_name):
-                grace_ends = datetime.fromisoformat(grace_ends_str)
-                if datetime.now() > grace_ends:
-                    await modify_user(extraneous_member, attribs={removal_grace_user_attr_name: None})
-                    logger.info(f"removing {extraneous_member} from {target_path} {dryrun=}")
-                    await remove_user_group(target_path, extraneous_member, rest_client=keycloak_client)
-                else:
-                    logger.debug(f"too early to remove")
+        if removal_grace_days:
+            if removal_scheduled_at_str := attrs.get(removal_scheduled_user_attr_name):
+                removal_scheduled_at = datetime.fromisoformat(removal_scheduled_at_str)
+                # move on if too early to remove
+                if datetime.now() < removal_scheduled_at + timedelta(days=removal_grace_days):
+                    logger.debug(f"too early to remove {extraneous_member}")
+                    continue
             else:
-                # if removal grace attribute absent, set it
-                # XXX what if no grace period
-                removal_grace_date = datetime.now() + timedelta(days=removal_grace_days)
-                await modify_user(extraneous_member,
-                                  attribs={removal_grace_user_attr_name:
-                                               removal_grace_date.isoformat()})
+                # set "removal scheduled attribute" and move on
+                removal_scheduled_at_str = datetime.now().isoformat()
+                logger.info(f"Setting {extraneous_member}'s {removal_scheduled_user_attr_name} "
+                            f"to {removal_scheduled_at_str}")
+                await _modify_user(extraneous_member,
+                                   attribs={removal_scheduled_user_attr_name:
+                                            removal_scheduled_at_str})
+                if no_email or not removal_pending_message:
+                    continue
+                address = attrs.get('mailing_list_email') or f"{user['username']}@icecube.wisc.edu"
+                send_email(address, f"You are scheduled for removal from {target_path}",
+                           removal_pending_message.format(
+                               first_name=user['firstName'], email=address, group_path=target_path),
+                           cc=notification_email_cc)
+                continue
+        # Either grace period not configured or grace period expired.
+        # Remove the user from the group.
+        await _modify_user(extraneous_member, attribs={removal_scheduled_user_attr_name: None})
+        logger.info(f"removing {extraneous_member} from {target_path} {dryrun=}")
+        await _remove_user_group(target_path, extraneous_member)
+        if no_email or not removal_occurred_message:
+            continue
+        address = attrs.get('mailing_list_email') or f"{extraneous_member}@icecube.wisc.edu"
+        send_email(address, f"You have been removed from {target_path}",
+                   removal_occurred_message.format(
+                       first_name=user['firstName'], email=address, group_path=target_path),
+                   cc=notification_email_cc)
 
-
+    # Add missing members to the group
     for missing_member in target_members - current_members:
         logger.info(f"adding {missing_member} to {target_path} {dryrun=}")
-        if not dryrun:
-            await add_user_group(target_path, missing_member, rest_client=keycloak_client)
+        if dryrun:
+            continue
+        await _add_user_group(target_path, missing_member)
+        if no_email or not welcome_message:
+            continue
+        user = await _user_info(missing_member)
+        attrs = user['attributes']
+        address = attrs.get('mailing_list_email') or f"{missing_member}@icecube.wisc.edu"
+        send_email(address, f"You have been added to {target_path}",
+                   welcome_message.format(
+                       first_name=user['firstName'], email=address, group_path=target_path),
+                   cc=notification_email_cc)
 
 
 def main():
@@ -200,22 +272,21 @@ def main():
     logging.basicConfig(level=getattr(logging, args['log_level'].upper()))
 
     if args['no_email'] and args['auto']:
-        logger.critical("--no-emails is incompatible with --auto")
+        logger.critical("--no-email is incompatible with --auto")
         parser.exit(1)
 
     keycloak_client = get_rest_client()
 
     if args['auto']:
-        return asyncio.run(manual_sync(args['sync_spec'][0],
-                                args['sync_spec'][1],
-                                keycloak_client=keycloak_client,
-                                no_email=args['no_email'],
-                                dryrun=args['dryrun']))
-    else:
         return asyncio.run(auto_sync(
             keycloak_client=keycloak_client,
-            no_email=args['no_email_notifications'],
             dryrun=args['dryrun']))
+    else:
+        return asyncio.run(manual_sync(args['sync_spec'][0],
+                                       args['sync_spec'][1],
+                                       keycloak_client=keycloak_client,
+                                       no_email=args['no_email'],
+                                       dryrun=args['dryrun']))
 
 
 if __name__ == '__main__':
