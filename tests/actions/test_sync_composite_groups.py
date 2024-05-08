@@ -6,7 +6,7 @@ from krs.users import create_user
 # noinspection PyUnresolvedReferences
 from ..util import keycloak_bootstrap  # type: ignore
 
-from actions.sync_group_membership import sync_group_membership
+from actions.sync_composite_groups import auto_sync
 
 
 @pytest.mark.asyncio
@@ -61,6 +61,7 @@ async def test_sync_group_membership(keycloak_bootstrap):
     await add_user_group('/institutions/ExperimentXXX/Irrelevant', 'wrong-experiment', rest_client=keycloak_bootstrap)
     await add_user_group('/institutions/ExperimentXXX/Irrelevant/authorlist', 'wrong-experiment', rest_client=keycloak_bootstrap)  # noqa
 
+# XXX
     await sync_group_membership(
         [['/institutions', ''.join([
             '$.subGroups[?name == "Experiment1"]'
