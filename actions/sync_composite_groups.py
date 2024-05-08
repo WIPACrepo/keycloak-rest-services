@@ -314,7 +314,7 @@ async def sync_composite_group(target_path: str,
                 if not notify or not removal_pending_message:
                     continue
                 address = notification_redirect_addr or f"{extraneous_member}@icecube.wisc.edu"
-                logger.info(f"Sending 'scheduled for removal' notification to {address} ({dryrun, notify = })")
+                logger.info(f"Sending 'scheduled for removal' notification to {address} ({dryrun,notify=})")
                 # noinspection PyTypeChecker
                 send_email(address, f"You are scheduled for removal from {target_path}",
                            REMOVAL_PENDING_TEMPLATE.format(
