@@ -242,7 +242,7 @@ async def sync_composite_group(target_path: str,
     logger.info(f"Processing composite group {target_path}")
 
     # Build the list of all constituent groups' paths
-    group_hierarchy = _get_group_hierarchy()
+    group_hierarchy = await _get_group_hierarchy()
     parsed_expr = parse(constituents_expr)
     source_group_paths = [v.value for v in parsed_expr.find(group_hierarchy)]
     logger.debug(f"Syncing {target_path} to {source_group_paths}")
@@ -391,7 +391,7 @@ def main():
     parser.add_argument('--dryrun', action='store_true',
                         help='dry run')
     parser.add_argument('--notify', action='store_true',
-                        help="send email notifications if using --manual")
+                        help="send email notifications if using --manual; required with --auto")
     parser.add_argument('--log-level', default='info',
                         choices=('debug', 'info', 'warning', 'error'), help='logging level')
 
@@ -399,8 +399,8 @@ def main():
 
     logging.basicConfig(level=getattr(logging, args['log_level'].upper()))
 
-    if args['no_email'] and args['auto']:
-        logger.critical("--no-email is incompatible with --auto")
+    if not args['notify'] and args['auto']:
+        logger.critical("--notify is required with --auto")
         parser.exit(1)
 
     keycloak_client = get_rest_client()
@@ -410,8 +410,8 @@ def main():
             keycloak_client=keycloak_client,
             dryrun=args['dryrun']))
     else:
-        return asyncio.run(manual_sync(args['sync_spec'][0],
-                                       args['sync_spec'][1],
+        return asyncio.run(manual_sync(args['manual'][0],
+                                       args['manual'][1],
                                        keycloak_client=keycloak_client,
                                        notify=args['notify'],
                                        dryrun=args['dryrun']))
