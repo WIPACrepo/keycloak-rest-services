@@ -93,8 +93,8 @@ REMOVAL_PENDING_TEMPLATE = """
 
 You have been scheduled for removal from group {group_path}
 because you are not a member of any of its constituent groups.
-Unless you (re)join one of those groups, you will be removed from
-{group_path} after a grace period.
+Unless you (re)join one of those groups, you will be removed
+after a grace period.
 
 {custom_text}
 
@@ -113,7 +113,8 @@ because you are not a member of any of its constituent groups.
 WELCOME_TEMPLATE = """
 {username},
 
-You have been added to group {group_path}.
+You have been added to group {group_path} because you
+are a member of one of its constituent groups.
 
 {custom_text}
 
@@ -255,7 +256,7 @@ async def sync_composite_group(target_path: str,
 
     # Get all config values into own variables to make code easier to read
     removal_scheduled_user_attr_name = f"{target_path}_removal_scheduled_at"
-    removal_grace_days = opts.get(REMOVAL_GRACE_DAYS_ATTR)
+    removal_grace_days = int(opts.get(REMOVAL_GRACE_DAYS_ATTR, 0))
     removal_pending_message = opts.get(REMOVAL_PENDING_MSG_ATTR, '').replace('@@', '\n')
     removal_averted_message = opts.get(REMOVAL_AVERTED_MSG_ATTR, '').replace('@@', '\n')
     removal_occurred_message = opts.get(REMOVAL_OCCURRED_MSG_ATTR, '').replace('@@', '\n')
@@ -274,11 +275,12 @@ async def sync_composite_group(target_path: str,
                 continue
             await _modify_user(valid_member, attribs={removal_scheduled_user_attr_name: None})
             if not notify or not removal_averted_message:
+                logger.info(f"Skipping notification ({notify,removal_averted_message=})")
                 continue
             address = notification_redirect_addr or f"{valid_member}@icecube.wisc.edu"
             logger.info(f"Sending 'removal averted' notification to {address} ({dryrun,notify=})")
             # noinspection PyTypeChecker
-            send_email(address, f"You are no longer scheduled for removal from {target_path}",
+            send_email(address, f"You are no longer scheduled for removal from group {target_path}",
                        REMOVAL_AVERTED_TEMPLATE.format(
                            username=current_members,
                            group_path=target_path,
@@ -299,7 +301,7 @@ async def sync_composite_group(target_path: str,
                 removal_scheduled_at = datetime.fromisoformat(removal_scheduled_at_str)
                 # move on if too early to remove
                 if datetime.now() < removal_scheduled_at + timedelta(days=removal_grace_days):
-                    logger.debug(f"Too early to remove {extraneous_member} {removal_scheduled_at_str=}")
+                    logger.info(f"Too early to remove {extraneous_member} {removal_scheduled_at_str=}")
                     continue
                 else:
                     logger.info(f"Removal grace period expired ({removal_scheduled_at_str,removal_grace_days=})")
@@ -312,11 +314,12 @@ async def sync_composite_group(target_path: str,
                                    attribs={removal_scheduled_user_attr_name:
                                             new_removal_scheduled_at_str})
                 if not notify or not removal_pending_message:
+                    logger.info(f"Skipping notification ({notify,removal_pending_message=})")
                     continue
                 address = notification_redirect_addr or f"{extraneous_member}@icecube.wisc.edu"
                 logger.info(f"Sending 'scheduled for removal' notification to {address} ({dryrun,notify=})")
                 # noinspection PyTypeChecker
-                send_email(address, f"You are scheduled for removal from {target_path}",
+                send_email(address, f"You are scheduled for removal from group {target_path}",
                            REMOVAL_PENDING_TEMPLATE.format(
                                username=extraneous_member,
                                group_path=target_path,
@@ -330,11 +333,12 @@ async def sync_composite_group(target_path: str,
         logger.info(f"Removing {extraneous_member} from {target_path} ({dryrun,notify=}")
         await _remove_user_group(target_path, extraneous_member)
         if not notify or not removal_occurred_message:
+            logger.info(f"Skipping notification ({notify,removal_occurred_message=})")
             continue
         address = notification_redirect_addr or f"{extraneous_member}@icecube.wisc.edu"
         logger.info(f"Sending 'removal occurred' notification to {address} ({dryrun,notify=})")
         # noinspection PyTypeChecker
-        send_email(address, f"You have been removed from {target_path}",
+        send_email(address, f"You have been removed from group {target_path}",
                    REMOVAL_OCCURRED_TEMPLATE.format(
                        username=extraneous_member,
                        group_path=target_path,
@@ -352,7 +356,7 @@ async def sync_composite_group(target_path: str,
         address = notification_redirect_addr or f"{missing_member}@icecube.wisc.edu"
         logger.info(f"Sending 'added to group' notification to {address} ({dryrun,notify=})")
         # noinspection PyTypeChecker
-        send_email(address, f"You have been added to {target_path}",
+        send_email(address, f"You have been added to group {target_path}",
                    WELCOME_TEMPLATE.format(
                        username=missing_member,
                        group_path=target_path,
@@ -398,6 +402,10 @@ def main():
     args = vars(parser.parse_args())
 
     logging.basicConfig(level=getattr(logging, args['log_level'].upper()))
+    if args['log_level'] == 'info':
+        # ClientCredentialsAuth is too verbose at INFO
+        cca_logger = logging.getLogger('ClientCredentialsAuth')
+        cca_logger.setLevel('WARNING')
 
     if not args['notify'] and args['auto']:
         logger.critical("--notify is required with --auto")
