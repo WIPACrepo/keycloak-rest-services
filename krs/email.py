@@ -53,7 +53,7 @@ HTML_TEMPLATE = """
 """
 
 
-def send_email(recipient, subject, content, headline="IceCube Identity Management", sender=None):
+def send_email(recipient, subject, content, cc=None, headline="IceCube Identity Management", sender=None):
     """
     Send an email message.
 
@@ -96,6 +96,9 @@ def send_email(recipient, subject, content, headline="IceCube Identity Managemen
         msg['To'] = (Address(recipient['name'], username, domain),)
     else:
         msg['To'] = recipient
+
+    if cc:
+        msg['CC'] = cc
 
     msg.set_content(TEMPLATE.format(content))
     msg.add_alternative(HTML_TEMPLATE.format(content.replace('\n', '<br>'), headline=headline),
