@@ -65,9 +65,15 @@ ATTR_NAME_PREFIX = "sync_composite_groups_"
 
 @define
 class _Config:
+    XXXfoo = lambda s: s.replace('@@', '\n') if s else None
+    group_path: str = field()
     mode: str = field(validator=validators.in_(('off', 'filter', 'match')),
                       metadata={'attr': ATTR_NAME_PREFIX + 'mode'})
-    sources_expr = field(converter=parse,
+    XXXremoval_scheduled_at_user_attr_name: str = field()
+    removal_pending_notify: bool = field()
+    removal_averted_notify: bool = field()
+    removal_occurred_notify: bool = field()
+    sources_expr = field(converter=lambda x: parse(x) if x else None, default=None,
                          metadata={'attr': ATTR_NAME_PREFIX + 'sources_expr'})
     removal_grace_days: int = (
         field(converter=lambda x: int(x) if x else None, default=None,
@@ -92,10 +98,12 @@ class _Config:
               metadata={'attr': ATTR_NAME_PREFIX + 'removal_occurred_message_override'}))
 
 class Config(_Config):
-    def __init__(self, group_attrs):
+    def __init__(self, group_path, group_attrs):
         kwargs = {a.name: group_attrs[a.metadata['attr']]
                   for a in _Config.__attrs_attrs__
                   if a.metadata['attr'] in group_attrs}
+        kwargs['removal_scheduled_user_attr_name'] = f"{group_path}_removal_scheduled_at"
+
         super().__init__(**kwargs)
 
 
@@ -174,25 +182,17 @@ async def manual_sync(target_path: str,
     target_group = await group_info(target_path, rest_client=keycloak_client)
 
     cfg = Config(target_group['attributes'])
-    if cfg.mode != 'off'
+    if cfg.mode != 'off':
+        # noinspection PyTypeChecker
         logger.critical(f"To operate in manual mode, {target_path}'s "
-                        f"{IS_ENABLED_ATTR} attribute must be empty or absent")
+                        f"{fields(Config).mode.metadata['attr']} attribute must be empty or absent")
         return 1
-    if group_constituents_expr := attrs.get(CONSTITUENTS_EXPR_ATTR):
-        if group_constituents_expr != constituents_expr:
-            logger.critical(f"To operate in manual mode, {target_path}'s "
-                            f"{CONSTITUENTS_EXPR_ATTR} attribute must be empty, absent, "
-                            f"or equal to the expression given on the command line")
-            logger.critical(f"command line: {attrs[CONSTITUENTS_EXPR_ATTR]}")
-            logger.critical(f"{CONSTITUENTS_EXPR_ATTR}: {attrs[CONSTITUENTS_EXPR_ATTR]}")
-            return 1
 
-    # set expr in case it's empty
-    attrs['sync_composite_groups_constituents_expr'] = constituents_expr
+    # override sources expr
+    cfg.sources_expr = constituents_expr
 
     return await sync_composite_group(target_path,
-                                      constituents_expr,
-                                      opts=attrs,
+                                      cfg=cfg,
                                       keycloak_client=keycloak_client,
                                       notify=notify,
                                       dryrun=dryrun)
@@ -212,24 +212,24 @@ async def auto_sync(keycloak_client, dryrun):
     # to list all groups and pick the ones we need in python, than to query
     # custom attributes via REST API
     all_groups = await list_groups(rest_client=keycloak_client)
+    # noinspection PyTypeChecker
     enabled_group_paths = [v['path'] for v in all_groups.values()
-                           if v.get('attributes', {}).get(IS_ENABLED_ATTR) == 'true']
+                           if v.get('attributes', {})
+                           .get(fields(Config).mode.metadata['attr']) in ('filter', 'match')]
 
     for enabled_group_path in enabled_group_paths:
         enabled_group = await group_info(enabled_group_path, rest_client=keycloak_client)
-        attrs = enabled_group['attributes']
+        cfg = Config(enabled_group['attributes'])
         await sync_composite_group(enabled_group_path,
-                                   attrs[CONSTITUENTS_EXPR_ATTR],
-                                   opts=attrs,
+                                   cfg=cfg,
                                    keycloak_client=keycloak_client,
                                    notify=True,
                                    dryrun=dryrun)
 
 
 async def sync_composite_group(target_path: str,
-                               constituents_expr: str,
                                /, *,
-                               opts: dict,
+                               cfg: Config,
                                keycloak_client: ClientCredentialsAuth,
                                notify: bool,
                                dryrun: bool = False):
@@ -272,8 +272,7 @@ async def sync_composite_group(target_path: str,
 
     # Build the list of all constituent groups' paths
     group_hierarchy = await _get_group_hierarchy()
-    parsed_expr = parse(constituents_expr)
-    source_group_paths = [v.value for v in parsed_expr.find(group_hierarchy)]
+    source_group_paths = [v.value for v in cfg.sources_expr.find(group_hierarchy)]
     logger.debug(f"Syncing {target_path} to {source_group_paths}")
 
     # Determine what the current membership is and what it should be
@@ -282,27 +281,17 @@ async def sync_composite_group(target_path: str,
     intended_members = set(chain.from_iterable(intended_members_lists))
     current_members = set(await _get_group_membership(target_path))
 
-    # Get all config values into own variables to make code easier to read
-    removal_scheduled_user_attr_name = f"{target_path}_removal_scheduled_at"
-    removal_grace_days = int(opts.get(REMOVAL_GRACE_DAYS_ATTR, 0))
-    removal_pending_message = opts.get(REMOVAL_PENDING_MSG_ATTR, '').replace('@@', '\n')
-    removal_averted_message = opts.get(REMOVAL_AVERTED_MSG_ATTR, '').replace('@@', '\n')
-    removal_occurred_message = opts.get(REMOVAL_OCCURRED_MSG_ATTR, '').replace('@@', '\n')
-    welcome_message = opts.get(WELCOME_MSG_ATTR, '').replace('@@', '\n')
-    notification_email_cc = opts.get(NOTIFICATION_CC_ATTR)
-    notification_redirect_addr = opts.get(NOTIFICATION_REDIRECT_ADDR_ATTR)
-
     # Reset removal grace times of intended current members (will be set if
     # they rejoined a constituent group before removal grace period expired)
     for valid_member in current_members & intended_members:
         user = await _user_info(valid_member)
         attrs = user['attributes']
-        if attrs.get(removal_scheduled_user_attr_name):
-            logger.info(f"Clearing {valid_member}'s {removal_scheduled_user_attr_name} ({dryrun,notify=})")
+        if attrs.get(cfg.removal_scheduled_user_attr_name):
+            logger.info(f"Clearing {valid_member}'s {cfg.removal_scheduled_user_attr_name} ({dryrun,notify=})")
             if dryrun:
                 continue
-            await _modify_user(valid_member, attribs={removal_scheduled_user_attr_name: None})
-            if not notify or not removal_averted_message:
+            await _modify_user(valid_member, attribs={cfg.removal_scheduled_user_attr_name: None})
+            if not notify or not cfg.removal_averted_message:
                 logger.info(f"Skipping notification ({notify,removal_averted_message=})")
                 continue
             address = notification_redirect_addr or f"{valid_member}@icecube.wisc.edu"
