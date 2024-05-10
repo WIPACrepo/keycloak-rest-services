@@ -15,22 +15,6 @@ The target composite group(s) and the JSONPath specifications of their
 constituents are either provided on the command line (manual mode) or
 discovered automatically (automatic mode).
 
-Runtime configuration options are specified for each composite group as
-custom group attributes. See documentation of the `sync_composite_groups_*`
-attributes for the available configuration options (link to documentation
-below), as well as "help" metadata of configuration options in the code
-below.
-
-Note that the required attributes for automatic operation are:
- * sync_composite_groups_enable:
-        true/false: automatic sync enabled
- * sync_composite_groups_mode:
-        filter: filter out members who are not members of constituents
-        match: add/remove members to match exactly the union of the
-                memberships of the constituent groups
- * sync_composite_groups_constituents_expr:
-        JSONPath expression explained above
-
 Manual mode is intended mostly for testing and debugging (e.g. of JSONPath
 expressions), but could also be useful for initial silent seeding of composite
 groups. To run this code in manual mode, in order to minimize chances of
@@ -38,6 +22,23 @@ collisions, the target composite group's attribute `sync_composite_groups_enable
 must be false, or absent, and the `sync_composite_groups_constituents_expr`
 attribute must be empty, or absent, or be the same as the expression given
 on the command line.
+
+Runtime configuration options are specified for each composite group as
+custom group attributes. See documentation of the `sync_composite_groups_*`
+attributes for the available configuration options (link to documentation
+below), as well as "help" metadata of configuration options in the code
+below. Some configuration options can be overridden in the manual mode
+on the command line.
+
+The required attributes for automatic operation are:
+ * sync_composite_groups_enable:
+        true/false: automatic sync enabled.
+ * sync_composite_groups_mode:
+        filter: filter out members who are not members of constituents.
+        match: add/remove members to match exactly the union of the
+                memberships of the constituent groups.
+ * sync_composite_groups_constituents_expr:
+        JSONPath expression explained above.
 
 Originally written to automate management of some /mail/ subgroups
 (mailing lists).
@@ -170,9 +171,9 @@ class GroupCoreConfig:
     enable: bool = (
         field(converter=_bool_from_string, metadata={'attr': ATTR_NAME_PREFIX + 'enable',
                                                      'help': 'enable/disable automatic sync'}))
-    sources_expr = (
+    constituents_expr = (
         field(converter=lambda x: parse(x) if x else None, default=None,
-              metadata={'attr': ATTR_NAME_PREFIX + 'sources_expr',
+              metadata={'attr': ATTR_NAME_PREFIX + 'constituents_expr',
                         'help': 'see file docstring for help'}))
     removal_grace_days: int = (
         field(converter=int, default=0,
@@ -276,7 +277,7 @@ async def manual_sync(target_path: str,
         return 1
 
     # override sources expr
-    cfg.sources_expr = constituents_expr
+    cfg.constituents_expr = constituents_expr
 
     return await sync_composite_group(target_path,
                                       cfg=cfg,
@@ -445,12 +446,12 @@ async def sync_composite_group(target_path: str,
 
     # Build the list of all constituent groups' paths
     group_hierarchy = await _get_group_hierarchy()
-    source_group_paths = [v.value for v in cfg.sources_expr.find(group_hierarchy)]
-    logger.debug(f"Syncing {target_path} to {source_group_paths}")
+    constituent_group_paths = [v.value for v in cfg.constituents_expr.find(group_hierarchy)]
+    logger.debug(f"Syncing {target_path} to {constituent_group_paths}")
 
     # Determine what the current membership is and what it should be
-    intended_members_lists = [await _get_group_membership(source_group_path)
-                              for source_group_path in source_group_paths]
+    intended_members_lists = [await _get_group_membership(constituent_group_path)
+                              for constituent_group_path in constituent_group_paths]
     intended_members = set(chain.from_iterable(intended_members_lists))
     current_members = set(await _get_group_membership(target_path))
 
