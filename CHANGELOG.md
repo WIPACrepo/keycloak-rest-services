@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.89 (2024-05-10)
+
+### Other
+
+* <bot> update dependencies*.log files(s) ([`7fb8acb`](https://github.com/WIPACrepo/keycloak-rest-services/commit/7fb8acb3090104babca214bbc6dfab4d9a52e995))
+* Password expired email: update URL for new keycloak version ([`5c7abc0`](https://github.com/WIPACrepo/keycloak-rest-services/commit/5c7abc044da014208398f0e07710dc714d655826))
+
 ## v1.4.88 (2024-05-06)
 
 ### Other
