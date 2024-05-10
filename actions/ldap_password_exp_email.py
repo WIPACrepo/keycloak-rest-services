@@ -29,8 +29,8 @@ After your password expires, you will no longer be able to retrieve
 your e-mail, login to IceCube computing systems, or use many other
 IceCube resources.
 
-Please go to https://keycloak.icecube.wisc.edu/auth/realms/IceCube/account/password
-where you can reset or change your password.
+Please go to https://keycloak.icecube.wisc.edu/auth/realms/IceCube/account/#/account-security/signing-in
+where you can update your password.
 '''
 
 
