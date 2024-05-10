@@ -50,6 +50,7 @@ import logging
 import sys
 from attrs import *
 from datetime import datetime, timedelta
+from enum import Enum
 from functools import partial
 from itertools import chain
 from jsonpath_ng.ext import parse  # type: ignore
@@ -60,51 +61,6 @@ from krs.groups import (get_group_membership, group_info, remove_user_group,
                         add_user_group, get_group_hierarchy, list_groups)
 from krs.token import get_rest_client
 from krs.users import user_info, modify_user
-
-ATTR_NAME_PREFIX = "sync_composite_groups_"
-
-@define
-class _Config:
-    XXXfoo = lambda s: s.replace('@@', '\n') if s else None
-    group_path: str = field()
-    mode: str = field(validator=validators.in_(('off', 'filter', 'match')),
-                      metadata={'attr': ATTR_NAME_PREFIX + 'mode'})
-    XXXremoval_scheduled_at_user_attr_name: str = field()
-    removal_pending_notify: bool = field()
-    removal_averted_notify: bool = field()
-    removal_occurred_notify: bool = field()
-    sources_expr = field(converter=lambda x: parse(x) if x else None, default=None,
-                         metadata={'attr': ATTR_NAME_PREFIX + 'sources_expr'})
-    removal_grace_days: int = (
-        field(converter=lambda x: int(x) if x else None, default=None,
-              metadata={'attr': ATTR_NAME_PREFIX + 'removal_grace_days'}))
-    removal_pending_message_append: str = (
-        field(converter=lambda s: s.replace('@@', '\n') if s else None, default=None,
-              metadata={'attr': ATTR_NAME_PREFIX + 'removal_pending_message_append'}))
-    removal_pending_message_override: str = (
-        field(converter=lambda s: s.replace('@@', '\n') if s else None, default=None,
-              metadata={'attr': ATTR_NAME_PREFIX + 'removal_pending_message_override'}))
-    removal_averted_message_append: str = (
-        field(converter=lambda s: s.replace('@@', '\n') if s else None, default=None,
-              metadata={'attr': ATTR_NAME_PREFIX + 'removal_averted_message_append'}))
-    removal_averted_message_override: str = (
-        field(converter=lambda s: s.replace('@@', '\n') if s else None, default=None,
-              metadata={'attr': ATTR_NAME_PREFIX + 'removal_averted_message_override'}))
-    removal_occurred_message_append: str = (
-        field(converter=lambda s: s.replace('@@', '\n') if s else None, default=None,
-              metadata={'attr': ATTR_NAME_PREFIX + 'removal_occurred_message_append'}))
-    removal_occurred_message_override: str = (
-        field(converter=lambda s: s.replace('@@', '\n') if s else None, default=None,
-              metadata={'attr': ATTR_NAME_PREFIX + 'removal_occurred_message_override'}))
-
-class Config(_Config):
-    def __init__(self, group_path, group_attrs):
-        kwargs = {a.name: group_attrs[a.metadata['attr']]
-                  for a in _Config.__attrs_attrs__
-                  if a.metadata['attr'] in group_attrs}
-        kwargs['removal_scheduled_user_attr_name'] = f"{group_path}_removal_scheduled_at"
-
-        super().__init__(**kwargs)
 
 
 logger = logging.getLogger('sync_composite_groups')
@@ -119,7 +75,7 @@ REMOVAL_AVERTED_TEMPLATE = """
 
 You are no longer scheduled for removal from group {group_path}.
 
-{custom_text}
+{append_text}
 
 """ + MESSAGE_TEMPLATE_FOOTER
 
@@ -131,7 +87,7 @@ because you are not a member of any of its constituent groups.
 Unless you (re)join one of those groups, you will be removed
 after a grace period.
 
-{custom_text}
+{append_text}
 
 """ + MESSAGE_TEMPLATE_FOOTER
 
@@ -141,7 +97,7 @@ REMOVAL_OCCURRED_TEMPLATE = """
 You have been removed from group {group_path}
 because you are not a member of any of its constituent groups.
 
-{custom_text}
+{append_text}
 
 """ + MESSAGE_TEMPLATE_FOOTER
 
@@ -151,9 +107,122 @@ WELCOME_TEMPLATE = """
 You have been added to group {group_path} because you
 are a member of one of its constituent groups.
 
-{custom_text}
+{append_text}
 
 """ + MESSAGE_TEMPLATE_FOOTER
+
+ATTR_NAME_PREFIX = "sync_composite_groups_"
+
+
+def _double_at_to_newline(s):
+    return s.replace('@@', '\n')
+
+
+def _bool_from_string(s):
+    if s.lower() == 'true':
+        return True
+    elif s.lower() == 'false':
+        return False
+    elif not s:
+        return None
+    else:
+        raise ValueError(f"Couldn't parse bool from {s}")
+
+
+@define
+class GroupEventConfig:
+    addition_occurred_notify: bool = (
+        field(converter=_bool_from_string, default="true",
+              metadata={'attr': ATTR_NAME_PREFIX + 'addition_occurred_notify'}))
+    removal_pending_notify: bool = (
+        field(converter=_bool_from_string, default="true",
+              metadata={'attr': ATTR_NAME_PREFIX + 'removal_pending_notify'}))
+    removal_averted_notify: bool = (
+        field(converter=_bool_from_string, default="true",
+              metadata={'attr': ATTR_NAME_PREFIX + 'removal_averted_notify'}))
+    removal_occurred_notify: bool = (
+        field(converter=_bool_from_string, default="true",
+              metadata={'attr': ATTR_NAME_PREFIX + 'removal_occurred_notify'}))
+    removal_pending_message_append: str = (
+        field(converter=_double_at_to_newline, default='',
+              metadata={'attr': ATTR_NAME_PREFIX + 'removal_pending_message_append'}))
+    removal_pending_message_override: str = (
+        field(converter=_double_at_to_newline, default='',
+              metadata={'attr': ATTR_NAME_PREFIX + 'removal_pending_message_override'}))
+    removal_averted_message_append: str = (
+        field(converter=_double_at_to_newline, default='',
+              metadata={'attr': ATTR_NAME_PREFIX + 'removal_averted_message_append'}))
+    removal_averted_message_override: str = (
+        field(converter=_double_at_to_newline, default='',
+              metadata={'attr': ATTR_NAME_PREFIX + 'removal_averted_message_override'}))
+    removal_occurred_message_append: str = (
+        field(converter=_double_at_to_newline, default='',
+              metadata={'attr': ATTR_NAME_PREFIX + 'removal_occurred_message_append'}))
+    removal_occurred_message_override: str = (
+        field(converter=_double_at_to_newline, default='',
+              metadata={'attr': ATTR_NAME_PREFIX + 'removal_occurred_message_override'}))
+    addition_occurred_message_append: str = (
+        field(converter=_double_at_to_newline, default='',
+              metadata={'attr': ATTR_NAME_PREFIX + 'addition_append_message_override'}))
+    addition_occurred_message_override: str = (
+        field(converter=_double_at_to_newline, default='',
+              metadata={'attr': ATTR_NAME_PREFIX + 'addition_occurred_message_override'}))
+
+
+class Mode(Enum):
+    off = 'off'
+    filter = 'filter'
+    match = 'match'
+
+
+@define
+class GroupCoreConfig:
+    mode: Mode = field(converter=Mode, metadata={'attr': ATTR_NAME_PREFIX + 'mode'})
+    sources_expr = field(converter=lambda x: parse(x) if x else None, default=None,
+                         metadata={'attr': ATTR_NAME_PREFIX + 'sources_expr'})
+    removal_grace_days: int = (
+        field(converter=lambda x: int(x) if x else None, default=None,
+              metadata={'attr': ATTR_NAME_PREFIX + 'removal_grace_days'}))
+
+
+class Config(GroupCoreConfig):
+    def __init__(self, group_path: str, group_attrs: dict):
+        kwargs_super = {a.name: group_attrs[a.metadata['attr']]
+                        for a in GroupCoreConfig.__attrs_attrs__
+                        if a.metadata['attr'] in group_attrs}
+        super().__init__(**kwargs_super)
+
+        kwargs_notify = {a.name: group_attrs[a.metadata['attr']]
+                         for a in GroupEventConfig.__attrs_attrs__
+                         if a.metadata['attr'] in group_attrs}
+        self._events = GroupEventConfig(**kwargs_notify)
+
+        self.group_path = group_path
+        self.removal_scheduled_user_attr_name = f"{group_path}_removal_scheduled_at"
+
+        self.message_addition_occurred: str = (
+            '' if not self._events.addition_occurred_notify
+            else self._events.addition_occurred_message_override
+            or WELCOME_TEMPLATE.format(
+                append_text=self._events.addition_occurred_message_append))
+
+        self.message_removal_pending: str = (
+            '' if not self._events.removal_pending_notify
+            else self._events.removal_pending_message_override
+            or REMOVAL_PENDING_TEMPLATE.format(
+                append_text=self._events.removal_pending_message_append))
+
+        self.message_removal_averted: str = (
+            '' if not self._events.removal_averted_notify
+            else self._events.removal_averted_message_override
+            or REMOVAL_AVERTED_TEMPLATE.format(
+                append_text=self._events.removal_averted_message_append))
+
+        self.message_removal_occurred: str = (
+            '' if not self._events.removal_occurred_notify
+            else self._events.removal_occurred_message_override
+            or REMOVAL_OCCURRED_TEMPLATE.format(
+                append_text=self._events.removal_occurred_message_append))
 
 
 async def manual_sync(target_path: str,
@@ -181,11 +250,11 @@ async def manual_sync(target_path: str,
     logger.info(f"Constituents expression: {constituents_expr}")
     target_group = await group_info(target_path, rest_client=keycloak_client)
 
-    cfg = Config(target_group['attributes'])
-    if cfg.mode != 'off':
+    cfg = Config(target_path, target_group['attributes'])
+    if cfg.mode != Mode.off:
         # noinspection PyTypeChecker
         logger.critical(f"To operate in manual mode, {target_path}'s "
-                        f"{fields(Config).mode.metadata['attr']} attribute must be empty or absent")
+                        f"{fields(Config).mode.metadata['attr']} attribute must be {Mode.off.value}")
         return 1
 
     # override sources expr
@@ -215,16 +284,111 @@ async def auto_sync(keycloak_client, dryrun):
     # noinspection PyTypeChecker
     enabled_group_paths = [v['path'] for v in all_groups.values()
                            if v.get('attributes', {})
-                           .get(fields(Config).mode.metadata['attr']) in ('filter', 'match')]
+                           .get(fields(Config).mode.metadata['attr']) in (Mode.filter, Mode.match)]
 
     for enabled_group_path in enabled_group_paths:
         enabled_group = await group_info(enabled_group_path, rest_client=keycloak_client)
-        cfg = Config(enabled_group['attributes'])
+        cfg = Config(enabled_group_path, enabled_group['attributes'])
         await sync_composite_group(enabled_group_path,
                                    cfg=cfg,
                                    keycloak_client=keycloak_client,
                                    notify=True,
                                    dryrun=dryrun)
+
+
+def send_notification(user: dict, subject: str, body: str):
+    username = user['username']
+    user_attrs = user['attributes']
+    to_address = f"{username}@icecube.wisc.edu"
+    cc_addresses = list(set(filter(None, [user.get('email'), user_attrs.get('mailing_list_email')])))
+    logger.info(f"Sending '{subject} notification to {to_address,cc_addresses=}")
+    send_email(to_address, subject, body, cc=cc_addresses)
+
+
+async def process_valid_member(username: str, cfg: Config, dryrun: bool, notify: bool,
+                               keycloak_client: ClientCredentialsAuth):
+    """ Reset removal grace times of intended current members (will be set if
+    they rejoined a constituent group before removal grace period expired)
+    """
+    # Set up partials to make the code easier to read
+    _modify_user = partial(modify_user, rest_client=keycloak_client)
+    _user_info = partial(user_info, rest_client=keycloak_client)
+
+    user = await _user_info(username)
+    user_attrs = user['attributes']
+    if user_attrs.get(cfg.removal_scheduled_user_attr_name):
+        logger.info(f"Clearing {username}'s {cfg.removal_scheduled_user_attr_name} ({dryrun,notify=})")
+        if not dryrun:
+            await _modify_user(username, attribs={cfg.removal_scheduled_user_attr_name: None})
+
+    if notify and cfg.message_removal_averted:
+        send_notification(user, f"You are no longer scheduled for removal from group {cfg.group_path}",
+                          cfg.message_removal_averted.format(
+                              username=username, group_path=cfg.group_path))
+
+
+async def process_extraneous_member(username: str, cfg: Config, dryrun: bool, notify: bool,
+                                    keycloak_client: ClientCredentialsAuth):
+    # Set up partials to make the code easier to read
+    _modify_user = partial(modify_user, rest_client=keycloak_client)
+    _remove_user_group = partial(remove_user_group, rest_client=keycloak_client)
+    _user_info = partial(user_info, rest_client=keycloak_client)
+
+    logger.info(f"{username} shouldn't be in {cfg.group_path} ({dryrun,notify=})")
+    if dryrun:
+        return
+    user = await _user_info(username)
+    user_attrs = user['attributes']
+
+    # Handle removal grace period. If unset, set and move on to next member.
+    # If set to future, move on to next member. Else, fall through to removal code
+    if cfg.removal_grace_days:
+        if removal_scheduled_at_str := user_attrs.get(cfg.removal_scheduled_user_attr_name):
+            removal_scheduled_at = datetime.fromisoformat(removal_scheduled_at_str)
+            if datetime.now() < removal_scheduled_at + timedelta(days=cfg.removal_grace_days):
+                logger.info(f"Too early to remove {username} {removal_scheduled_at_str=}")
+                return
+            else:
+                logger.info(f"Removal grace period expired ({removal_scheduled_at_str,cfg.removal_grace_days=})")
+        else:
+            # "Removal scheduled attribute" attribute not set. Set it and move on.
+            new_removal_scheduled_at_str = datetime.now().isoformat()
+            logger.info(f"Setting {username}'s {cfg.removal_scheduled_user_attr_name} "
+                        f"to {new_removal_scheduled_at_str} ({dryrun,notify=})")
+            await _modify_user(username, attribs={cfg.removal_scheduled_user_attr_name:
+                                                  new_removal_scheduled_at_str})
+            if notify and cfg.message_removal_pending:
+                send_notification(user, f"You are scheduled for removal from group {cfg.group_path}",
+                                  cfg.message_removal_pending.format(
+                                      username=username, group_path=cfg.group_path))
+            return
+
+    # Either group grace period not configured or grace period expired.
+    # Clean-up and remove the user from the group.
+    logger.info(f"Clearing {username}'s {cfg.removal_scheduled_user_attr_name} attribute ({dryrun,notify=})")
+    await _modify_user(username, attribs={cfg.removal_scheduled_user_attr_name: None})
+    logger.info(f"Removing {username} from {cfg.group_path} ({dryrun,notify=}")
+    await _remove_user_group(cfg.group_path, username)
+    if notify and cfg.message_removal_occurred:
+        send_notification(user, f"You have been removed from group {cfg.group_path}",
+                          cfg.message_removal_occurred.format(
+                              username=username, group_path=cfg.group_path))
+
+
+async def process_missing_member(username: str, cfg: Config, dryrun: bool, notify: bool,
+                                 keycloak_client: ClientCredentialsAuth):
+    _add_user_group = partial(add_user_group, rest_client=keycloak_client)
+    _user_info = partial(user_info, rest_client=keycloak_client)
+
+    logger.info(f"Adding {username} to {cfg.group_path} ({dryrun,notify=})")
+    if dryrun:
+        return
+    await _add_user_group(cfg.group_path, username)
+    user = await _user_info(username)
+    if notify and cfg.message_addition_occurred:
+        send_notification(user, f"You have been added to group {cfg.group_path}",
+                          cfg.message_addition_occurred.format(
+                              username=username, group_path=cfg.group_path))
 
 
 async def sync_composite_group(target_path: str,
@@ -253,20 +417,14 @@ async def sync_composite_group(target_path: str,
 
     Args:
         target_path (str): path to the destination composite group
-        constituents_expr (str): JSONPath expression that yields constituent group paths
-                                 when applied to the complete Keycloak group hierarchy.
-        opts (dict): dictionary with runtime configuration options
+        cfg (Config): runtime configuration options
         keycloak_client (ClientCredentialsAuth): REST client to the KeyCloak server
         dryrun (bool): perform a trial run with no changes made
         notify (bool): send email notifications
     """
     # Set up partials to make the code easier to read
-    _add_user_group = partial(add_user_group, rest_client=keycloak_client)
     _get_group_hierarchy = partial(get_group_hierarchy, rest_client=keycloak_client)
     _get_group_membership = partial(get_group_membership, rest_client=keycloak_client)
-    _modify_user = partial(modify_user, rest_client=keycloak_client)
-    _remove_user_group = partial(remove_user_group, rest_client=keycloak_client)
-    _user_info = partial(user_info, rest_client=keycloak_client)
 
     logger.info(f"Processing composite group {target_path}")
 
@@ -284,101 +442,17 @@ async def sync_composite_group(target_path: str,
     # Reset removal grace times of intended current members (will be set if
     # they rejoined a constituent group before removal grace period expired)
     for valid_member in current_members & intended_members:
-        user = await _user_info(valid_member)
-        attrs = user['attributes']
-        if attrs.get(cfg.removal_scheduled_user_attr_name):
-            logger.info(f"Clearing {valid_member}'s {cfg.removal_scheduled_user_attr_name} ({dryrun,notify=})")
-            if dryrun:
-                continue
-            await _modify_user(valid_member, attribs={cfg.removal_scheduled_user_attr_name: None})
-            if not notify or not cfg.removal_averted_message:
-                logger.info(f"Skipping notification ({notify,removal_averted_message=})")
-                continue
-            address = notification_redirect_addr or f"{valid_member}@icecube.wisc.edu"
-            logger.info(f"Sending 'removal averted' notification to {address} ({dryrun,notify=})")
-            # noinspection PyTypeChecker
-            send_email(address, f"You are no longer scheduled for removal from group {target_path}",
-                       REMOVAL_AVERTED_TEMPLATE.format(
-                           username=current_members,
-                           group_path=target_path,
-                           custom_text=removal_averted_message),
-                       cc=notification_email_cc)
+        await process_valid_member(valid_member, cfg, dryrun, notify, keycloak_client)
 
     # Process the current members that don't belong to any constituent group,
     # removing them if grace period is undefined or expired
     for extraneous_member in current_members - intended_members:
-        logger.info(f"{extraneous_member} shouldn't be in {target_path} ({dryrun,notify=})")
-        if dryrun:
-            continue
-        user = await _user_info(extraneous_member)
-        attrs = user['attributes']
+        await process_extraneous_member(extraneous_member, cfg, dryrun, notify, keycloak_client)
 
-        if removal_grace_days:
-            if removal_scheduled_at_str := attrs.get(removal_scheduled_user_attr_name):
-                removal_scheduled_at = datetime.fromisoformat(removal_scheduled_at_str)
-                # move on if too early to remove
-                if datetime.now() < removal_scheduled_at + timedelta(days=removal_grace_days):
-                    logger.info(f"Too early to remove {extraneous_member} {removal_scheduled_at_str=}")
-                    continue
-                else:
-                    logger.info(f"Removal grace period expired ({removal_scheduled_at_str,removal_grace_days=})")
-            else:
-                # "Removal scheduled attribute" attribute not set. Set it and move on.
-                new_removal_scheduled_at_str = datetime.now().isoformat()
-                logger.info(f"Setting {extraneous_member}'s {removal_scheduled_user_attr_name} "
-                            f"to {new_removal_scheduled_at_str} ({dryrun,notify=})")
-                await _modify_user(extraneous_member,
-                                   attribs={removal_scheduled_user_attr_name:
-                                            new_removal_scheduled_at_str})
-                if not notify or not removal_pending_message:
-                    logger.info(f"Skipping notification ({notify,removal_pending_message=})")
-                    continue
-                address = notification_redirect_addr or f"{extraneous_member}@icecube.wisc.edu"
-                logger.info(f"Sending 'scheduled for removal' notification to {address} ({dryrun,notify=})")
-                # noinspection PyTypeChecker
-                send_email(address, f"You are scheduled for removal from group {target_path}",
-                           REMOVAL_PENDING_TEMPLATE.format(
-                               username=extraneous_member,
-                               group_path=target_path,
-                               custom_text=removal_pending_message),
-                           cc=notification_email_cc)
-                continue
-        # Either grace period not configured or grace period expired.
-        # Remove the user from the group.
-        logger.info(f"Clearing {extraneous_member}'s {removal_scheduled_user_attr_name} attribute ({dryrun,notify=})")
-        await _modify_user(extraneous_member, attribs={removal_scheduled_user_attr_name: None})
-        logger.info(f"Removing {extraneous_member} from {target_path} ({dryrun,notify=}")
-        await _remove_user_group(target_path, extraneous_member)
-        if not notify or not removal_occurred_message:
-            logger.info(f"Skipping notification ({notify,removal_occurred_message=})")
-            continue
-        address = notification_redirect_addr or f"{extraneous_member}@icecube.wisc.edu"
-        logger.info(f"Sending 'removal occurred' notification to {address} ({dryrun,notify=})")
-        # noinspection PyTypeChecker
-        send_email(address, f"You have been removed from group {target_path}",
-                   REMOVAL_OCCURRED_TEMPLATE.format(
-                       username=extraneous_member,
-                       group_path=target_path,
-                       custom_text=removal_occurred_message),
-                   cc=notification_email_cc)
-
-    # Add missing members to the group
-    for missing_member in intended_members - current_members:
-        logger.info(f"adding {missing_member} to {target_path} ({dryrun,notify=})")
-        if dryrun:
-            continue
-        await _add_user_group(target_path, missing_member)
-        if not notify or not welcome_message:
-            continue
-        address = notification_redirect_addr or f"{missing_member}@icecube.wisc.edu"
-        logger.info(f"Sending 'added to group' notification to {address} ({dryrun,notify=})")
-        # noinspection PyTypeChecker
-        send_email(address, f"You have been added to group {target_path}",
-                   WELCOME_TEMPLATE.format(
-                       username=missing_member,
-                       group_path=target_path,
-                       custom_text=welcome_message),
-                   cc=notification_email_cc)
+    if cfg.mode == Mode.match:
+        # Add missing members to the group
+        for missing_member in intended_members - current_members:
+            await process_missing_member(missing_member, cfg, dryrun, notify, keycloak_client)
 
 
 def main():
