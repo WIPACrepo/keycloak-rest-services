@@ -133,7 +133,7 @@ class GroupEventConfig:
     removal_averted_message_override: str = (
         field(converter=_double_at_to_newline, default='',
               metadata={'attr': ATTR_NAME_PREFIX + 'removal_averted_message_override',
-                        'help': 'use this template for notifications of this event type' 
+                        'help': 'use this template for notifications of this event type'
                                 '(every occurrence of @@ will be replaced with newlines)'}))
     removal_occurred_message_append: str = (
         field(converter=_double_at_to_newline, default='',
