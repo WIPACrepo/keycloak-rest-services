@@ -1,44 +1,43 @@
 """
-Sync membership of the target composite group(s) to match the union of
-the memberships of their constituent source groups.
+Update membership of "synchronized" groups to be a subset of the union of
+their source groups. This action can implement two membership policies:
+"prune" and "match". Under the "prune" policy, members who don't belong to
+the parent groups are pruned. The "match" policy also adds missing members,
+thus making the synchronized group's memberships match that of the union
+of the parent groups.
 
-Paths of the constituent groups are specified as a JSONPath expression
-to be applied to the complete Keycloak group hierarchy (list of group
-trees, one per top-level group, containing all groups). The JSONPath
-expression uses the extended syntax that is documented here:
+Two important additional features of this action are support for removals
+deferred by a grace period and customizable email notifications.
+
+The action has two modes of operation: "automatic" and "manual". In automatic
+mode the action automatically discovers "synchronized" group, loads their
+configuration from custom group attributes and updates the group's membership
+according to the configured policy. The manual mode is intended for debugging
+and silent initial seeding of groups. In the manual mode, automatic discovery
+is disabled and certain group synchronization parameters can be overridden
+from the command line.
+
+Paths of the source groups are specified as a JSONPath expression to be
+applied to the complete Keycloak group hierarchy (list of group trees,
+one per top-level group, containing all groups). The JSONPath expression
+uses the extended syntax that is documented here:
 https://github.com/h2non/jsonpath-ng/.
 
-Two important features of this action are support for removals deferred
-by a grace period and email notifications.
-
-The target composite group(s) and the JSONPath specifications of their
-constituents are either provided on the command line (manual mode) or
-discovered automatically (automatic mode).
-
-Manual mode is intended mostly for testing and debugging (e.g. of JSONPath
-expressions), but could also be useful for initial silent seeding of composite
-groups. To run this code in manual mode, in order to minimize chances of
-collisions, the target composite group's attribute `sync_composite_groups_enable`
-must be false, or absent, and the `sync_composite_groups_constituents_expr`
-attribute must be empty, or absent, or be the same as the expression given
-on the command line.
-
 Runtime configuration options are specified for each composite group as
-custom group attributes. See documentation of the `sync_composite_groups_*`
-attributes for the available configuration options (link to documentation
-below), as well as "help" metadata of configuration options in the code
-below. Some configuration options can be overridden in the manual mode
-on the command line.
+custom group attributes. Referer to the "help" metadata attribute of
+configuration parameters defined in the code for their functions. Also,
+see the custom attribute documentation page at the end of the docstring.
 
-The required attributes for automatic operation are:
- * sync_composite_groups_enable:
+Note that required attributes for automatic operation are:
+ *_enable:
         true/false: automatic sync enabled.
- * sync_composite_groups_mode:
-        filter: filter out members who are not members of constituents.
-        match: add/remove members to match exactly the union of the
-                memberships of the constituent groups.
- * sync_composite_groups_constituents_expr:
-        JSONPath expression explained above.
+ *_policy:
+        prune: remove members who are not members of source groups.
+        match: add/remove members so that the groups membership exactly
+                matches the union of the memberships of the source groups.
+ *_sources_expr:
+        JSONPath expression that, when applied to the complete Keycloak
+        group hierarchy yields paths of all source groups.
 
 Originally written to automate management of some /mail/ subgroups
 (mailing lists).
@@ -47,8 +46,8 @@ Custom Keycloak attributes used in this code are documented here:
 https://bookstack.icecube.wisc.edu/ops/books/services/page/custom-keycloak-attributes
 
 Example::
-    python -m actions.sync_composite_groups \
-        --target-spec /mail/authorlist-test \
+    python -m actions.sync_synchronized_groups \
+        --manual /mail/authorlist-test \
             '$..subGroups[?path == "/institutions/IceCube"]
                 .subGroups[?attributes.authorlist == "true"]
                     .subGroups[?name =~ "^authorlist.*"].path' \
@@ -73,9 +72,9 @@ from krs.token import get_rest_client
 from krs.users import user_info, modify_user
 
 
-ACTION_ID = 'sync_composite_groups'
-ATTR_NAME_PREFIX = f"{ACTION_ID}_"
+ACTION_ID = 'sync_synchronized_groups'
 logger = logging.getLogger(ACTION_ID)
+ATTR_NAME_PREFIX = f"synchronized_group_"
 
 
 def _double_at_to_newline(s):
@@ -93,103 +92,106 @@ def _bool_from_string(s):
         raise ValueError(f"Couldn't parse bool from {s}")
 
 
+NEWLINE_CONVERSION_HELP = "(every occurrence of @@ will be replaced with newlines)"
+NOTIFICATION_APPEND_HELP = ("Append this text to the default notification template for "
+                            "this event type ") + NEWLINE_CONVERSION_HELP
+NOTIFICATION_OVERRIDE_HELP = ('Use this template instead of the default one for '
+                              'notifications of this event type ') + NEWLINE_CONVERSION_HELP
+
+
 @define
 class GroupEventConfig:
     addition_occurred_notify: bool = (
         field(converter=_bool_from_string, default="true",
               metadata={'attr': ATTR_NAME_PREFIX + 'addition_occurred_notify',
-                        'help': 'send email notification when a user is added'}))
+                        'help': 'send email notification when a user is added '
+                                'to the group'}))
     removal_pending_notify: bool = (
         field(converter=_bool_from_string, default="true",
               metadata={'attr': ATTR_NAME_PREFIX + 'removal_pending_notify',
                         'help': 'send email notification when a user is scheduled '
-                                'for removal (grace period countdown starts)'}))
+                                'for removal (if grace period enabled)'}))
     removal_averted_notify: bool = (
         field(converter=_bool_from_string, default="true",
               metadata={'attr': ATTR_NAME_PREFIX + 'removal_averted_notify',
                         'help': 'send email notification when a user is no longer '
                                 'scheduled for removal (because they re-joined a '
-                                'constituent group)'}))
+                                'source group before the grace period expired)'}))
     removal_occurred_notify: bool = (
         field(converter=_bool_from_string, default="true",
               metadata={'attr': ATTR_NAME_PREFIX + 'removal_occurred_notify',
-                        'help': 'send email notification when a user is removed '
-                                'from the group'}))
+                        'help': 'send email notification when a user is removed from the group'}))
+
     removal_pending_message_append: str = (
         field(converter=_double_at_to_newline, default='',
               metadata={'attr': ATTR_NAME_PREFIX + 'removal_pending_message_append',
-                        'help': 'append this text to the default event notification template '
-                                '(every occurrence of @@ will be replaced with newlines)'}))
+                        "help": NOTIFICATION_APPEND_HELP}))
     removal_pending_message_override: str = (
         field(converter=_double_at_to_newline, default='',
               metadata={'attr': ATTR_NAME_PREFIX + 'removal_pending_message_override',
-                        'help': 'use this template for notifications of this event type '
-                                '(every occurrence of @@ will be replaced with newlines)'}))
+                        'help': NOTIFICATION_OVERRIDE_HELP}))
     removal_averted_message_append: str = (
         field(converter=_double_at_to_newline, default='',
               metadata={'attr': ATTR_NAME_PREFIX + 'removal_averted_message_append',
-                        'help': 'append this text to the default event notification template '
-                                '(every occurrence of @@ will be replaced with newlines)'}))
+                        "help": NOTIFICATION_APPEND_HELP}))
     removal_averted_message_override: str = (
         field(converter=_double_at_to_newline, default='',
               metadata={'attr': ATTR_NAME_PREFIX + 'removal_averted_message_override',
-                        'help': 'use this template for notifications of this event type'
-                                '(every occurrence of @@ will be replaced with newlines)'}))
+                        'help': NOTIFICATION_OVERRIDE_HELP}))
     removal_occurred_message_append: str = (
         field(converter=_double_at_to_newline, default='',
               metadata={'attr': ATTR_NAME_PREFIX + 'removal_occurred_message_append',
-                        'help': 'append this text to the default event notification template '
-                                '(every occurrence of @@ will be replaced with newlines)'}))
+                        "help": NOTIFICATION_APPEND_HELP}))
     removal_occurred_message_override: str = (
         field(converter=_double_at_to_newline, default='',
               metadata={'attr': ATTR_NAME_PREFIX + 'removal_occurred_message_override',
-                        'help': 'use this template for notifications of this event type '
-                                '(every occurrence of @@ will be replaced with newlines)'}))
+                        'help': NOTIFICATION_OVERRIDE_HELP}))
     addition_occurred_message_append: str = (
         field(converter=_double_at_to_newline, default='',
               metadata={'attr': ATTR_NAME_PREFIX + 'addition_occurred_message_append',
-                        'help': 'append this text to the default event notification template '
-                                '(every occurrence of @@ will be replaced with newlines)'}))
+                        'help': NOTIFICATION_APPEND_HELP}))
     addition_occurred_message_override: str = (
         field(converter=_double_at_to_newline, default='',
               metadata={'attr': ATTR_NAME_PREFIX + 'addition_occurred_message_override',
-                        'help': 'use this template for notifications of this event type '
-                                '(every occurrence of @@ will be replaced with newlines)'}))
+                        "help": NOTIFICATION_OVERRIDE_HELP}))
 
 
-class Mode(Enum):
+class MembershipSyncPolicy(Enum):
     """This script's operating modes. See file docstring for details."""
-    filter = 'filter'
+    prune = 'prune'
     match = 'match'
 
 
 @define
-class GroupCoreConfig:
-    mode: Mode = (
-        field(converter=Mode, metadata={'attr': ATTR_NAME_PREFIX + 'mode',
-                                        'help': 'see file docstring for help'}))
+class GroupSyncCoreConfig:
     enable: bool = (
-        field(converter=_bool_from_string, metadata={'attr': ATTR_NAME_PREFIX + 'enable',
-                                                     'help': 'enable/disable automatic sync'}))
-    constituents_expr = (
+        field(converter=_bool_from_string,
+              metadata={'attr': ATTR_NAME_PREFIX + 'enable',
+                        'help': 'Enable/disable automatic sync.'}))
+    policy: MembershipSyncPolicy = (
+        field(converter=MembershipSyncPolicy,
+              metadata={'attr': ATTR_NAME_PREFIX + 'policy',
+                        'help': 'Membership policy. See file docstring for help.'}))
+    sources_expr = (
         field(converter=lambda x: parse(x) if x else None, default=None,
-              metadata={'attr': ATTR_NAME_PREFIX + 'constituents_expr',
-                        'help': 'see file docstring for help'}))
+              metadata={'attr': ATTR_NAME_PREFIX + 'sources_expr',
+                        'help': 'JSONPath expression for source group paths. '
+                                'See file docstring for details.'}))
     removal_grace_days: int = (
         field(converter=int, default=0,
               metadata={'attr': ATTR_NAME_PREFIX + 'removal_grace_days',
-                        'help': 'number of days to delay removal of users'}))
+                        'help': 'Number of days to delay removal of users by.'}))
 
 
 class EmailTemplates:
     MESSAGE_FOOTER = """\n\n
-This message was generated by the sync_composite_groups robot.
+This message was generated by the sync_synchronized_groups robot.
 Please contact help@icecube.wisc.edu for support."""
     REMOVAL_AVERTED = """{username},\n
 You are no longer scheduled for removal from group {group_path}.\n\n"""
     REMOVAL_PENDING = """{username},\n
 You have been scheduled for removal from group {group_path}
-because you are not a member of any of its constituent groups.
+because you are no longer a member of any of its constituent groups.
 Unless you (re)join one of those groups, you will be removed
 after a grace period.\n\n"""
     REMOVAL_OCCURRED = """{username},\n
@@ -200,10 +202,10 @@ You have been added to group {group_path} because you
 are a member of one of its constituent groups.\n\n"""
 
 
-class Config(GroupCoreConfig):
+class GroupSyncConfig(GroupSyncCoreConfig):
     def __init__(self, group_path: str, group_attrs: dict):
         kwargs_super = {a.name: group_attrs[a.metadata['attr']]
-                        for a in GroupCoreConfig.__attrs_attrs__
+                        for a in GroupSyncCoreConfig.__attrs_attrs__
                         if a.metadata['attr'] in group_attrs}
         super().__init__(**kwargs_super)
 
@@ -245,52 +247,47 @@ class Config(GroupCoreConfig):
 
 
 async def manual_sync(target_path: str,
-                      constituents_expr: str,
+                      source_groups_expr: str,
                       /, *,
                       keycloak_client: ClientCredentialsAuth,
-                      notify: bool = False,
+                      allow_notifications: bool = False,
                       dryrun: bool = False):
-    """Execute a manual sync (add/remove) of members of the composite group
-    at `target_path` to the union of the memberships of constituent groups
-    specified by `constituents_expr`.
+    """Execute a manual sync of members of the synchronized group at `target_path`.
 
-    See docstring of sync_composite_group(), argparse help, and this file's
-    docstring for more details.
+    The configured source group expression will be overridden with `source_groups_expr`.
+    Notifications may be forced disabled with `notify`.
 
     Args:
         target_path (str): path to the destination composite group
-        constituents_expr (str): JSONPath expression that yields constituent group paths
-                                 when applied to the complete Keycloak group hierarchy.
+        source_groups_expr (str): JSONPath expression that yields constituent group paths
+                                  when applied to the complete Keycloak group hierarchy.
         keycloak_client (ClientCredentialsAuth): REST client to the KeyCloak server
         dryrun (bool): perform a trial run with no changes made
-        notify (bool): send email notifications
+        allow_notifications (bool): if False, suppress email notifications
     """
     logger.info(f"Manually syncing {target_path}")
-    logger.info(f"Constituents expression: {constituents_expr}")
+    logger.info(f"Constituents expression: {source_groups_expr}")
     target_group = await group_info(target_path, rest_client=keycloak_client)
 
-    cfg = Config(target_path, target_group['attributes'])
+    cfg = GroupSyncConfig(target_path, target_group['attributes'])
     if cfg.enable:
         # noinspection PyTypeChecker
         logger.critical(f"To operate in manual mode, {target_path}'s "
-                        f"{fields(Config).enable.metadata['attr']} attribute must not be true.")
+                        f"{fields(GroupSyncConfig).enable.metadata['attr']} attribute must not be true.")
         return 1
 
     # override sources expr
-    cfg.constituents_expr = constituents_expr
+    cfg.sources_expr = source_groups_expr
 
     return await sync_composite_group(target_path,
                                       cfg=cfg,
                                       keycloak_client=keycloak_client,
-                                      notify=notify,
+                                      allow_notifications=allow_notifications,
                                       dryrun=dryrun)
 
 
 async def auto_sync(keycloak_client, dryrun):
     """Discover enabled composite groups and sync them.
-
-    See docstring of sync_composite_group(), argparse help, and this file's
-    docstring for more details.
 
     Args:
         keycloak_client (ClientCredentialsAuth): REST client to the KeyCloak server
@@ -303,15 +300,15 @@ async def auto_sync(keycloak_client, dryrun):
     # noinspection PyTypeChecker
     enabled_group_paths = [v['path'] for v in all_groups.values()
                            if v.get('attributes', {})
-                           .get(fields(Config).mode.metadata['attr']) in (Mode.filter, Mode.match)]
+                           .get(fields(GroupSyncConfig).enable.metadata['attr'])]
 
     for enabled_group_path in enabled_group_paths:
         enabled_group = await group_info(enabled_group_path, rest_client=keycloak_client)
-        cfg = Config(enabled_group_path, enabled_group['attributes'])
+        cfg = GroupSyncConfig(enabled_group_path, enabled_group['attributes'])
         await sync_composite_group(enabled_group_path,
                                    cfg=cfg,
                                    keycloak_client=keycloak_client,
-                                   notify=True,
+                                   allow_notifications=True,
                                    dryrun=dryrun)
 
 
@@ -319,20 +316,20 @@ def send_notification(user: dict, subject: str, body: str):
     username = user['username']
     user_attrs = user['attributes']
     to_address = f"{username}@icecube.wisc.edu"
-    cc_addresses = list(set(filter(None, [user.get('email'), user_attrs.get('mailing_list_email')])))
+    cc_addresses = filter(None, {user.get('email'), user_attrs.get('mailing_list_email')})
     logger.info(f"Sending '{subject} notification to {to_address,cc_addresses=}")
     send_email(to_address, subject, body, cc=cc_addresses)
 
 
-async def process_valid_member(username: str, cfg: Config, dryrun: bool, notify: bool,
+async def process_valid_member(username: str, cfg: GroupSyncConfig, dryrun: bool, notify: bool,
                                keycloak_client: ClientCredentialsAuth):
-    """ Reset removal grace times of intended current members (will be set if
-    they rejoined a constituent group before removal grace period expired)
-    """
+    """Process a user who is a current group member and should not be removed."""
     # Set up partials to make the code easier to read
     _modify_user = partial(modify_user, rest_client=keycloak_client)
     _user_info = partial(user_info, rest_client=keycloak_client)
 
+    # Reset removal grace times (will be set for valid members if they
+    # rejoined a constituent group before removal grace period expired)
     user = await _user_info(username)
     user_attrs = user['attributes']
     if user_attrs.get(cfg.removal_scheduled_user_attr_name):
@@ -345,8 +342,9 @@ async def process_valid_member(username: str, cfg: Config, dryrun: bool, notify:
                                       username=username, group_path=cfg.group_path))
 
 
-async def process_extraneous_member(username: str, cfg: Config, dryrun: bool, notify: bool,
+async def process_extraneous_member(username: str, cfg: GroupSyncConfig, dryrun: bool, notify: bool,
                                     keycloak_client: ClientCredentialsAuth):
+    """Process a current members who does not belong to any source group."""
     # Set up partials to make the code easier to read
     _modify_user = partial(modify_user, rest_client=keycloak_client)
     _remove_user_group = partial(remove_user_group, rest_client=keycloak_client)
@@ -379,8 +377,8 @@ async def process_extraneous_member(username: str, cfg: Config, dryrun: bool, no
                                           username=username, group_path=cfg.group_path))
             return
 
-    # Either group grace period not configured or grace period expired.
-    # Clean-up and remove the user from the group.
+    # If we are here, then either group grace period not configured or the grace
+    # period expired. Clean-up and remove the user from the group.
     if user_attrs.get(cfg.removal_scheduled_user_attr_name):
         logger.info(f"Clearing {username}'s {cfg.removal_scheduled_user_attr_name} attribute ({dryrun,notify=})")
         if not dryrun:
@@ -394,8 +392,9 @@ async def process_extraneous_member(username: str, cfg: Config, dryrun: bool, no
                                   username=username, group_path=cfg.group_path))
 
 
-async def process_missing_member(username: str, cfg: Config, dryrun: bool, notify: bool,
+async def process_missing_member(username: str, cfg: GroupSyncConfig, dryrun: bool, notify: bool,
                                  keycloak_client: ClientCredentialsAuth):
+    """Process a user who should be group members but isn't."""
     logger.info(f"Adding {username} to {cfg.group_path} ({dryrun,notify=})")
     if dryrun:
         return
@@ -409,34 +408,26 @@ async def process_missing_member(username: str, cfg: Config, dryrun: bool, notif
 
 async def sync_composite_group(target_path: str,
                                /, *,
-                               cfg: Config,
+                               cfg: GroupSyncConfig,
                                keycloak_client: ClientCredentialsAuth,
-                               notify: bool,
+                               allow_notifications: bool,
                                dryrun: bool = False):
-    """Synchronize (add/remove) membership of the composite group at
-    `target_path` to the union of the memberships of constituent groups
-    specified by `constituents_expr`.
+    """Synchronize membership of the synchronized group at `target_path`.
 
     `constituents_expr` is a string with JSONPath expression that will be
-    applied to the complete group hierarchy to extract paths of the constituent
+    applied to the complete group hierarchy to extract paths of the source
     groups.
 
     Although runtime configuration options are stored as the target group's
     custom attributes, this code shall not access them directly, and instead
-    use the `opts` parameter. This is to allow some options to be overridden.
-
-    The runtime configuration options are documented here:
-    https://bookstack.icecube.wisc.edu/ops/books/keycloak-user-management/page/custom-keycloak-attributes
-
-    See docstring of sync_composite_group(), argparse help, and this file's
-    docstring for more details.
+    use the `cfg` parameter. This is to allow some options to be overridden.
 
     Args:
         target_path (str): path to the destination composite group
-        cfg (Config): runtime configuration options
+        cfg (GroupSyncConfig): runtime configuration options
         keycloak_client (ClientCredentialsAuth): REST client to the KeyCloak server
         dryrun (bool): perform a trial run with no changes made
-        notify (bool): send email notifications
+        allow_notifications (bool): if False, suppress all email notifications
     """
     # Set up partials to make the code easier to read
     _get_group_hierarchy = partial(get_group_hierarchy, rest_client=keycloak_client)
@@ -446,7 +437,7 @@ async def sync_composite_group(target_path: str,
 
     # Build the list of all constituent groups' paths
     group_hierarchy = await _get_group_hierarchy()
-    constituent_group_paths = [v.value for v in cfg.constituents_expr.find(group_hierarchy)]
+    constituent_group_paths = [v.value for v in cfg.sources_expr.find(group_hierarchy)]
     logger.debug(f"Syncing {target_path} to {constituent_group_paths}")
 
     # Determine what the current membership is and what it should be
@@ -455,36 +446,23 @@ async def sync_composite_group(target_path: str,
     intended_members = set(chain.from_iterable(intended_members_lists))
     current_members = set(await _get_group_membership(target_path))
 
-    # Reset removal grace times of intended current members (will be set if
-    # they rejoined a constituent group before removal grace period expired)
     for valid_member in current_members & intended_members:
-        await process_valid_member(valid_member, cfg, dryrun, notify, keycloak_client)
+        await process_valid_member(valid_member, cfg, dryrun, allow_notifications, keycloak_client)
 
-    # Process the current members that don't belong to any constituent group,
-    # removing them if grace period is undefined or expired
     for extraneous_member in current_members - intended_members:
-        await process_extraneous_member(extraneous_member, cfg, dryrun, notify, keycloak_client)
+        await process_extraneous_member(extraneous_member, cfg, dryrun, allow_notifications, keycloak_client)
 
-    if cfg.mode == Mode.match:
-        # Add missing members to the group
+    if cfg.policy == MembershipSyncPolicy.match:
         for missing_member in intended_members - current_members:
-            await process_missing_member(missing_member, cfg, dryrun, notify, keycloak_client)
+            await process_missing_member(missing_member, cfg, dryrun, allow_notifications, keycloak_client)
 
 
 def main():
     import argparse
     parser = argparse.ArgumentParser(
-        description='Sync membership of the composite group(s) to match the union of the '
-                    'memberships of their constituent source groups. The constituent group '
-                    'paths are specified as a JSONPath expression to be applied to the complete '
-                    'Keycloak group hierarchy. '
-                    'See Epilog for additional information. '
-                    'See file docstring for details and examples. ',
-        epilog="This code uses the extended JSONPath parser from the `jsonpath_ng` module. "
-               "For syntax and a quickstart, see https://github.com/h2non/jsonpath-ng/. "
-               "Custom Keycloak attributes used by this code are documented here: "
-               "https://bookstack.icecube.wisc.edu/ops/books/services/page/custom-keycloak-attributes. "
-               "See file docstring for more details and examples. ",
+        description='Sync membership of synchronized group(s) with the corresponding '
+                    'source groups according to the configured policy. '
+                    'See file docstring for details and examples.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     mutex = parser.add_mutually_exclusive_group(required=True)
     mutex.add_argument('--auto', action='store_true',
@@ -492,30 +470,26 @@ def main():
                             'them using configuration stored in their attributes. '
                             'See file docstring for details')
     mutex.add_argument('--manual', nargs=2, metavar=('TARGET_GROUP_PATH', 'JSONPATH_EXPR'),
-                       help="sync the composite group at TARGET_GROUP_PATH with the constituent "
-                            "groups produced by JSONPATH_EXPR when applied to the complete "
-                            "Keycloak group hierarchy. "
-                            "Hints: "
-                            "(1) See epilog for more information. "
-                            "(2) See file docstring for a good example of a non-trivial "
-                            "JSONPath expression.")
+                       help="sync the synchronized group at TARGET_GROUP_PATH with the "
+                            "source groups produced by JSONPATH_EXPR when applied to the "
+                            "complete Keycloak group hierarchy. ")
     parser.add_argument('--dryrun', action='store_true',
                         help='dry run')
-    parser.add_argument('--notify', action='store_true',
+    parser.add_argument('--allow-notifications', action='store_true',
                         help="send email notifications if using --manual; required with --auto")
-    parser.add_argument('--log-level', default='info',
-                        choices=('debug', 'info', 'warning', 'error'), help='logging level')
+    parser.add_argument('--log-level', default='info', choices=('debug', 'info', 'warning', 'error'),
+                        help='application logging level')
+    parser.add_argument('--log-level-client', default='warning', choices=('debug', 'info', 'warning', 'error'),
+                        help='REST client logging level')
 
     args = vars(parser.parse_args())
 
     logging.basicConfig(level=getattr(logging, args['log_level'].upper()))
-    if args['log_level'] == 'info':
-        # ClientCredentialsAuth is too verbose at INFO
-        cca_logger = logging.getLogger('ClientCredentialsAuth')
-        cca_logger.setLevel('WARNING')
+    cca_logger = logging.getLogger('ClientCredentialsAuth')
+    cca_logger.setLevel(getattr(logging, args['log_level_client'].upper()))
 
-    if not args['notify'] and args['auto']:
-        logger.critical("--notify is required with --auto")
+    if not args['allow_notifications'] and args['auto']:
+        logger.critical("--allow-notifications is required with --auto")
         parser.exit(1)
 
     keycloak_client = get_rest_client()
@@ -528,7 +502,7 @@ def main():
         return asyncio.run(manual_sync(args['manual'][0],
                                        args['manual'][1],
                                        keycloak_client=keycloak_client,
-                                       notify=args['notify'],
+                                       allow_notifications=args['notify'],
                                        dryrun=args['dryrun']))
 
 
