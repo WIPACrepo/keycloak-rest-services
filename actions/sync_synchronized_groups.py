@@ -61,7 +61,6 @@ import sys
 from attrs import define, field, fields
 from datetime import datetime, timedelta
 from enum import Enum
-from functools import partial
 from itertools import chain
 from jsonpath_ng.ext import parse  # type: ignore
 from rest_tools.client.client_credentials import ClientCredentialsAuth
@@ -72,9 +71,7 @@ from krs.groups import (get_group_membership, group_info, remove_user_group,
 from krs.token import get_rest_client
 from krs.users import user_info
 
-
-ACTION_ID = 'sync_synchronized_groups'
-logger = logging.getLogger(ACTION_ID)
+logger = logging.getLogger('sync_synchronized_groups')
 
 
 # Hide stuff from the global structure view and autocomplete
@@ -248,6 +245,29 @@ class GroupSyncConfig(GroupSyncCoreConfig):
                 + self._events.removal_occurred_message_append
                 + EmailTemplates.MESSAGE_FOOTER))
 
+    async def get_deferred_removals(self, keycloak: ClientCredentialsAuth) -> dict:
+        group: dict = await group_info(self.group_path, rest_client=keycloak)
+        group_attrs: dict = group.get('attributes', {})
+        deferred_removals: dict = json.loads(group_attrs.get(self.deferred_removals_attr, '{}'))
+        return dict((user, datetime.fromisoformat(ts)) for user, ts in deferred_removals.items())
+
+    async def set_deferred_removal(self, username: str, keycloak: ClientCredentialsAuth):
+        deferred_removals = await self.get_deferred_removals(keycloak)
+        deferred_removal_str = datetime.now().isoformat()
+        logger.info(f"Setting {username}'s removal timestamp to {deferred_removal_str}")
+        deferred_removals[username] = deferred_removal_str
+        deferred_removals_json = json.dumps(deferred_removals)
+        await modify_group(self.group_path, rest_client=keycloak,
+                           attrs={self.deferred_removals_attr: deferred_removals_json})
+
+    async def clear_deferred_removal(self, username: str, keycloak: ClientCredentialsAuth):
+        deferred_removals = await self.get_deferred_removals(keycloak)
+        if deferred_removals.pop(username, None):
+            deferred_removals_json = json.dumps(deferred_removals)
+            await modify_group(self.group_path, rest_client=keycloak,
+                               attrs={self.deferred_removals_attr: deferred_removals_json})
+            logger.info(f"New deferred removal record: {deferred_removals}")
+
 
 async def manual_sync(target_path: str,
                       source_groups_expr: str,
@@ -284,7 +304,7 @@ async def manual_sync(target_path: str,
 
     return await sync_synchronized_group(target_path,
                                          cfg=cfg,
-                                         keycloak_client=keycloak_client,
+                                         keycloak=keycloak_client,
                                          allow_notifications=allow_notifications,
                                          dryrun=dryrun)
 
@@ -310,13 +330,13 @@ async def auto_sync(keycloak_client, dryrun):
         cfg = GroupSyncConfig(enabled_group_path, enabled_group['attributes'])
         await sync_synchronized_group(enabled_group_path,
                                       cfg=cfg,
-                                      keycloak_client=keycloak_client,
+                                      keycloak=keycloak_client,
                                       allow_notifications=True,
                                       dryrun=dryrun)
 
 
-def send_notification(user: dict, subject: str, body: str):
-    username = user['username']
+async def send_notification(username: str, subject: str, body: str, keycloak: ClientCredentialsAuth):
+    user = await user_info(username, rest_client=keycloak)
     user_attrs = user['attributes']
     to_address = f"{username}@icecube.wisc.edu"
     cc_addresses = list(filter(None, {user.get('email'), user_attrs.get('mailing_list_email')}))
@@ -324,106 +344,88 @@ def send_notification(user: dict, subject: str, body: str):
     send_email(to_address, subject, body, cc=cc_addresses)
 
 
-async def process_valid_member(username: str, cfg: GroupSyncConfig, dryrun: bool, notify: bool,
-                               keycloak_client: ClientCredentialsAuth):
-    """Process a user who is a current group member and should not be removed."""
-    # Reset removal grace times (will be set for valid members if they
-    # rejoined a constituent group before removal grace period expired)
-    group = await group_info(cfg.group_path, rest_client=keycloak_client)
-    group_attrs = group.get('attributes', {})
-    deferred_removals: dict = json.loads(group_attrs.get(cfg.deferred_removals_attr, '{}'))
-    if deferred_removals.get(username):
-        logger.info(f"Removing valid {username} from deferred removal state({dryrun,notify=})")
-        if not dryrun:
-            deferred_removals.pop(username)
-            await modify_group(cfg.group_path, rest_client=keycloak_client,
-                               attrs={cfg.deferred_removals_attr: json.dumps(deferred_removals)})
-            logger.info(f"New deferred removal state: {deferred_removals}")
-            if notify and cfg.message_removal_averted:
-                user = await user_info(username, rest_client=keycloak_client)
-                send_notification(user, f"You are no longer scheduled for removal from group {cfg.group_path}",
-                                  cfg.message_removal_averted.format(
-                                      username=username, group_path=cfg.group_path))
-
-
-async def process_extraneous_member(username: str, cfg: GroupSyncConfig, dryrun: bool, notify: bool,
-                                    keycloak_client: ClientCredentialsAuth):
-    """Process a current member who doesn't belong to any source group."""
-    # Set up partials to make the code easier to read
-    _group_info = partial(group_info, rest_client=keycloak_client)
-    _modify_group = partial(modify_group, rest_client=keycloak_client)
-    _remove_user_group = partial(remove_user_group, rest_client=keycloak_client)
-
-    logger.info(f"{username} shouldn't be in {cfg.group_path} ({dryrun,notify=})")
-    group = await _group_info(cfg.group_path)
-    group_attrs = group.get('attributes', {})
-    deferred_removals: dict = json.loads(group_attrs.get(cfg.deferred_removals_attr, '{}'))
-
-    # Handle removal grace period. If unset, set and move on to next member.
-    # If set to future, move on to next member. Else, fall through to removal code
-    if cfg.removal_grace_days:
-        if removal_scheduled_at_str := deferred_removals.get(username):
-            removal_scheduled_at = datetime.fromisoformat(removal_scheduled_at_str)
-            if datetime.now() < removal_scheduled_at + timedelta(days=cfg.removal_grace_days):
-                logger.info(f"Too early to remove {username} {removal_scheduled_at_str=}")
-                return
-            else:
-                logger.info(f"Removal grace period expired ({removal_scheduled_at_str,cfg.removal_grace_days=})")
-        else:
-            # "Removal scheduled attribute" attribute not set. Set it and move on.
-            new_removal_scheduled_at_str = datetime.now().isoformat()
-            logger.info(f"Adding {username} to deferred removals {new_removal_scheduled_at_str} ({dryrun,notify=})")
-            if not dryrun:
-                deferred_removals[username] = new_removal_scheduled_at_str
-                await _modify_group(cfg.group_path, attrs={
-                    cfg.deferred_removals_attr: json.dumps(deferred_removals)
-                })
-                logger.info(f"New deferred removal state: {deferred_removals}")
-                if notify and cfg.message_removal_pending:
-                    user = await user_info(username, rest_client=keycloak_client)
-                    send_notification(user, f"You are scheduled for removal from group {cfg.group_path}",
-                                      cfg.message_removal_pending.format(
-                                          username=username, group_path=cfg.group_path))
-            return
-
-    # If we are here, then either group grace period not configured or the grace
-    # period expired. Clean-up and remove the user from the group.
+async def clear_deferred_removal(username: str, cfg: GroupSyncConfig, dryrun: bool,
+                                 notify: bool, keycloak: ClientCredentialsAuth):
+    """Remove a user from the deferred removal records """
+    deferred_removals: dict = await cfg.get_deferred_removals(keycloak)
     if deferred_removals.get(username):
         logger.info(f"Removing {username} from deferred removal state({dryrun,notify=})")
         if not dryrun:
-            deferred_removals.pop(username)
-            await _modify_group(cfg.group_path, attrs={
-                cfg.deferred_removals_attr: json.dumps(deferred_removals)
-            })
-            logger.info(f"New deferred removal state: {deferred_removals}")
+            await cfg.clear_deferred_removal(username, keycloak)
+            logger.info(f"New deferred removal state: {await cfg.get_deferred_removals(keycloak)}")
+            if notify and cfg.message_removal_averted:
+                await send_notification(
+                    username=username, keycloak=keycloak,
+                    subject=f"You are no longer scheduled for removal from group {cfg.group_path}",
+                    body=cfg.message_removal_averted.format(username=username, group_path=cfg.group_path))
+
+
+async def grace_period_set_check(username: str, cfg: GroupSyncConfig, dryrun: bool,
+                                 notify: bool, keycloak: ClientCredentialsAuth) -> bool:
+    """Set and/or check whether the user passes grace period check
+
+    Assumes removal grace period is enabled and non-zero.
+    Sets deferred removal state if missing.
+
+    Return:
+        (bool) whether the user's removal grace period has expired
+    """
+    deferred_removals = await cfg.get_deferred_removals(keycloak)
+
+    if removal_scheduled_at := deferred_removals.get(username):
+        if datetime.now() < removal_scheduled_at + timedelta(days=cfg.removal_grace_days):
+            return True
+        else:
+            logger.info(f"Removal grace period of {username} expired ({removal_scheduled_at,cfg.removal_grace_days=})")
+            return False
+    else:
+        # Grace period configured but "removal scheduled" not set. Set it.
+        if not dryrun:
+            await cfg.set_deferred_removal(username, keycloak)
+            if notify and cfg.message_removal_pending:
+                await send_notification(
+                    username=username, keycloak=keycloak,
+                    subject=f"You are scheduled for removal from group {cfg.group_path}",
+                    body=cfg.message_removal_pending.format(username=username, group_path=cfg.group_path))
+        # We are assuming that this function is called
+        # only if grace period is non-zero
+        return True
+
+
+async def remove_extraneous_member(username: str, cfg: GroupSyncConfig, dryrun: bool, notify: bool,
+                                   keycloak: ClientCredentialsAuth):
+    """Removes an extraneous member"""
+    logger.info(f"Removing {username} from deferred removal state({dryrun,notify=})")
+    if not dryrun:
+        await cfg.clear_deferred_removal(username, keycloak)
     logger.info(f"Removing extraneous {username} from {cfg.group_path} ({dryrun,notify=}")
     if not dryrun:
-        await _remove_user_group(cfg.group_path, username)
+        await remove_user_group(cfg.group_path, username, rest_client=keycloak)
         if notify and cfg.message_removal_occurred:
-            user = await user_info(username, rest_client=keycloak_client)
-            send_notification(user, f"You have been removed from group {cfg.group_path}",
-                              cfg.message_removal_occurred.format(
-                                  username=username, group_path=cfg.group_path))
+            await send_notification(
+                    username=username, keycloak=keycloak,
+                    subject=f"You have been removed from group {cfg.group_path}",
+                    body=cfg.message_removal_occurred.format(username=username, group_path=cfg.group_path))
 
 
-async def process_missing_member(username: str, cfg: GroupSyncConfig, dryrun: bool, notify: bool,
-                                 keycloak_client: ClientCredentialsAuth):
-    """Process a user who should be group members but isn't."""
+async def add_missing_member(username: str, cfg: GroupSyncConfig, dryrun: bool, notify: bool,
+                             keycloak: ClientCredentialsAuth):
+    """Add a user who should be group members but isn't."""
     logger.info(f"Adding {username} to {cfg.group_path} ({dryrun,notify=})")
     if dryrun:
         return
-    await add_user_group(cfg.group_path, username, rest_client=keycloak_client)
-    user = await user_info(username, rest_client=keycloak_client)
+    await add_user_group(cfg.group_path, username, rest_client=keycloak)
     if notify and cfg.message_addition_occurred:
-        send_notification(user, f"You have been added to group {cfg.group_path}",
-                          cfg.message_addition_occurred.format(
-                              username=username, group_path=cfg.group_path))
+        await send_notification(
+            username=username, keycloak=keycloak,
+            subject=f"You have been added to group {cfg.group_path}",
+            body=cfg.message_addition_occurred.format(username=username, group_path=cfg.group_path))
 
 
 async def sync_synchronized_group(target_path: str,
                                   /, *,
                                   cfg: GroupSyncConfig,
-                                  keycloak_client: ClientCredentialsAuth,
+                                  keycloak: ClientCredentialsAuth,
                                   allow_notifications: bool,
                                   dryrun: bool = False):
     """Synchronize membership of the synchronized group at `target_path`.
@@ -439,7 +441,7 @@ async def sync_synchronized_group(target_path: str,
     Args:
         target_path (str): path to the destination composite group
         cfg (GroupSyncConfig): runtime configuration options
-        keycloak_client (ClientCredentialsAuth): REST client to the KeyCloak server
+        keycloak (ClientCredentialsAuth): REST client to the KeyCloak server
         dryrun (bool): perform a trial run with no changes made
         allow_notifications (bool): if False, suppress all email notifications
     """
@@ -447,25 +449,31 @@ async def sync_synchronized_group(target_path: str,
     logger.info(f"Processing composite group {target_path}")
 
     # Build the list of all constituent groups' paths
-    group_hierarchy = await get_group_hierarchy(rest_client=keycloak_client)
+    group_hierarchy = await get_group_hierarchy(rest_client=keycloak)
     constituent_group_paths = [v.value for v in cfg.sources_expr.find(group_hierarchy)]
     logger.debug(f"Syncing {target_path} to {constituent_group_paths}")
 
     # Determine what the current membership is and what it should be
-    intended_members_lists = [await get_group_membership(constituent_group_path, rest_client=keycloak_client)
+    intended_members_lists = [await get_group_membership(constituent_group_path, rest_client=keycloak)
                               for constituent_group_path in constituent_group_paths]
     intended_members = set(chain.from_iterable(intended_members_lists))
-    current_members = set(await get_group_membership(target_path, rest_client=keycloak_client))
+    current_members = set(await get_group_membership(target_path, rest_client=keycloak))
 
+    # Process current users who are legitimate, authorized members
     for valid_member in current_members & intended_members:
-        await process_valid_member(valid_member, cfg, dryrun, allow_notifications, keycloak_client)
+        # Valid users may need to be removed from the deferred removal record
+        # if they rejoined a constituent group before the grace period expired
+        await clear_deferred_removal(valid_member, cfg, dryrun, allow_notifications, keycloak)
 
     for extraneous_member in current_members - intended_members:
-        await process_extraneous_member(extraneous_member, cfg, dryrun, allow_notifications, keycloak_client)
+        if cfg.removal_grace_days:
+            if grace_period_set_check(extraneous_member, cfg, dryrun, allow_notifications, keycloak):
+                continue
+        await remove_extraneous_member(extraneous_member, cfg, dryrun, allow_notifications, keycloak)
 
     if cfg.policy == MembershipSyncPolicy.match:
         for missing_member in intended_members - current_members:
-            await process_missing_member(missing_member, cfg, dryrun, allow_notifications, keycloak_client)
+            await add_missing_member(missing_member, cfg, dryrun, allow_notifications, keycloak)
 
 
 def main():
