@@ -9,6 +9,7 @@
 aio-pika==9.4.1
 aiormq==6.8.0
 asyncache==0.3.1
+attrs==23.2.0
 cachetools==5.3.3
 certifi==2024.2.2
 cffi==1.16.0
@@ -128,6 +129,7 @@ wipac-keycloak-rest-services
 │   └── yarl [required: Any, installed: 1.9.4]
 │       ├── idna [required: >=2.0, installed: 3.7]
 │       └── multidict [required: >=4.0, installed: 6.0.5]
+├── attrs [required: Any, installed: 23.2.0]
 ├── ldap3 [required: Any, installed: 2.9.1]
 │   └── pyasn1 [required: >=0.4.6, installed: 0.6.0]
 ├── motor [required: Any, installed: 3.4.0]
