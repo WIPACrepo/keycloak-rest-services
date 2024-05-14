@@ -29,13 +29,13 @@ configuration parameters defined in the code for their functions. Also,
 see the custom attribute documentation page at the end of the docstring.
 
 Note that the required attributes for automatic operation are:
- *_enable:
+ * synchronized_group_auto_sync:
         true/false: automatic sync enabled.
- *_policy:
+ * synchronized_group_policy:
         prune: remove members who are not members of source groups.
         match: add/remove members so that the groups membership exactly
                 matches the union of the memberships of the source groups.
- *_sources_expr:
+ * synchronized_group_sources_expr:
         JSONPath expression that, when applied to the complete Keycloak
         group hierarchy yields paths of all source groups.
 
@@ -58,7 +58,9 @@ import asyncio
 import json
 import logging
 import sys
+from asyncache import cached  # type: ignore
 from attrs import define, field, fields
+from cachetools import Cache
 from datetime import datetime, timedelta
 from enum import Enum
 from itertools import chain
@@ -72,6 +74,26 @@ from krs.token import get_rest_client
 from krs.users import user_info
 
 logger = logging.getLogger('sync_synchronized_groups')
+
+
+@cached(Cache(maxsize=10000))
+async def cached_user_info(username, keycloak):
+    return await user_info(username, rest_client=keycloak)
+
+
+@cached(Cache(maxsize=10000))
+async def cached_group_info(group_path, keycloak):
+    return await group_info(group_path, rest_client=keycloak)
+
+
+@cached(Cache(maxsize=10000))
+async def cached_get_group_membership(group_path, keycloak):
+    return await get_group_membership(group_path, rest_client=keycloak)
+
+
+@cached(Cache(maxsize=10000))
+async def cached_get_group_hierarchy(keycloak):
+    return await get_group_hierarchy(rest_client=keycloak)
 
 
 # Hide stuff from the global structure view and autocomplete
@@ -164,9 +186,9 @@ class MembershipSyncPolicy(Enum):
 
 @define
 class GroupSyncCoreConfig:
-    enable: bool = (
+    auto_sync: bool = (
         field(converter=GrpCfgRes.bool_from_string,
-              metadata={'attr': GrpCfgRes.ATTR_NAME_PREFIX + 'enable',
+              metadata={'attr': GrpCfgRes.ATTR_NAME_PREFIX + 'auto_sync',
                         'help': 'Enable/disable automatic sync.'}))
     policy: MembershipSyncPolicy = (
         field(converter=MembershipSyncPolicy,
@@ -216,6 +238,7 @@ class GroupSyncConfig(GroupSyncCoreConfig):
 
         self.group_path = group_path
         self.deferred_removals_attr = GrpCfgRes.ATTR_NAME_PREFIX + "deferred_removals"
+        self._deferred_removals_cache = None
 
         self.message_addition_occurred: str = (
             '' if not self._events.addition_occurred_notify
@@ -246,17 +269,23 @@ class GroupSyncConfig(GroupSyncCoreConfig):
                 + EmailTemplates.MESSAGE_FOOTER))
 
     async def get_deferred_removals(self, keycloak: ClientCredentialsAuth) -> dict:
-        group: dict = await group_info(self.group_path, rest_client=keycloak)
-        group_attrs: dict = group.get('attributes', {})
-        deferred_removals: dict = json.loads(group_attrs.get(self.deferred_removals_attr, '{}'))
-        return dict((user, datetime.fromisoformat(ts)) for user, ts in deferred_removals.items())
+        if self._deferred_removals_cache:
+            return self._deferred_removals_cache
+        else:
+            group: dict = await group_info(self.group_path, rest_client=keycloak)
+            group_attrs: dict = group.get('attributes', {})
+            deferred_removals_raw: dict = json.loads(group_attrs.get(self.deferred_removals_attr, '{}'))
+            self._deferred_removals_cache = dict((user, datetime.fromisoformat(ts))
+                                                 for user, ts in deferred_removals_raw.items())
+            return self._deferred_removals_cache
 
     async def set_deferred_removal(self, username: str, keycloak: ClientCredentialsAuth):
         deferred_removals = await self.get_deferred_removals(keycloak)
-        deferred_removal_str = datetime.now().isoformat()
-        logger.info(f"Setting {username}'s removal timestamp to {deferred_removal_str}")
-        deferred_removals[username] = deferred_removal_str
+        new_deferred_removal_str = datetime.now().isoformat()
+        logger.info(f"Setting {username}'s removal timestamp to {new_deferred_removal_str}")
+        deferred_removals[username] = new_deferred_removal_str
         deferred_removals_json = json.dumps(deferred_removals)
+        self._deferred_removals_cache = None
         await modify_group(self.group_path, rest_client=keycloak,
                            attrs={self.deferred_removals_attr: deferred_removals_json})
 
@@ -264,6 +293,7 @@ class GroupSyncConfig(GroupSyncCoreConfig):
         deferred_removals = await self.get_deferred_removals(keycloak)
         if deferred_removals.pop(username, None):
             deferred_removals_json = json.dumps(deferred_removals)
+            self._deferred_removals_cache = None
             await modify_group(self.group_path, rest_client=keycloak,
                                attrs={self.deferred_removals_attr: deferred_removals_json})
             logger.info(f"New deferred removal record: {deferred_removals}")
@@ -293,10 +323,10 @@ async def manual_sync(target_path: str,
     target_group = await group_info(target_path, rest_client=keycloak_client)
 
     cfg = GroupSyncConfig(target_path, target_group['attributes'])
-    if cfg.enable:
+    if cfg.auto_sync:
         # noinspection PyTypeChecker
         logger.critical(f"To operate in manual mode, {target_path}'s "
-                        f"{fields(GroupSyncConfig).enable.metadata['attr']} attribute must not be true.")
+                        f"{fields(GroupSyncConfig).auto_sync.metadata['attr']} attribute must not be true.")
         return 1
 
     # override sources expr
@@ -321,9 +351,10 @@ async def auto_sync(keycloak_client, dryrun):
     # custom attributes via REST API
     all_groups = await list_groups(rest_client=keycloak_client)
     # noinspection PyTypeChecker
+    auto_sync_attr = fields(GroupSyncConfig).auto_sync.metadata['attr']
     enabled_group_paths = [v['path'] for v in all_groups.values()
                            if v.get('attributes', {})
-                           .get(fields(GroupSyncConfig).enable.metadata['attr'])]
+                           .get(auto_sync_attr, '').lower() == "true"]
 
     for enabled_group_path in enabled_group_paths:
         enabled_group = await group_info(enabled_group_path, rest_client=keycloak_client)
@@ -336,7 +367,7 @@ async def auto_sync(keycloak_client, dryrun):
 
 
 async def send_notification(username: str, subject: str, body: str, keycloak: ClientCredentialsAuth):
-    user = await user_info(username, rest_client=keycloak)
+    user = await cached_user_info(username, rest_client=keycloak)
     user_attrs = user['attributes']
     to_address = f"{username}@icecube.wisc.edu"
     cc_addresses = list(filter(None, {user.get('email'), user_attrs.get('mailing_list_email')}))
@@ -448,13 +479,17 @@ async def sync_synchronized_group(target_path: str,
     # Set up partials to make the code easier to read
     logger.info(f"Processing composite group {target_path}")
 
-    # Build the list of all constituent groups' paths
-    group_hierarchy = await get_group_hierarchy(rest_client=keycloak)
+    # noinspection PyCallingNonCallable
+    group_hierarchy = await cached_get_group_hierarchy(keycloak)
     constituent_group_paths = [v.value for v in cfg.sources_expr.find(group_hierarchy)]
     logger.debug(f"Syncing {target_path} to {constituent_group_paths}")
 
-    # Determine what the current membership is and what it should be
-    intended_members_lists = [await get_group_membership(constituent_group_path, rest_client=keycloak)
+    # Determine what the current membership is and what it should be.
+    # Note on caching: it's possible for a synchronized group to be a
+    # constituent of another synchronized group, and therefore change
+    # during execution of this script. This is OK since this will be rare
+    # and membership updates will eventually happen on a later run.
+    intended_members_lists = [await cached_get_group_membership(constituent_group_path, keycloak)
                               for constituent_group_path in constituent_group_paths]
     intended_members = set(chain.from_iterable(intended_members_lists))
     current_members = set(await get_group_membership(target_path, rest_client=keycloak))
@@ -467,7 +502,7 @@ async def sync_synchronized_group(target_path: str,
 
     for extraneous_member in current_members - intended_members:
         if cfg.removal_grace_days:
-            if grace_period_set_check(extraneous_member, cfg, dryrun, allow_notifications, keycloak):
+            if await grace_period_set_check(extraneous_member, cfg, dryrun, allow_notifications, keycloak):
                 continue
         await remove_extraneous_member(extraneous_member, cfg, dryrun, allow_notifications, keycloak)
 
