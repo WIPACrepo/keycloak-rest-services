@@ -121,7 +121,7 @@ async def test_sync_synchronized_group_authorlist(keycloak_bootstrap):
         return await cfg.get_deferred_removals(keycloak_bootstrap)
 
     authors_users = await get_group_membership(g_authors, rest_client=keycloak_bootstrap)
-    assert set(authors_users) != {u_remain_in_authors, u_add_to_authors}
+    assert set(authors_users) == {u_remain_in_authors, u_add_to_authors}
     assert not await get_deferred(g_authors)
 
     authors_disabled_users = await get_group_membership(g_authors_disabled, rest_client=keycloak_bootstrap)
