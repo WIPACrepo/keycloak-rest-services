@@ -98,7 +98,7 @@ async def cached_get_group_hierarchy(keycloak):
 
 # Hide stuff from the global structure view and autocomplete
 class GrpCfgRes:
-    ATTR_NAME_PREFIX = f"synchronized_group_"
+    ATTR_NAME_PREFIX = "synchronized_group_"
     NEWLINE_CONVERSION_HELP = "(every occurrence of @@ will be replaced with newlines)"
     NOTIFICATION_APPEND_HELP = ("Append this text to the default notification template for "
                                 "this event type ") + NEWLINE_CONVERSION_HELP
@@ -434,9 +434,9 @@ async def remove_extraneous_member(username: str, cfg: GroupSyncConfig, dryrun: 
         await remove_user_group(cfg.group_path, username, rest_client=keycloak)
         if notify and cfg.message_removal_occurred:
             await send_notification(
-                    username=username, keycloak=keycloak,
-                    subject=f"You have been removed from group {cfg.group_path}",
-                    body=cfg.message_removal_occurred.format(username=username, group_path=cfg.group_path))
+                username=username, keycloak=keycloak,
+                subject=f"You have been removed from group {cfg.group_path}",
+                body=cfg.message_removal_occurred.format(username=username, group_path=cfg.group_path))
 
 
 async def add_missing_member(username: str, cfg: GroupSyncConfig, dryrun: bool, notify: bool,
