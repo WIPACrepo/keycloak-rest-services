@@ -7,8 +7,8 @@ from krs.users import create_user
 # noinspection PyUnresolvedReferences
 from ..util import keycloak_bootstrap  # type: ignore
 
-from actions.sync_synchronized_groups import (auto_sync, GroupEventConfig,
-                                              GroupSyncConfig, MembershipSyncPolicy)
+from actions.sync_synchronized_groups import (auto_sync, SyncGroupEventConfig,
+                                              SyncGroupConfig, MembershipSyncPolicy)
 from attrs import fields
 
 
@@ -16,21 +16,21 @@ from attrs import fields
 async def test_sync_synchronized_group_authorlist(keycloak_bootstrap):
     await create_group('/mail', rest_client=keycloak_bootstrap)
     # noinspection PyTypeChecker,PyTestUnpassedFixture
-    auto_sync_attr = fields(GroupSyncConfig).auto_sync.metadata['attr']
+    auto_sync_attr = fields(SyncGroupConfig).auto_sync.metadata['attr']
     # noinspection PyTypeChecker
-    policy_attr = fields(GroupSyncConfig).policy.metadata['attr']
+    policy_attr = fields(SyncGroupConfig).policy.metadata['attr']
     # noinspection PyTypeChecker
-    sources_expr_attr = fields(GroupSyncConfig).sources_expr.metadata['attr']
+    sources_expr_attr = fields(SyncGroupConfig).sources_expr.metadata['attr']
     # noinspection PyTypeChecker
-    removal_grace_attr = fields(GroupSyncConfig).removal_grace_days.metadata['attr']
+    removal_grace_attr = fields(SyncGroupConfig).removal_grace_days.metadata['attr']
     # noinspection PyTypeChecker
-    addition_occurred_notify_attr = fields(GroupEventConfig).addition_occurred_notify.metadata['attr']
+    addition_occurred_notify_attr = fields(SyncGroupEventConfig).addition_occurred_notify.metadata['attr']
     # noinspection PyTypeChecker
-    removal_pending_notify_attr = fields(GroupEventConfig).removal_pending_notify.metadata['attr']
+    removal_pending_notify_attr = fields(SyncGroupEventConfig).removal_pending_notify.metadata['attr']
     # noinspection PyTypeChecker
-    removal_averted_notify_attr = fields(GroupEventConfig).removal_averted_notify.metadata['attr']
+    removal_averted_notify_attr = fields(SyncGroupEventConfig).removal_averted_notify.metadata['attr']
     # noinspection PyTypeChecker
-    removal_occurred_notify_attr = fields(GroupEventConfig).removal_occurred_notify.metadata['attr']
+    removal_occurred_notify_attr = fields(SyncGroupEventConfig).removal_occurred_notify.metadata['attr']
     # noinspection PyTypeChecker
 
     authorlist_expr = ("$..subGroups[?path == '/institutions/Experiment1']"
@@ -117,7 +117,7 @@ async def test_sync_synchronized_group_authorlist(keycloak_bootstrap):
     # noinspection PyTestUnpassedFixture
     async def get_deferred(group_path):
         grp = await group_info(group_path, rest_client=keycloak_bootstrap)
-        cfg = GroupSyncConfig(group_path, grp['attributes'])
+        cfg = SyncGroupConfig(group_path, grp['attributes'])
         return await cfg.get_deferred_removals(keycloak_bootstrap)
 
     authors_users = await get_group_membership(g_authors, rest_client=keycloak_bootstrap)
