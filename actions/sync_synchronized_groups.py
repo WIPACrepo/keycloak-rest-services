@@ -5,26 +5,26 @@ synchronized groups: https://bookstack.icecube.wisc.edu/ops/books/keycloak-user-
 
 Update membership of "synchronized" groups (i.e. groups managed by this script)
 to be a subset of the union of their "source" groups. This action can implement
-two membership policies: "prune" and "match". Under the "prune" policy, members
-who don't belong to the source groups are pruned. The "match" policy prunes
-extraneous members and also adds missing members, thus making the membership of
-the group match that of the union of the source groups.
+two membership control policies: "prune" and "match". Under the "prune" policy,
+members who don't belong to any of the source groups are pruned. The "match"
+policy prunes extraneous members and also adds missing members, thus making the
+membership of the group match that of the union of the source groups.
 
 This script has two modes of operation: "automatic" and "manual". In automatic
-mode the script automatically discovers all enabled "synchronized" groups,
-loads their configuration from custom group attributes and updates the group's
-membership according to the configured policy. The manual mode is intended for
-debugging and silent initial seeding of groups. In the manual mode, automatic
-discovery is disabled and certain group synchronization parameters can be
-overridden from the command line.
+mode the script automatically discovers all "synchronized" groups configured
+for automatic synchronization, loads their configuration from custom group
+attributes and updates the groups' memberships according to the configured
+policies. The manual mode is intended for debugging and silent initial population
+of groups. In the manual mode, automatic discovery is disabled and certain group
+synchronization parameters can be overridden from the command line.
 
-Two important additional features of this action are the support for optionally
-deferring removals by a grace period and optionally customizing email notifications.
-Note that by default notifications are enabled and there is no removal grace period.
+Two important additional features of this script are grace period for member
+removal and customizable notification.
 
 Runtime configuration options are specified for each synchronized group as
 custom group attributes. Use the command line flag --configuration-help
-[ref:ooK1Ua1B] to see all available configuration options. Not
+[ref:ooK1Ua1B] to see all available configuration options. Note that user
+notifications are enabled by default.
 
 Paths of the source groups are specified as a JSONPath expression that yields
 group paths when applied to the complete Keycloak group hierarchy (list of
@@ -32,7 +32,6 @@ group trees, one per top-level group, containing all groups). The JSONPath
 expression uses the extended syntax that is documented here:
 https://github.com/h2non/jsonpath-ng/. There are some examples of typical
 JSONPaths below.
-
 
 This code was originally written to automate management of some /mail/
 subgroups (mailing lists).
@@ -70,11 +69,11 @@ import sys
 from asyncache import cached  # type: ignore
 from attrs import define, field, fields, NOTHING
 from cachetools import Cache
+from contextlib import suppress
 from datetime import datetime, timedelta
 from enum import Enum
 from itertools import chain
 from jsonpath_ng.ext import parse  # type: ignore
-from jsonpath_ng.exceptions import JsonPathParserError
 from rest_tools.client.client_credentials import ClientCredentialsAuth
 
 from krs.email import send_email
@@ -93,11 +92,6 @@ async def user_info_cached(username, keycloak):
 
 
 @cached(Cache(maxsize=10000))
-async def group_info_cached(group_path, keycloak):
-    return await group_info(group_path, rest_client=keycloak)
-
-
-@cached(Cache(maxsize=10000))
 async def get_group_membership_cached(group_path, keycloak):
     return await get_group_membership(group_path, rest_client=keycloak)
 
@@ -107,13 +101,16 @@ async def get_group_hierarchy_cached(keycloak):
     return await get_group_hierarchy(rest_client=keycloak)
 
 
-# Hide stuff from the global structure view and autocomplete
 class GrpCfgRes:
+    """Group configuration resources. Hides stuff from the global structure
+    view and autocomplete """
+    # Prefix of custom group attribute names used for configuration
     ATTR_NAME_PREFIX = "synchronized_group_"
     MSG_HELP_FOOTER = ("Every @@ will be replaced with a newline. Text can be a python f-string;"
-                       " see code for supported fields. Standard footer will be appended. Default: ''.")
-    NOTIFICATION_APPEND_HELP = (f"Append this text to the default notification template for"
-                                f" this event type. {MSG_HELP_FOOTER}")
+                       " see code for supported fields. Standard footer will be appended."
+                       " Default: empty string.")
+    NOTIFICATION_APPEND_HELP = (f"Optional. Append this text to the default notification"
+                                f" template for this event type. {MSG_HELP_FOOTER}")
     NOTIFICATION_OVERRIDE_HELP = (f'Optional. Use this template instead of the default one for'
                                   f' notifications of this event type. {MSG_HELP_FOOTER}')
 
@@ -141,65 +138,67 @@ class GrpCfgRes:
 
 
 @define
-class SyncGroupEventConfig:
+class SyncGroupNotificationConfig:
+    # Event notification enable/disable options
     addition_occurred_notify: bool = (
-        field(converter=GrpCfgRes.bool_from_string, default="true",  # keep in sync with help
+        field(converter=GrpCfgRes.bool_from_string, default="true",  # keep default in sync with help
               metadata={'attr': GrpCfgRes.ATTR_NAME_PREFIX + 'addition_occurred_notify',
                         'help': 'Send email notification when a user is added '
                                 'to the group. Default: true.'}))
     removal_pending_notify: bool = (
-        field(converter=GrpCfgRes.bool_from_string, default="true",  # keep in sync with help
+        field(converter=GrpCfgRes.bool_from_string, default="true",  # keep default in sync with help
               metadata={'attr': GrpCfgRes.ATTR_NAME_PREFIX + 'removal_pending_notify',
                         'help': 'Send email notification when a user is scheduled '
                                 'for removal (if grace period enabled). Default: true.'}))
     removal_averted_notify: bool = (
-        field(converter=GrpCfgRes.bool_from_string, default="true",  # keep in sync with help
+        field(converter=GrpCfgRes.bool_from_string, default="true",  # keep default in sync with help
               metadata={'attr': GrpCfgRes.ATTR_NAME_PREFIX + 'removal_averted_notify',
-                        'help': 'send email notification when a user is no longer scheduled '
+                        'help': 'Send email notification when a user is no longer scheduled '
                                 'for removal (because they re-joined a source group before '
                                 'the grace period expired). Default: true.'}))
     removal_occurred_notify: bool = (
-        field(converter=GrpCfgRes.bool_from_string, default="true",  # keep in sync with help
+        field(converter=GrpCfgRes.bool_from_string, default="true",  # keep default in sync with help
               metadata={'attr': GrpCfgRes.ATTR_NAME_PREFIX + 'removal_occurred_notify',
-                        'help': 'send email notification when a user is removed from the group '
+                        'help': 'Send email notification when a user is removed from the group '
                                 'Default: true.'}))
 
+    # Event notification message customizations
     removal_pending_message_append: str = (
-        field(converter=GrpCfgRes.double_at_to_newline, default='',  # keep in sync with help
+        field(converter=GrpCfgRes.double_at_to_newline, default='',  # keep default in sync with help
               metadata={'attr': GrpCfgRes.ATTR_NAME_PREFIX + 'removal_pending_message_append',
                         "help": GrpCfgRes.NOTIFICATION_APPEND_HELP}))
     removal_pending_message_override: str = (
-        field(converter=GrpCfgRes.double_at_to_newline, default='',  # keep in sync with help
+        field(converter=GrpCfgRes.double_at_to_newline, default='',  # keep default in sync with help
               metadata={'attr': GrpCfgRes.ATTR_NAME_PREFIX + 'removal_pending_message_override',
                         'help': GrpCfgRes.NOTIFICATION_OVERRIDE_HELP}))
     removal_averted_message_append: str = (
-        field(converter=GrpCfgRes.double_at_to_newline, default='',  # keep in sync with help
+        field(converter=GrpCfgRes.double_at_to_newline, default='',  # keep default in sync with help
               metadata={'attr': GrpCfgRes.ATTR_NAME_PREFIX + 'removal_averted_message_append',
                         "help": GrpCfgRes.NOTIFICATION_APPEND_HELP}))
     removal_averted_message_override: str = (
-        field(converter=GrpCfgRes.double_at_to_newline, default='',  # keep in sync with help
+        field(converter=GrpCfgRes.double_at_to_newline, default='',  # keep default in sync with help
               metadata={'attr': GrpCfgRes.ATTR_NAME_PREFIX + 'removal_averted_message_override',
                         'help': GrpCfgRes.NOTIFICATION_OVERRIDE_HELP}))
     removal_occurred_message_append: str = (
-        field(converter=GrpCfgRes.double_at_to_newline, default='',  # keep in sync with help
+        field(converter=GrpCfgRes.double_at_to_newline, default='',  # keep default in sync with help
               metadata={'attr': GrpCfgRes.ATTR_NAME_PREFIX + 'removal_occurred_message_append',
                         "help": GrpCfgRes.NOTIFICATION_APPEND_HELP}))
     removal_occurred_message_override: str = (
-        field(converter=GrpCfgRes.double_at_to_newline, default='',  # keep in sync with help
+        field(converter=GrpCfgRes.double_at_to_newline, default='',  # keep default in sync with help
               metadata={'attr': GrpCfgRes.ATTR_NAME_PREFIX + 'removal_occurred_message_override',
                         'help': GrpCfgRes.NOTIFICATION_OVERRIDE_HELP}))
     addition_occurred_message_append: str = (
-        field(converter=GrpCfgRes.double_at_to_newline, default='',  # keep in sync with help
+        field(converter=GrpCfgRes.double_at_to_newline, default='',  # keep default in sync with help
               metadata={'attr': GrpCfgRes.ATTR_NAME_PREFIX + 'addition_occurred_message_append',
                         'help': GrpCfgRes.NOTIFICATION_APPEND_HELP}))
     addition_occurred_message_override: str = (
-        field(converter=GrpCfgRes.double_at_to_newline, default='',  # keep in sync with help
+        field(converter=GrpCfgRes.double_at_to_newline, default='',  # keep default in sync with help
               metadata={'attr': GrpCfgRes.ATTR_NAME_PREFIX + 'addition_occurred_message_override',
                         "help": GrpCfgRes.NOTIFICATION_OVERRIDE_HELP}))
 
 
 class MembershipSyncPolicy(Enum):
-    """This script's operating modes. See file docstring for details."""
+    """This script's membership control policies. See file docstring for details."""
     prune = 'prune'
     match = 'match'
 
@@ -231,8 +230,10 @@ class SyncGroupCoreConfig:
                                 ' in source groups. Default: 0.'}))
 
 
-class EmailTemplates:
-    MESSAGE_FOOTER = f"""\n\n
+class EmailTemplates(Enum):
+    """Container for default message templates. Enum to make it easier
+    to automatically generate documentation from it."""
+    MESSAGE_FOOTER = f"""\n
 This message was generated by the {ACTION_ID} robot.
 Please contact help@icecube.wisc.edu for support."""
     ADDITION_OCCURRED = """{username},\n
@@ -267,8 +268,7 @@ class SyncGroupConfig(SyncGroupCoreConfig):
         if missing_fields:
             raise SyncGroupConfigAttributeError(
                 "Missing required attributes",
-                [(fld.name, fld.metadata['attr'])
-                 for fld in missing_fields])
+                [(fld.name, fld.metadata['attr']) for fld in missing_fields])
 
     @staticmethod
     def _validate_field_conversions(attrs_cls, field_kwargs):
@@ -286,6 +286,12 @@ class SyncGroupConfig(SyncGroupCoreConfig):
             raise SyncGroupConfigValueError("Invalid attribute values", failed_conversions)
 
     def __init__(self, group_path: str, group_attrs: dict):
+        """Configure synchronization settings of the group at group_path.
+
+        Group attributes must be passed separately (and not be retrieved
+        here from group_path) to allow higher layers to override settings.
+        """
+        # Set core parameters
         kwargs_super = {attr.name: group_attrs[attr.metadata['attr']]
                         for attr in SyncGroupCoreConfig.__attrs_attrs__
                         if attr.metadata['attr'] in group_attrs}
@@ -293,48 +299,61 @@ class SyncGroupConfig(SyncGroupCoreConfig):
         self._validate_field_conversions(SyncGroupCoreConfig, kwargs_super)
         super().__init__(**kwargs_super)
 
+        # Set notification parameters
         kwargs_notify = {attr.name: group_attrs[attr.metadata['attr']]
-                         for attr in SyncGroupEventConfig.__attrs_attrs__
+                         for attr in SyncGroupNotificationConfig.__attrs_attrs__
                          if attr.metadata['attr'] in group_attrs}
-        self._validate_required_fields(SyncGroupEventConfig, kwargs_notify)
-        self._validate_field_conversions(SyncGroupEventConfig, kwargs_notify)
-        self._events = SyncGroupEventConfig(**kwargs_notify)
+        self._validate_required_fields(SyncGroupNotificationConfig, kwargs_notify)
+        self._validate_field_conversions(SyncGroupNotificationConfig, kwargs_notify)
+        self._events = SyncGroupNotificationConfig(**kwargs_notify)
 
+        # Set higher-level parameters
         self.group_path = group_path
         self.deferred_removals_attr = GrpCfgRes.ATTR_NAME_PREFIX + "deferred_removals"
         # noinspection PyTypeChecker
         self.sources_expr_str = group_attrs[fields(SyncGroupCoreConfig).sources_expr.metadata['attr']]
+
+        # Cache deferred removals because they will be queried often.
+        # Implement caching discipline ourselves because deferred removals
+        # change during execution.
         self._deferred_removals_cache = None
 
-        self.message_addition_occurred: str = (
-            '' if not self._events.addition_occurred_notify
-            else self._events.addition_occurred_message_override + EmailTemplates.MESSAGE_FOOTER
-            or (EmailTemplates.ADDITION_OCCURRED
-                + self._events.addition_occurred_message_append
-                + EmailTemplates.MESSAGE_FOOTER))
+        def construct_message(notify: bool, override: str, default: str, append:str, footer: str) -> str:
+            if not notify:
+                return ''
+            else:
+                return (override or default + append) + footer
 
-        self.message_removal_pending: str = (
-            '' if not self._events.removal_pending_notify
-            else self._events.removal_pending_message_override + EmailTemplates.MESSAGE_FOOTER
-            or (EmailTemplates.REMOVAL_PENDING
-                + self._events.removal_pending_message_append
-                + EmailTemplates.MESSAGE_FOOTER))
+        self.message_addition_occurred: str = construct_message(
+            self._events.addition_occurred_notify,
+            self._events.addition_occurred_message_override,
+            EmailTemplates.ADDITION_OCCURRED.value,
+            self._events.addition_occurred_message_append,
+            EmailTemplates.MESSAGE_FOOTER.value)
 
-        self.message_removal_averted: str = (
-            '' if not self._events.removal_averted_notify
-            else self._events.removal_averted_message_override + EmailTemplates.MESSAGE_FOOTER
-            or (EmailTemplates.REMOVAL_AVERTED
-                + self._events.removal_averted_message_append
-                + EmailTemplates.MESSAGE_FOOTER))
+        self.message_removal_pending: str = construct_message(
+            self._events.removal_pending_notify,
+            self._events.removal_pending_message_override,
+            EmailTemplates.REMOVAL_PENDING.value,
+            self._events.removal_pending_message_append,
+            EmailTemplates.MESSAGE_FOOTER.value)
 
-        self.message_removal_occurred: str = (
-            '' if not self._events.removal_occurred_notify
-            else self._events.removal_occurred_message_override + EmailTemplates.MESSAGE_FOOTER
-            or (EmailTemplates.REMOVAL_OCCURRED
-                + self._events.removal_occurred_message_append
-                + EmailTemplates.MESSAGE_FOOTER))
+        self.message_removal_averted: str = construct_message(
+            self._events.removal_averted_notify,
+            self._events.removal_averted_message_override,
+            EmailTemplates.REMOVAL_AVERTED.value,
+            self._events.removal_averted_message_append,
+            EmailTemplates.MESSAGE_FOOTER.value)
+
+        self.message_removal_occurred: str = construct_message(
+            self._events.removal_occurred_notify,
+            self._events.removal_occurred_message_override,
+            EmailTemplates.REMOVAL_OCCURRED.value,
+            self._events.removal_occurred_message_append,
+            EmailTemplates.MESSAGE_FOOTER.value)
 
     async def get_deferred_removals(self, keycloak: ClientCredentialsAuth) -> dict:
+        """Retrieve (cached) deferred removal state."""
         if self._deferred_removals_cache is None:
             group: dict = await group_info(self.group_path, rest_client=keycloak)
             group_attrs: dict = group.get('attributes', {})
@@ -344,9 +363,10 @@ class SyncGroupConfig(SyncGroupCoreConfig):
         return self._deferred_removals_cache
 
     async def set_deferred_removal(self, username: str, keycloak: ClientCredentialsAuth):
-        deferred_removals = await self.get_deferred_removals(keycloak)
+        """Set deferred removal state of user to current time."""
         new_deferred_removal_str = datetime.now().isoformat()
         logger.info(f"Setting {username}'s removal timestamp to {new_deferred_removal_str}")
+        deferred_removals = await self.get_deferred_removals(keycloak)
         deferred_removals[username] = new_deferred_removal_str
         deferred_removals_json = json.dumps(deferred_removals)
         self._deferred_removals_cache = None
@@ -354,21 +374,22 @@ class SyncGroupConfig(SyncGroupCoreConfig):
                            attrs={self.deferred_removals_attr: deferred_removals_json})
 
     async def clear_deferred_removal(self, username: str, keycloak: ClientCredentialsAuth):
+        """Clear deferred removal info of user, if exists"""
         deferred_removals = await self.get_deferred_removals(keycloak)
         if deferred_removals.pop(username, None):
             deferred_removals_json = json.dumps(deferred_removals)
             self._deferred_removals_cache = None
             await modify_group(self.group_path, rest_client=keycloak,
                                attrs={self.deferred_removals_attr: deferred_removals_json})
-            logger.info(f"New deferred removal record: {deferred_removals}")
+            logger.info(f"Cleared deferred removal of {username}. New record: {deferred_removals}")
 
 
-async def manual_sync(target_path: str,
-                      source_groups_expr: str,
-                      /, *,
-                      keycloak_client: ClientCredentialsAuth,
-                      allow_notifications: bool = False,
-                      dryrun: bool = False):
+async def manual_group_sync(target_path: str,
+                            source_groups_expr: str,
+                            /, *,
+                            keycloak_client: ClientCredentialsAuth,
+                            allow_notifications: bool,
+                            dryrun: bool):
     """Execute a manual sync of members of the synchronized group at `target_path`.
 
     The configured source group expression will be overridden with `source_groups_expr`.
@@ -400,14 +421,10 @@ async def manual_sync(target_path: str,
 
     if cfg.auto_sync:
         # noinspection PyTypeChecker
-        logger.critical(f"To operate in manual mode, {target_path}'s "
+        logger.critical(f"To operate in manual mode on {target_path}, its "
                         f"{fields(SyncGroupConfig).auto_sync.metadata['attr']} attribute must not be true.")
         return 1
-    try:
-        cfg.sources_expr = source_groups_expr
-    except JsonPathParserError:
-        logger.critical(f"Invalid JSONPath {source_groups_expr}")
-        return 1
+
     return await sync_synchronized_group(target_path,
                                          cfg=cfg,
                                          keycloak=keycloak_client,
@@ -415,7 +432,7 @@ async def manual_sync(target_path: str,
                                          dryrun=dryrun)
 
 
-async def auto_sync(keycloak_client, dryrun):
+async def auto_sync_enabled_groups(keycloak_client, dryrun):
     """Discover enabled synchronized groups and sync them.
 
     Args:
@@ -424,36 +441,49 @@ async def auto_sync(keycloak_client, dryrun):
     """
     # Find all enabled synchronized groups. At the moment, it's much faster
     # to list all groups and pick the ones we need in python, compared to
-    # querying custom attributes via REST API
+    # querying custom attributes via REST API.
     all_groups = await list_groups(rest_client=keycloak_client)
     # noinspection PyTypeChecker
     auto_sync_attr = fields(SyncGroupConfig).auto_sync.metadata['attr']
     enabled_group_paths = [group['path'] for group in all_groups.values()
                            if group.get('attributes', {})
                            .get(auto_sync_attr, '').lower() == "true"]
-    logger.info(f"Discovered enabled groups: {enabled_group_paths}")
 
     for enabled_group_path in enabled_group_paths:
         enabled_group = await group_info(enabled_group_path, rest_client=keycloak_client)
         try:
             cfg = SyncGroupConfig(enabled_group_path, enabled_group['attributes'])
         except (SyncGroupConfigAttributeError, SyncGroupConfigValueError) as exc:
-            logger.error(f"{enabled_group_path} configuration exception {exc!r}")
+            logger.error(f"{enabled_group_path} sync configuration exception {exc!r}")
             continue
 
-        await sync_synchronized_group(enabled_group_path,
-                                      cfg=cfg,
-                                      keycloak=keycloak_client,
-                                      allow_notifications=True,
-                                      dryrun=dryrun)
+        try:
+            await sync_synchronized_group(enabled_group_path,
+                                          cfg=cfg,
+                                          keycloak=keycloak_client,
+                                          allow_notifications=True,
+                                          dryrun=dryrun)
+        except Exception as exc:
+            logger.error(f"Exception during sync of {enabled_group_path}: {exc!r}")
 
 
 async def send_notification(username: str, subject: str, body: str, keycloak: ClientCredentialsAuth):
     user = await user_info_cached(username, keycloak)
     user_attrs = user['attributes']
+
+    # In general, we don't know what email the user checks,
+    # so send to all emails we know of.
     to_address = f"{username}@icecube.wisc.edu"
     cc_addresses = list(filter(None, {user.get('email'), user_attrs.get('mailing_list_email')}))
-    logger.info(f"Sending '{subject} notification to {to_address,cc_addresses=}")
+
+    # Remove duplicate addresses if exist (sometimes users set
+    # their email and mailing_list_email to icecube addresses)
+    with suppress(ValueError):
+        cc_addresses.remove(to_address)
+    with suppress(ValueError):
+        cc_addresses.remove(user_attrs.get('canonical_email'))
+
+    logger.info(f"Sending '{subject}' notification to {to_address,cc_addresses=}")
     send_email(to_address, subject, body, cc=cc_addresses)
 
 
@@ -465,7 +495,6 @@ async def clear_deferred_removal(username: str, cfg: SyncGroupConfig, dryrun: bo
         logger.info(f"Removing {username} from deferred removal state({dryrun,notify=})")
         if not dryrun:
             await cfg.clear_deferred_removal(username, keycloak)
-            logger.info(f"New deferred removal state: {await cfg.get_deferred_removals(keycloak)}")
             if notify and cfg.message_removal_averted:
                 await send_notification(
                     username=username, keycloak=keycloak,
@@ -473,8 +502,8 @@ async def clear_deferred_removal(username: str, cfg: SyncGroupConfig, dryrun: bo
                     body=cfg.message_removal_averted.format(username=username, group_path=cfg.group_path))
 
 
-async def grace_period_set_check(username: str, cfg: SyncGroupConfig, dryrun: bool,
-                                 notify: bool, keycloak: ClientCredentialsAuth) -> bool:
+async def grace_period_check_with_init(username: str, cfg: SyncGroupConfig, dryrun: bool,
+                                       notify: bool, keycloak: ClientCredentialsAuth) -> bool:
     """Set and/or check whether the user passes grace period check
 
     Assumes removal grace period is enabled and non-zero.
@@ -483,16 +512,19 @@ async def grace_period_set_check(username: str, cfg: SyncGroupConfig, dryrun: bo
     Return:
         (bool) whether the user's removal grace period has expired
     """
+    if not cfg.removal_grace_days:
+        return False  # grace=0, so it expires immediately and everybody fails the check
+
     deferred_removals = await cfg.get_deferred_removals(keycloak)
 
     if removal_scheduled_at := deferred_removals.get(username):
         if datetime.now() < removal_scheduled_at + timedelta(days=cfg.removal_grace_days):
-            return True
+            return True  # grace not expired, check passed
         else:
             logger.info(f"Removal grace period of {username} expired ({removal_scheduled_at,cfg.removal_grace_days=})")
-            return False
+            return False  # grace expired, check failed
     else:
-        # Grace period configured but "removal scheduled" not set. Set it.
+        # Grace period > 0 but "removal scheduled" not set. Set it.
         if not dryrun:
             await cfg.set_deferred_removal(username, keycloak)
             if notify and cfg.message_removal_pending:
@@ -500,15 +532,14 @@ async def grace_period_set_check(username: str, cfg: SyncGroupConfig, dryrun: bo
                     username=username, keycloak=keycloak,
                     subject=f"You are scheduled for removal from group {cfg.group_path}",
                     body=cfg.message_removal_pending.format(username=username, group_path=cfg.group_path))
-        # We are assuming that this function is called
-        # only if grace period is non-zero
-        return True
+        # Assuming grace=0 case handled earlier
+        return True  # pass the check since grace>0 and grace period just begun
 
 
 async def remove_extraneous_member(username: str, cfg: SyncGroupConfig, dryrun: bool, notify: bool,
                                    keycloak: ClientCredentialsAuth):
     """Removes an extraneous member"""
-    logger.info(f"Removing {username} from deferred removal state({dryrun,notify=})")
+    logger.info(f"Removing {username} from deferred removal state ({dryrun,notify=})")
     if not dryrun:
         await cfg.clear_deferred_removal(username, keycloak)
     logger.info(f"Removing extraneous {username} from {cfg.group_path} ({dryrun,notify=}")
@@ -540,7 +571,7 @@ async def sync_synchronized_group(target_path: str,
                                   cfg: SyncGroupConfig,
                                   keycloak: ClientCredentialsAuth,
                                   allow_notifications: bool,
-                                  dryrun: bool = False):
+                                  dryrun: bool):
     """Synchronize membership of the synchronized group at `target_path`.
 
     `constituents_expr` is a string with JSONPath expression that will be
@@ -550,6 +581,11 @@ async def sync_synchronized_group(target_path: str,
     Although runtime configuration options are stored as the target group's
     custom attributes, this code shall not access them directly, and instead
     use the `cfg` parameter. This is to allow some options to be overridden.
+
+    This function caches some calls to Keycloak. It's possible inter-depended
+    synchronized groups will be processed during the same run and caching will
+    hide group changes made by this script. This is OK since this will be rare
+    and membership updates will eventually propagate on a later run.
 
     Args:
         target_path (str): path to the target synchronized group
@@ -564,86 +600,98 @@ async def sync_synchronized_group(target_path: str,
     # noinspection PyCallingNonCallable
     group_hierarchy = await get_group_hierarchy_cached(keycloak)
     constituent_group_paths = [v.value for v in cfg.sources_expr.find(group_hierarchy)]
-    if not all(isinstance(path, str)
-               and re.match(f'(/[^/{string.whitespace}]+)+$', path)
-               for path in constituent_group_paths):
+
+    # Sanity check source group paths. It's easy to make a mistake in the JSONPath
+    # expression that would cause it to produce garbage
+    group_path_type_error = group_path_value_error = None
+    if not all(isinstance(path, str) for path in constituent_group_paths):
+        group_path_type_error = True
+    elif not all(re.match(f'(/[^/{string.whitespace}]+)+$', path) for path in constituent_group_paths):
+        group_path_value_error = True
+    if group_path_type_error or group_path_value_error:
         logger.error("Results of sources expression don't look like group paths:")
         logger.error(f"{cfg.sources_expr_str = }")
         logger.error(f"{str(constituent_group_paths)[:200] = }")
-        return 1  # XXX put in tests?
-    logger.info(f"Syncing {target_path} to {constituent_group_paths}")
+        if group_path_type_error:
+            raise TypeError("Source paths expression produced non-string objects")
+        if group_path_value_error:
+            raise ValueError("Source paths expression produced invalid paths")
 
-    # Determine what the current membership is and what it should be.
-    # Note on caching: it's possible for a synchronized group to be a
-    # constituent of another synchronized group, and therefore change
-    # during execution of this script. This is OK since this will be rare
-    # and membership updates will eventually happen on a later run.
-    intended_members_lists = [await get_group_membership_cached(constituent_group_path, keycloak)
-                              for constituent_group_path in constituent_group_paths]
-    intended_members = set(chain.from_iterable(intended_members_lists))
+    logger.debug(f"Syncing {target_path} to {constituent_group_paths}")
+
+    # Determine what the current membership and memberships of the source groups
+    source_member_lists = [await get_group_membership_cached(constituent_group_path, keycloak)
+                           for constituent_group_path in constituent_group_paths]
+    source_members = set(chain.from_iterable(source_member_lists))
     current_members = set(await get_group_membership(target_path, rest_client=keycloak))
 
-    # Process current users who are legitimate, authorized members
-    for valid_member in current_members & intended_members:
+    # Process the current legitimate members that don't need to be removed
+    for valid_member in current_members & source_members:
         # Valid users may need to be removed from the deferred removal record
         # if they rejoined a constituent group before the grace period expired
         await clear_deferred_removal(valid_member, cfg, dryrun, allow_notifications, keycloak)
 
     # Prune extraneous members
-    for extraneous_member in current_members - intended_members:
+    for extraneous_member in current_members - source_members:
         if cfg.removal_grace_days:
-            if await grace_period_set_check(extraneous_member, cfg, dryrun, allow_notifications, keycloak):
+            if await grace_period_check_with_init(extraneous_member, cfg, dryrun, allow_notifications, keycloak):
                 continue
         await remove_extraneous_member(extraneous_member, cfg, dryrun, allow_notifications, keycloak)
 
     # Add missing members if policy is to match union of membership of constituents
     if cfg.policy == MembershipSyncPolicy.match:
-        for missing_member in intended_members - current_members:
+        for missing_member in source_members - current_members:
             await add_missing_member(missing_member, cfg, dryrun, allow_notifications, keycloak)
+
+
+def print_configuration_help():
+    from textwrap import wrap
+    print("\n\033[4;7m" + "Core configuration attributes:".upper() + "\033[0m\n")
+    # noinspection PyTypeChecker
+    for f in fields(SyncGroupCoreConfig):
+        print(f"\033[3m{f.metadata['attr']}\033[0m")
+        print('\n'.join('    ' + line for line in wrap(f.metadata['help'])) + '\n')
+
+    print("\n\033[4;7m" + "Attributes configuring notifications:".upper() + "\033[0m\n")
+    # noinspection PyTypeChecker
+    for f in fields(SyncGroupNotificationConfig):
+        print(f"\033[3m{f.metadata['attr']}\033[0m")
+        print('\n'.join('    ' + line for line in wrap(f.metadata['help'])) + '\n')
+
+    print("\n\033[4;7m" + "Default notification templates:".upper() + "\033[0m")
+    print("(newlines have been replaced with @@)\n")
+    for msg in EmailTemplates:
+        print(f"\033[3m{msg.name}\033[0m")
+        print('\n'.join('    ' + line for line in wrap(msg.value.replace('\n', '@@'))) + '\n')
 
 
 def main():
     import argparse
     parser = argparse.ArgumentParser(
-        description='Sync membership of synchronized group(s) with the corresponding '
-                    'source groups according to the configured policy. '
-                    'See file docstring for details and examples.',
+        description='Sync membership of synchronized group(s) with their corresponding '
+                    'source groups. See file docstring for details and examples.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     mutex = parser.add_mutually_exclusive_group(required=True)
     parser.add_argument('--configuration-help', action='store_true',  # ref:ooK1Ua1B
-                        help="display help on group configuration attributes and exit")
+                        help="Display help on configuring synchronized groups and exit.")
     mutex.add_argument('--auto', action='store_true',
-                       help='automatically discover all enabled synchronized groups and sync '
-                            'them using configuration stored in their attributes. '
-                            'See file docstring for details')
+                       help='Automatically discover all enabled synchronized groups and sync them.')
     mutex.add_argument('--manual', nargs=2, metavar=('TARGET_GROUP_PATH', 'JSONPATH_EXPR'),  # ref:so5X1opu
-                       help="sync the synchronized group at TARGET_GROUP_PATH with the "
-                            "source groups produced by JSONPATH_EXPR when applied to the "
-                            "complete Keycloak group hierarchy. ")
+                       help="Sync the synchronized group at TARGET_GROUP_PATH with the "
+                            "source groups defined by JSONPATH_EXPR.")
     parser.add_argument('--allow-notifications', action='store_true',
-                        help="send email notifications if using --manual; required with --auto")
+                        help="Send email notifications. Required in automatic mode.")
     parser.add_argument('--log-level', default='info', choices=('debug', 'info', 'warning', 'error'),
-                        help='application logging level')
+                        help='Application logging level.')
     parser.add_argument('--log-level-client', default='warning', choices=('debug', 'info', 'warning', 'error'),
-                        help='REST client logging level')
+                        help='REST client logging level.')
     parser.add_argument('--dryrun', action='store_true',
                         help='dry run')
 
     args = vars(parser.parse_args())
 
     if args['configuration_help']:
-        from textwrap import wrap
-        print("\n\033[4;7m" + "Core configuration attributes:".upper() + "\033[0m\n")
-        # noinspection PyTypeChecker
-        for f in fields(SyncGroupCoreConfig):
-            print(f"\033[3m{f.metadata['attr']}\033[0m")
-            print('\n'.join('    ' + line for line in wrap(f.metadata['help'])) + '\n')
-
-        print("\n\033[4;7m" + "Attributes configuring notifications:".upper() + "\033[0m\n")
-        # noinspection PyTypeChecker
-        for f in fields(SyncGroupEventConfig):
-            print(f"\033[3m{f.metadata['attr']}\033[0m")
-            print('\n'.join('    ' + line for line in wrap(f.metadata['help'])) + '\n')
+        print_configuration_help()
         parser.exit()
 
     logging.basicConfig(level=getattr(logging, args['log_level'].upper()))
@@ -651,22 +699,22 @@ def main():
     cca_logger.setLevel(getattr(logging, args['log_level_client'].upper()))
 
     if not args['allow_notifications'] and args['auto']:
-        logger.critical("--allow-notifications is required with --auto")
+        logger.critical("--allow-notifications is required in automatic mode")
         parser.exit(1)
 
     keycloak_client = get_rest_client()
 
     if args['auto']:
-        return asyncio.run(auto_sync(
+        return asyncio.run(auto_sync_enabled_groups(
             keycloak_client=keycloak_client,
             dryrun=args['dryrun']))
     else:
         target_group, source_group_expr = args['manual']
-        return asyncio.run(manual_sync(target_group,
-                                       source_group_expr,
-                                       keycloak_client=keycloak_client,
-                                       allow_notifications=args['allow_notifications'],
-                                       dryrun=args['dryrun']))
+        return asyncio.run(manual_group_sync(target_group,
+                                             source_group_expr,
+                                             keycloak_client=keycloak_client,
+                                             allow_notifications=args['allow_notifications'],
+                                             dryrun=args['dryrun']))
 
 
 if __name__ == '__main__':

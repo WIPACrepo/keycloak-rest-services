@@ -7,8 +7,9 @@ from krs.users import create_user
 # noinspection PyUnresolvedReferences
 from ..util import keycloak_bootstrap  # type: ignore
 
-from actions.sync_synchronized_groups import (auto_sync, SyncGroupEventConfig,
-                                              SyncGroupConfig, MembershipSyncPolicy)
+from actions.sync_synchronized_groups import (auto_sync_enabled_groups, manual_group_sync,
+                                              SyncGroupNotificationConfig, SyncGroupConfig,
+                                              MembershipSyncPolicy)
 from attrs import fields
 
 
@@ -24,13 +25,13 @@ async def test_sync_synchronized_group_authorlist(keycloak_bootstrap):
     # noinspection PyTypeChecker
     removal_grace_attr = fields(SyncGroupConfig).removal_grace_days.metadata['attr']
     # noinspection PyTypeChecker
-    addition_occurred_notify_attr = fields(SyncGroupEventConfig).addition_occurred_notify.metadata['attr']
+    addition_occurred_notify_attr = fields(SyncGroupNotificationConfig).addition_occurred_notify.metadata['attr']
     # noinspection PyTypeChecker
-    removal_pending_notify_attr = fields(SyncGroupEventConfig).removal_pending_notify.metadata['attr']
+    removal_pending_notify_attr = fields(SyncGroupNotificationConfig).removal_pending_notify.metadata['attr']
     # noinspection PyTypeChecker
-    removal_averted_notify_attr = fields(SyncGroupEventConfig).removal_averted_notify.metadata['attr']
+    removal_averted_notify_attr = fields(SyncGroupNotificationConfig).removal_averted_notify.metadata['attr']
     # noinspection PyTypeChecker
-    removal_occurred_notify_attr = fields(SyncGroupEventConfig).removal_occurred_notify.metadata['attr']
+    removal_occurred_notify_attr = fields(SyncGroupNotificationConfig).removal_occurred_notify.metadata['attr']
     # noinspection PyTypeChecker
 
     authorlist_expr = ("$..subGroups[?path == '/institutions/Experiment1']"
@@ -112,7 +113,7 @@ async def test_sync_synchronized_group_authorlist(keycloak_bootstrap):
     await add_user_group('/institutions/ExperimentXXX/Irrelevant', u_dont_add_bc_wrong_expt, rest_client=keycloak_bootstrap)
     await add_user_group('/institutions/ExperimentXXX/Irrelevant/authorlist', u_dont_add_bc_wrong_expt, rest_client=keycloak_bootstrap)  # noqa
 
-    await auto_sync(keycloak_bootstrap, dryrun=False)
+    await auto_sync_enabled_groups(keycloak_bootstrap, dryrun=False)
 
     # noinspection PyTestUnpassedFixture
     async def get_deferred(group_path):
@@ -140,8 +141,17 @@ async def test_sync_synchronized_group_authorlist(keycloak_bootstrap):
     # simulate grace period expiration
     await modify_group(g_authors_grace, rest_client=keycloak_bootstrap,
                        attrs=default_attrs | {removal_grace_attr: '0'})
-    await auto_sync(keycloak_bootstrap, dryrun=False)
+    await auto_sync_enabled_groups(keycloak_bootstrap, dryrun=False)
     authors_grace_users2 = await get_group_membership(g_authors_grace, rest_client=keycloak_bootstrap)
     assert set(authors_grace_users2) == {u_remain_in_authors, u_add_to_authors}
     authors_grace_deferred = await get_deferred(g_authors_grace)
     assert not authors_grace_deferred.keys()
+
+    # Sources expression produces non-string results
+    with pytest.raises(TypeError):
+        await manual_group_sync(g_authors_disabled, '$', keycloak_client=keycloak_bootstrap,
+                                allow_notifications=False, dryrun=False)
+    # Sources expression produces non-path results
+    with pytest.raises(TypeError):
+        await manual_group_sync(g_authors_disabled, '$..[*].name', keycloak_client=keycloak_bootstrap,
+                                allow_notifications=False, dryrun=False)
