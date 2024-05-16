@@ -1,26 +1,30 @@
 # noinspection GrazieInspection
 """
-Note: user documentation of synchronized groups is here:
-https://bookstack.icecube.wisc.edu/ops/books/keycloak-user-management/page/synchronized-groups
-Consider updating that page if you change this code and/or docstring.
+If you change this code, please also update the user documentation of
+synchronized groups: https://bookstack.icecube.wisc.edu/ops/books/keycloak-user-management/page/synchronized-groups
 
-Update membership of "synchronized" groups to be a subset of the union of
-their source groups. This action can implement two membership policies:
-"prune" and "match". Under the "prune" policy, members who don't belong to
-the parent groups are pruned. The "match" policy prunes extraneous members
-and also adds missing members, thus making the membership of the group match
-that of the union of the parent groups.
+Update membership of "synchronized" groups (i.e. groups managed by this
+script) to be a subset of the union of their "source" groups. This action
+can implement two membership policies: "prune" and "match". Under the "prune"
+policy, members who don't belong to the source groups are pruned. The "match"
+policy prunes extraneous members and also adds missing members, thus making
+the membership of the group match that of the union of the source groups.
 
-Two important additional features of this action are support for removals
-deferred by a grace period and customizable email notifications.
-
-The action has two modes of operation: "automatic" and "manual". In automatic
-mode the action automatically discovers all enabled "synchronized" groups,
+This script has two modes of operation: "automatic" and "manual". In automatic
+mode the script automatically discovers all enabled "synchronized" groups,
 loads their configuration from custom group attributes and updates the group's
 membership according to the configured policy. The manual mode is intended for
 debugging and silent initial seeding of groups. In the manual mode, automatic
 discovery is disabled and certain group synchronization parameters can be
 overridden from the command line.
+
+Two important additional features of this action are the support for optionally
+deferring removals by a grace period and optionally customizing email notifications.
+Note that by default notifications are enabled and there is no removal grace period.
+
+Runtime configuration options are specified for each synchronized group as
+custom group attributes. Use the command line flag --configuration-help
+[ref:ooK1Ua1B] to see all available configuration options. Not
 
 Paths of the source groups are specified as a JSONPath expression that yields
 group paths when applied to the complete Keycloak group hierarchy (list of
@@ -29,24 +33,26 @@ expression uses the extended syntax that is documented here:
 https://github.com/h2non/jsonpath-ng/. There are some examples of typical
 JSONPaths below.
 
-Runtime configuration options are specified for each synchronized group as
-custom group attributes. Use the command line flag --configuration-help
-[ref:ooK1Ua1B] to see all available configuration options.
 
 This code was originally written to automate management of some /mail/
 subgroups (mailing lists).
 
-Custom Keycloak attributes used in this code are documented here:
+Custom Keycloak attributes used in this code are also documented here:
 https://bookstack.icecube.wisc.edu/ops/books/services/page/custom-keycloak-attributes
+Please update that page if you make changes to configuration options.
 
 Examples::
+    # Getting help on how to configure synchronized groups
     python -m actions.sync_synchronized_groups --configuration-help         # ref:ooK1Ua1B
 
+    # Simple JSONPath defining source groups by path regular expression
     python -m actions.sync_synchronized_groups \
         --manual /path/to/group/composite-group \
             "$..subGroups[?path =~ '/path/to/parent/(constituent-1|constituent-2)'].path" \
         --dryrun                                                            # ref:so5X1opu
 
+    # More complex JSONPath defining source groups based on group
+    # attribute values
     python -m actions.sync_synchronized_groups \
         --manual /mail/authorlist-test \
             "$..subGroups[?path == '/institutions/IceCube']
@@ -120,9 +126,9 @@ class GrpCfgRes:
 
     @classmethod
     def bool_from_string(cls, s):
-        if s.lower() == 'true':
+        if s.strip().lower() == 'true':
             return True
-        elif s.lower() == 'false':
+        elif s.strip().lower() == 'false':
             return False
         elif not s:
             return None
@@ -561,10 +567,10 @@ async def sync_synchronized_group(target_path: str,
     if not all(isinstance(path, str)
                and re.match(f'(/[^/{string.whitespace}]+)+$', path)
                for path in constituent_group_paths):
-        logger.error(f"Results of sources expression don't look like group paths:")
+        logger.error("Results of sources expression don't look like group paths:")
         logger.error(f"{cfg.sources_expr_str = }")
         logger.error(f"{str(constituent_group_paths)[:200] = }")
-        return 1
+        return 1 # XXX put in tests?
     logger.info(f"Syncing {target_path} to {constituent_group_paths}")
 
     # Determine what the current membership is and what it should be.
