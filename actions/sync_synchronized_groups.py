@@ -610,8 +610,8 @@ async def sync_synchronized_group(target_path: str,
         group_path_value_error = True
     if group_path_type_error or group_path_value_error:
         logger.error("Results of sources expression don't look like group paths:")
-        logger.error(f"{cfg.sources_expr_str = }")
-        logger.error(f"{str(constituent_group_paths)[:200] = }")
+        logger.error(f"{cfg.sources_expr_str=}")
+        logger.error(f"{str(constituent_group_paths)[:200]=}")
         if group_path_type_error:
             raise TypeError("Source paths expression produced non-string objects")
         if group_path_value_error:
