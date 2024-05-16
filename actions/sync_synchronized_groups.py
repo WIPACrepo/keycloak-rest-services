@@ -3,12 +3,12 @@
 If you change this code, please also update the user documentation of
 synchronized groups: https://bookstack.icecube.wisc.edu/ops/books/keycloak-user-management/page/synchronized-groups
 
-Update membership of "synchronized" groups (i.e. groups managed by this
-script) to be a subset of the union of their "source" groups. This action
-can implement two membership policies: "prune" and "match". Under the "prune"
-policy, members who don't belong to the source groups are pruned. The "match"
-policy prunes extraneous members and also adds missing members, thus making
-the membership of the group match that of the union of the source groups.
+Update membership of "synchronized" groups (i.e. groups managed by this script)
+to be a subset of the union of their "source" groups. This action can implement
+two membership policies: "prune" and "match". Under the "prune" policy, members
+who don't belong to the source groups are pruned. The "match" policy prunes
+extraneous members and also adds missing members, thus making the membership of
+the group match that of the union of the source groups.
 
 This script has two modes of operation: "automatic" and "manual". In automatic
 mode the script automatically discovers all enabled "synchronized" groups,
