@@ -47,7 +47,7 @@ Examples::
     # Simple JSONPath defining specific source groups by explicit path regular expression
     python -m actions.sync_synchronized_groups \
         --manual /path/to/group/composite-group \
-            "$..subGroups[?path =~ '/path/to/parent/(constituent-1|constituent-2)'].path" \
+            "$..subGroups[?path =~ '^/path/to/parent/(constituent-1|constituent-2)$'].path" \
         --dryrun                                                            # ref:so5X1opu
 
     # JSONPath for all subgroups of certain parent groups
@@ -331,39 +331,32 @@ class SyncGroupConfig(SyncGroupCoreConfig):
         # change during execution.
         self._deferred_removals_cache = None
 
-        def construct_message(notify: bool, override: str, default: str, append:str, footer: str) -> str:
-            if not notify:
+        def construct_message(global_notify: bool, notify: bool, override: str, default: str,
+                              append: str, footer: str) -> str:
+            if not global_notify or not notify:
                 return ''
             else:
                 return (override or default + append) + footer
 
-        self.message_addition_occurred: str = '' if self._events.no_notifications else (
-            construct_message(self._events.addition_occurred_notify,
-                              self._events.addition_occurred_message_override,
-                              EmailTemplates.ADDITION_OCCURRED.value,
-                              self._events.addition_occurred_message_append,
-                              EmailTemplates.MESSAGE_FOOTER.value))
+        self.message_addition_occurred: str = construct_message(
+            self._events.no_notifications, self._events.addition_occurred_notify,
+            self._events.addition_occurred_message_override, EmailTemplates.ADDITION_OCCURRED.value,
+            self._events.addition_occurred_message_append, EmailTemplates.MESSAGE_FOOTER.value)
 
-        self.message_removal_pending: str = '' if self._events.no_notifications else (
-            construct_message(self._events.removal_pending_notify,
-                              self._events.removal_pending_message_override,
-                              EmailTemplates.REMOVAL_PENDING.value,
-                              self._events.removal_pending_message_append,
-                              EmailTemplates.MESSAGE_FOOTER.value))
+        self.message_removal_pending: str = construct_message(
+            self._events.no_notifications, self._events.removal_pending_notify,
+            self._events.removal_pending_message_override, EmailTemplates.REMOVAL_PENDING.value,
+            self._events.removal_pending_message_append, EmailTemplates.MESSAGE_FOOTER.value)
 
-        self.message_removal_averted: str = '' if self._events.no_notifications else (
-            construct_message(self._events.removal_averted_notify,
-                              self._events.removal_averted_message_override,
-                              EmailTemplates.REMOVAL_AVERTED.value,
-                              self._events.removal_averted_message_append,
-                              EmailTemplates.MESSAGE_FOOTER.value))
+        self.message_removal_averted: str = construct_message(
+            self._events.no_notifications, self._events.removal_averted_notify,
+            self._events.removal_averted_message_override, EmailTemplates.REMOVAL_AVERTED.value,
+            self._events.removal_averted_message_append, EmailTemplates.MESSAGE_FOOTER.value)
 
-        self.message_removal_occurred: str = '' if self._events.no_notifications else (
-            construct_message(self._events.removal_occurred_notify,
-                              self._events.removal_occurred_message_override,
-                              EmailTemplates.REMOVAL_OCCURRED.value,
-                              self._events.removal_occurred_message_append,
-                              EmailTemplates.MESSAGE_FOOTER.value))
+        self.message_removal_occurred: str = construct_message(
+            self._events.no_notifications, self._events.removal_occurred_notify,
+            self._events.removal_occurred_message_override, EmailTemplates.REMOVAL_OCCURRED.value,
+            self._events.removal_occurred_message_append, EmailTemplates.MESSAGE_FOOTER.value)
 
     async def get_deferred_removals(self, keycloak: ClientCredentialsAuth) -> dict:
         """Retrieve (cached) deferred removal state."""
