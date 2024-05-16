@@ -152,6 +152,6 @@ async def test_sync_synchronized_group_authorlist(keycloak_bootstrap):
         await manual_group_sync(g_authors_disabled, '$', keycloak_client=keycloak_bootstrap,
                                 allow_notifications=False, dryrun=False)
     # Sources expression produces non-path results
-    with pytest.raises(TypeError):
+    with pytest.raises(ValueError):
         await manual_group_sync(g_authors_disabled, '$..[*].name', keycloak_client=keycloak_bootstrap,
                                 allow_notifications=False, dryrun=False)
