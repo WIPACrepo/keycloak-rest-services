@@ -570,7 +570,7 @@ async def sync_synchronized_group(target_path: str,
         logger.error("Results of sources expression don't look like group paths:")
         logger.error(f"{cfg.sources_expr_str = }")
         logger.error(f"{str(constituent_group_paths)[:200] = }")
-        return 1 # XXX put in tests?
+        return 1  # XXX put in tests?
     logger.info(f"Syncing {target_path} to {constituent_group_paths}")
 
     # Determine what the current membership is and what it should be.
