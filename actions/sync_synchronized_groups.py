@@ -73,7 +73,7 @@ import re
 import string
 import sys
 from asyncache import cached  # type: ignore
-from attrs import define, field, fields, NOTHING, asdict
+from attrs import define, field, fields, NOTHING
 from cachetools import Cache
 from contextlib import suppress
 from datetime import datetime, timedelta
