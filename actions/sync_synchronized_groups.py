@@ -47,13 +47,13 @@ Examples::
     # Simple JSONPath defining specific source groups by explicit path regular expression
     python -m actions.sync_synchronized_groups \
         --manual /path/to/group/composite-group \
-            "$..subGroups[?path =~ '^/path/to/parent/(constituent-1|constituent-2)$'].path" \
+            "$..subGroups[?path =~ '^/path/to/parent/((constituent-1)|(constituent-2))$'].path" \
         --dryrun                                                            # ref:so5X1opu
 
-    # JSONPath for all subgroups of certain parent groups
+    # JSONPath for all direct subgroups of certain parent groups
     python -m actions.sync_synchronized_groups \
         --manual /path/to/group/composite-group \
-            "$..subGroups[?path =~ '^/institutions/(ARA|CTA)$'].subGroups[*].path" \
+            "$..subGroups[?path =~ '^/institutions/((ARA)|(CTA))$'].subGroups[*].path" \
         --dryrun                                                            # ref:so5X1opu
 
     # More complex JSONPath defining source groups based on group
@@ -414,15 +414,15 @@ async def manual_group_sync(target_path: str,
         dryrun (bool): perform a trial run with no changes made
     """
     logger.info(f"Manually syncing {target_path}")
-    logger.info(f"Constituents expression: {source_groups_expr}")
     target_group = await group_info(target_path, rest_client=keycloak_client)
     target_group_attrs = target_group.get('attributes', {})
 
-    # override sources expression
+    # noinspection PyTypeChecker
+    source_groups_expr_attr = fields(SyncGroupConfig).sources_expr.metadata['attr']
     if source_groups_expr:
-        # noinspection PyTypeChecker
-        source_groups_expr_attr = fields(SyncGroupConfig).sources_expr.metadata['attr']
+        # override sources expression
         target_group_attrs[source_groups_expr_attr] = source_groups_expr
+    logger.info(f"Constituents expression: {source_groups_expr or target_group_attrs[source_groups_expr_attr]}")
 
     try:
         cfg = SyncGroupConfig(target_path, target_group_attrs)
