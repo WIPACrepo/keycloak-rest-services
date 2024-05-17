@@ -115,8 +115,8 @@ class GrpCfgRes:
     # Prefix of custom group attribute names used for configuration
     ATTR_NAME_PREFIX = "synchronized_group_"
     MSG_HELP_FOOTER = ("Every @@ will be treated as a paragraph break and paragraphs will"
-                       " be be wrapped to look nice. "
-                       " Text can be a python f-string; see code for supported fields."
+                       " be wrapped to look even. Text can be a python f-string;"
+                       " see --configuration-help for supported fields."  # ref:ooK1Ua1B
                        " Standard footer will be appended. Default: empty string.")
     NOTIFICATION_APPEND_HELP = (f"Optional. Append this text to the default notification"
                                 f" template for this event type. {MSG_HELP_FOOTER}")
@@ -669,7 +669,7 @@ async def sync_synchronized_group(target_path: str,
                                      cfg, dryrun, allow_notifications, keycloak)
 
 
-def print_configuration_help():
+def print_configuration_help():  # ref:ooK1Ua1B
     from textwrap import wrap
     print("\n\033[4;7m" + "Core configuration attributes:".upper() + "\033[0m\n")
     # noinspection PyTypeChecker
@@ -738,7 +738,7 @@ def main():
 
     args = vars(parser.parse_args())
 
-    if args['configuration_help']:
+    if args['configuration_help']:   # ref:ooK1Ua1B
         print_configuration_help()
         parser.exit()
 
