@@ -115,7 +115,7 @@ class GrpCfgRes:
     # Prefix of custom group attribute names used for configuration
     ATTR_NAME_PREFIX = "synchronized_group_"
     MSG_HELP_FOOTER = ("Every @@ will be treated as a paragraph break and paragraphs will"
-                       " be wrapped to look even. Text can be a python f-string;"
+                       " be wrapped to look even-ish. Text can be a python f-string;"
                        " see --configuration-help for supported fields."  # ref:ooK1Ua1B
                        " Standard footer will be appended. Default: empty string.")
     NOTIFICATION_APPEND_HELP = (f"Optional. Append this text to the default notification"
