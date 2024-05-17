@@ -466,7 +466,7 @@ async def auto_sync_enabled_groups(keycloak_client, dryrun):
             cfg = SyncGroupConfig(enabled_group_path, enabled_group['attributes'])
         except (SyncGroupConfigAttributeError, SyncGroupConfigValueError) as exc:
             logger.error(f"{enabled_group_path} sync configuration exception {exc!r}")
-            continue
+            raise
 
         try:
             await sync_synchronized_group(enabled_group_path,
@@ -476,6 +476,7 @@ async def auto_sync_enabled_groups(keycloak_client, dryrun):
                                           dryrun=dryrun)
         except Exception as exc:
             logger.error(f"Exception during sync of {enabled_group_path}: {exc!r}")
+            raise
 
 
 def reflow_text(text):
@@ -640,14 +641,17 @@ async def sync_synchronized_group(target_path: str,
     logger.debug(f"Syncing {target_path} to {constituent_group_paths}")
 
     # Determine what the current membership and memberships of the source groups
-    source_groups_member_dict = dict((group_path, await get_group_membership_cached(group_path, keycloak))
-                                     for group_path in constituent_group_paths)
+    source_groups_member_dict = dict([
+        (group_path, await get_group_membership_cached(group_path, keycloak))
+        for group_path in constituent_group_paths])
+
     source_members = set(chain.from_iterable(source_groups_member_dict.values()))
     current_members = set(await get_group_membership(target_path, rest_client=keycloak))
 
     user_memberships = defaultdict(list)
-    for group, username in source_groups_member_dict.items():
-        user_memberships[username].append(group)
+    for group, members in source_groups_member_dict.items():
+        for username in members:
+            user_memberships[username].append(group)
 
     # Process the current legitimate members that don't need to be removed
     for valid_member in current_members & source_members:
