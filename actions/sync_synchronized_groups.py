@@ -559,9 +559,10 @@ async def grace_period_check_with_init(username: str, cfg: SyncGroupConfig, dryr
 async def remove_extraneous_member(username: str, cfg: SyncGroupConfig, dryrun: bool, notify: bool,
                                    keycloak: ClientCredentialsAuth):
     """Removes an extraneous member"""
-    logger.info(f"Removing {username} from deferred removal state ({dryrun=}, {notify=})")
-    if not dryrun:
-        await cfg.clear_deferred_removal(username, keycloak)
+    if username in await cfg.get_deferred_removals(keycloak):
+        logger.info(f"Removing {username} from deferred removal state ({dryrun=}, {notify=})")
+        if not dryrun:
+            await cfg.clear_deferred_removal(username, keycloak)
     logger.info(f"Removing extraneous {username} from {cfg.group_path} ({dryrun=}, {notify=}")
     if not dryrun:
         await remove_user_group(cfg.group_path, username, rest_client=keycloak)
@@ -621,6 +622,7 @@ async def sync_synchronized_group(target_path: str,
     # noinspection PyCallingNonCallable
     group_hierarchy = await get_group_hierarchy_cached(keycloak)
     constituent_group_paths = [v.value for v in cfg.sources_expr.find(group_hierarchy)]
+    logger.debug(f"{sorted(constituent_group_paths)=}")
 
     # Sanity check source group paths. It's easy to make a mistake in the JSONPath
     # expression that would cause it to produce garbage
@@ -638,15 +640,14 @@ async def sync_synchronized_group(target_path: str,
         if group_path_value_error:
             raise ValueError("Source paths expression produced invalid paths")
 
-    logger.debug(f"Syncing {target_path} to {constituent_group_paths}")
-
     # Determine what the current membership and memberships of the source groups
-    source_groups_member_dict = dict([
-        (group_path, await get_group_membership_cached(group_path, keycloak))
-        for group_path in constituent_group_paths])
-
-    source_members = set(chain.from_iterable(source_groups_member_dict.values()))
+    constituent_member_lists = await asyncio.gather(
+        *[get_group_membership_cached(group_path, keycloak)
+          for group_path in constituent_group_paths])
+    source_groups_member_dict = dict(zip(constituent_group_paths, constituent_member_lists))
+    source_members = set(chain.from_iterable(constituent_member_lists))
     current_members = set(await get_group_membership(target_path, rest_client=keycloak))
+    logger.debug(f"{sorted(source_members)=}")
 
     user_memberships = defaultdict(list)
     for group, members in source_groups_member_dict.items():
@@ -657,7 +658,8 @@ async def sync_synchronized_group(target_path: str,
     for valid_member in current_members & source_members:
         # Valid users may need to be removed from the deferred removal record
         # if they rejoined a constituent group before the grace period expired
-        await clear_deferred_removal(valid_member, cfg, dryrun, allow_notifications, keycloak)
+        if valid_member in await cfg.get_deferred_removals(keycloak):
+            await clear_deferred_removal(valid_member, cfg, dryrun, allow_notifications, keycloak)
 
     # Prune extraneous members
     for extraneous_member in current_members - source_members:
@@ -734,7 +736,9 @@ def main():
     parser.add_argument('--allow-notifications', action='store_true',
                         help="Send email notifications. Required in automatic mode.")
     parser.add_argument('--log-level', default='info', choices=('debug', 'info', 'warning', 'error'),
-                        help='Application logging level.')
+                        help='Global logging level.')
+    parser.add_argument('--log-level-this', default='info', choices=('debug', 'info', 'warning', 'error'),
+                        help='Logging level of this application.')
     parser.add_argument('--log-level-client', default='warning', choices=('debug', 'info', 'warning', 'error'),
                         help='REST client logging level.')
     parser.add_argument('--dryrun', action='store_true',
@@ -749,6 +753,8 @@ def main():
     logging.basicConfig(level=getattr(logging, args['log_level'].upper()))
     cca_logger = logging.getLogger('ClientCredentialsAuth')
     cca_logger.setLevel(getattr(logging, args['log_level_client'].upper()))
+    this_logger = logging.getLogger(ACTION_ID)
+    this_logger.setLevel(getattr(logging, args['log_level_this'].upper()))
 
     if not args['allow_notifications'] and args['auto']:
         logger.critical("--allow-notifications is required in automatic mode")
