@@ -260,8 +260,8 @@ You have been automatically added to group {group_path} because you are a member
 {', '.join(qualifying_groups)}, and members of those groups are required also be in
 {group_path}.\n\n"""
     REMOVAL_PENDING = """{username},\n
-You have been scheduled for automatic removal from group {group_path} because you are
-no longer a member in any of its prerequisite groups.\n\n"""
+You have been scheduled for automatic removal from group {group_path} after {grace_days}
+days because you are no longer a member in any of its prerequisite groups.\n\n"""
     REMOVAL_AVERTED = """{username},\n
 You are no longer scheduled for removal from group {group_path}.\n\n"""
     REMOVAL_OCCURRED = """{username},\n
@@ -554,9 +554,10 @@ async def grace_period_check_with_init(username: str, cfg: SyncGroupConfig, dryr
                 await send_notification(
                     username=username, keycloak=keycloak,
                     subject=f"You are scheduled for removal from group {cfg.group_path}",
-                    body=cfg.message_removal_pending.format(username=username, group_path=cfg.group_path))
-        # Assuming grace=0 case handled earlier
-        return True  # pass the check since grace>0 and grace period just begun
+                    body=cfg.message_removal_pending.format(username=username, group_path=cfg.group_path,
+                                                            grace_days=cfg.removal_grace_days))
+        # Assuming grace=0 case has been handled earlier
+        return True  # pass the check since grace>0 and grace period has just been begun
 
 
 async def remove_extraneous_member(username: str, cfg: SyncGroupConfig, dryrun: bool, notify: bool,
@@ -632,7 +633,11 @@ async def sync_synchronized_group(target_path: str,
     group_path_type_error = group_path_value_error = None
     if not all(isinstance(path, str) for path in constituent_group_paths):
         group_path_type_error = True
-    elif not all(re.match(f'(/[^/{string.whitespace}]+)+$', path) for path in constituent_group_paths):
+    # Check for valid group paths. Note that Keycloak is actually more liberal
+    # When it comes to group names, but IceCube policy (at least right now) is
+    # letters, numbers, -, and _. No spaces.
+    elif not all(re.match(f'(/[-_{string.ascii_letters}{string.digits}]+)+$', path)
+                 for path in constituent_group_paths):
         group_path_value_error = True
     if group_path_type_error or group_path_value_error:
         logger.error("Results of sources expression don't look like group paths:")
