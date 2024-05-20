@@ -1,40 +1,42 @@
 # noinspection GrazieInspection
+#
+# IF YOU CHANGE THIS CODE OR DOCSTRING, PLEASE ALSO UPDATE THE USER
+# DOCUMENTATION OF SYNCHRONIZED GROUPS LOCATED HERE:
+# https://bookstack.icecube.wisc.edu/ops/books/keycloak-user-management/page/synchronized-groups
+#
 """
-If you change this code, please also update the user documentation of
-synchronized groups: https://bookstack.icecube.wisc.edu/ops/books/keycloak-user-management/page/synchronized-groups
-
 Update membership of "synchronized" groups (i.e. groups managed by this script)
 to be a subset of the union of their "source" groups. This action can implement
 two membership control policies: "prune" and "match". Under the "prune" policy,
 members who don't belong to any of the source groups are pruned. The "match"
 policy prunes extraneous members and also adds missing members, thus making the
-membership of the group match that of the union of the source groups.
+membership of the synchronized group match that of the union of the source groups.
 
 This script has two modes of operation: "automatic" and "manual". In automatic
 mode the script automatically discovers all "synchronized" groups configured
 for automatic synchronization, loads their configuration from custom group
 attributes and updates the groups' memberships according to the configured
 policies. The manual mode is intended for debugging and silent initial population
-of groups. In the manual mode, automatic discovery is disabled and certain group
+of groups. In the manual mode, automatic discovery is disabled and some group
 synchronization parameters can be overridden from the command line.
 
-Two important additional features of this script are grace period for member
-removal and customizable notification.
+Two other important additional features of this script are grace period for
+member removal and customizable notification.
 
 Runtime configuration options are specified for each synchronized group as
 custom group attributes. Use the command line flag --configuration-help
-[ref:ooK1Ua1B] to see all available configuration options. Note that user
+[link:ooK1Ua1B] to see all available configuration options. Note that user
 notifications are enabled by default.
 
 Paths of the source groups are specified as a JSONPath expression that yields
-group paths when applied to the complete Keycloak group hierarchy (list of
-group trees, one per top-level group, containing all groups). The JSONPath
-expression uses the extended syntax that is documented here:
-https://github.com/h2non/jsonpath-ng/. There are some examples of typical
-JSONPaths below.
+group paths when applied to the complete Keycloak group hierarchy (all groups
+organized as a list of group trees, one tree per top-level group, with all
+subGroups attributes populated recursively). The JSONPath expression uses the
+extended syntax that is documented here: https://github.com/h2non/jsonpath-ng/.
+There are some examples of typical JSONPaths patterns below.
 
-This code was originally written to automate management of some /mail/
-subgroups (mailing lists).
+This code was originally written to automate management of some /mail/subgroups
+(mailing lists).
 
 Custom Keycloak attributes used in this code are also documented here:
 https://bookstack.icecube.wisc.edu/ops/books/services/page/custom-keycloak-attributes
@@ -42,19 +44,19 @@ Please update that page if you make changes to configuration options.
 
 Examples::
     # Getting help on how to configure synchronized groups
-    python -m actions.sync_synchronized_groups --configuration-help         # ref:ooK1Ua1B
+    python -m actions.sync_synchronized_groups --configuration-help         # link:ooK1Ua1B
 
     # Simple JSONPath defining specific source groups by explicit path regular expression
     python -m actions.sync_synchronized_groups \
         --manual /path/to/group/composite-group \
             "$..subGroups[?path =~ '^/path/to/parent/((constituent-1)|(constituent-2))$'].path" \
-        --dryrun                                                            # ref:so5X1opu
+        --dryrun                                                            # link:so5X1opu
 
     # JSONPath for all direct subgroups of certain parent groups
     python -m actions.sync_synchronized_groups \
         --manual /path/to/group/composite-group \
             "$..subGroups[?path =~ '^/institutions/((ARA)|(CTA))$'].subGroups[*].path" \
-        --dryrun                                                            # ref:so5X1opu
+        --dryrun                                                            # link:so5X1opu
 
     # More complex JSONPath defining source groups based on group
     # attribute values
@@ -63,7 +65,7 @@ Examples::
             "$..subGroups[?path == '/institutions/IceCube']
                 .subGroups[?attributes.authorlist == 'true']
                     .subGroups[?name =~ '^authorlist.*'].path" \
-        --dryrun                                                            # ref:so5X1opu
+        --dryrun                                                            # link:so5X1opu
 """
 
 import asyncio
@@ -82,7 +84,7 @@ from datetime import datetime, timedelta
 from enum import Enum
 from itertools import chain
 from jsonpath_ng.ext import parse  # type: ignore
-from rest_tools.client.client_credentials import ClientCredentialsAuth
+from rest_tools.client import RestClient
 
 from krs.email import send_email
 from krs.groups import (get_group_membership, group_info, remove_user_group,
@@ -116,7 +118,7 @@ class GrpCfgRes:
     ATTR_NAME_PREFIX = "synchronized_group_"
     MSG_HELP_FOOTER = ("Every @@ will be treated as a paragraph break and paragraphs will"
                        " be wrapped to look even-ish. Text can be a python f-string;"
-                       " see --configuration-help for supported fields."  # ref:ooK1Ua1B
+                       " see --configuration-help for supported fields."  # link:ooK1Ua1B
                        " Standard footer will be appended. Default: empty string.")
     NOTIFICATION_APPEND_HELP = (f"Optional. Append this text to the default notification"
                                 f" template for this event type. {MSG_HELP_FOOTER}")
@@ -362,7 +364,7 @@ class SyncGroupConfig(SyncGroupCoreConfig):
             self._events.removal_occurred_message_override, EmailTemplates.REMOVAL_OCCURRED.value,
             self._events.removal_occurred_message_append, EmailTemplates.MESSAGE_FOOTER.value)
 
-    async def get_deferred_removals(self, keycloak: ClientCredentialsAuth) -> dict:
+    async def get_deferred_removals(self, keycloak: RestClient) -> dict:
         """Retrieve (cached) deferred removal state."""
         if self._deferred_removals_cache is None:
             group: dict = await group_info(self.group_path, rest_client=keycloak)
@@ -372,7 +374,7 @@ class SyncGroupConfig(SyncGroupCoreConfig):
                                                  for user, ts in deferred_removals_raw.items())
         return self._deferred_removals_cache
 
-    async def set_deferred_removal(self, username: str, keycloak: ClientCredentialsAuth):
+    async def set_deferred_removal(self, username: str, keycloak: RestClient):
         """Set deferred removal state of user to current time."""
         new_deferred_removal_str = datetime.now().isoformat()
         logger.info(f"Setting {username}'s removal timestamp to {new_deferred_removal_str}")
@@ -383,7 +385,7 @@ class SyncGroupConfig(SyncGroupCoreConfig):
         await modify_group(self.group_path, rest_client=keycloak,
                            attrs={self.deferred_removals_attr: deferred_removals_json})
 
-    async def clear_deferred_removal(self, username: str, keycloak: ClientCredentialsAuth):
+    async def clear_deferred_removal(self, username: str, keycloak: RestClient):
         """Clear deferred removal info of user, if exists"""
         deferred_removals = await self.get_deferred_removals(keycloak)
         if deferred_removals.pop(username, None):
@@ -397,7 +399,7 @@ class SyncGroupConfig(SyncGroupCoreConfig):
 async def manual_group_sync(target_path: str,
                             source_groups_expr: str,
                             /, *,
-                            keycloak_client: ClientCredentialsAuth,
+                            keycloak_client: RestClient,
                             allow_notifications: bool,
                             dryrun: bool):
     """Execute a manual sync of members of the synchronized group at `target_path`.
@@ -409,7 +411,7 @@ async def manual_group_sync(target_path: str,
         target_path (str): path to the target synchronized group
         source_groups_expr (str): JSONPath expression that yields constituent group paths
                                   when applied to the complete Keycloak group hierarchy.
-        keycloak_client (ClientCredentialsAuth): REST client to the KeyCloak server
+        keycloak_client (RestClient): REST client to the KeyCloak server
         allow_notifications (bool): if False, suppress email notifications
         dryrun (bool): perform a trial run with no changes made
     """
@@ -447,7 +449,7 @@ async def auto_sync_enabled_groups(keycloak_client, dryrun):
     """Discover enabled synchronized groups and sync them.
 
     Args:
-        keycloak_client (ClientCredentialsAuth): REST client to the KeyCloak server
+        keycloak_client (RestClient): REST client to the KeyCloak server
         dryrun (bool): perform a trial run with no changes made
     """
     # Find all enabled synchronized groups. At the moment, it's much faster
@@ -487,7 +489,7 @@ def reflow_text(text):
     return '\n'.join(wrapped_paras)
 
 
-async def send_notification(username: str, subject: str, body: str, keycloak: ClientCredentialsAuth):
+async def send_notification(username: str, subject: str, body: str, keycloak: RestClient):
     user = await user_info_cached(username, keycloak)
     user_attrs = user['attributes']
 
@@ -508,7 +510,7 @@ async def send_notification(username: str, subject: str, body: str, keycloak: Cl
 
 
 async def clear_deferred_removal(username: str, cfg: SyncGroupConfig, dryrun: bool,
-                                 notify: bool, keycloak: ClientCredentialsAuth):
+                                 notify: bool, keycloak: RestClient):
     """Remove a user from the deferred removal records """
     deferred_removals: dict = await cfg.get_deferred_removals(keycloak)
     if deferred_removals.get(username):
@@ -523,7 +525,7 @@ async def clear_deferred_removal(username: str, cfg: SyncGroupConfig, dryrun: bo
 
 
 async def grace_period_check_with_init(username: str, cfg: SyncGroupConfig, dryrun: bool,
-                                       notify: bool, keycloak: ClientCredentialsAuth) -> bool:
+                                       notify: bool, keycloak: RestClient) -> bool:
     """Set and/or check whether the user passes grace period check
 
     Assumes removal grace period is enabled and non-zero.
@@ -557,7 +559,7 @@ async def grace_period_check_with_init(username: str, cfg: SyncGroupConfig, dryr
 
 
 async def remove_extraneous_member(username: str, cfg: SyncGroupConfig, dryrun: bool, notify: bool,
-                                   keycloak: ClientCredentialsAuth):
+                                   keycloak: RestClient):
     """Removes an extraneous member"""
     if username in await cfg.get_deferred_removals(keycloak):
         logger.info(f"Removing {username} from deferred removal state ({dryrun=}, {notify=})")
@@ -574,7 +576,7 @@ async def remove_extraneous_member(username: str, cfg: SyncGroupConfig, dryrun: 
 
 
 async def add_missing_member(username: str, qualifying_groups: list, cfg: SyncGroupConfig,
-                             dryrun: bool, notify: bool, keycloak: ClientCredentialsAuth):
+                             dryrun: bool, notify: bool, keycloak: RestClient):
     """Add a user who should be group members but isn't."""
     logger.info(f"Adding {username} to {cfg.group_path} ({dryrun=}, {notify=})")
     if dryrun:
@@ -591,7 +593,7 @@ async def add_missing_member(username: str, qualifying_groups: list, cfg: SyncGr
 async def sync_synchronized_group(target_path: str,
                                   /, *,
                                   cfg: SyncGroupConfig,
-                                  keycloak: ClientCredentialsAuth,
+                                  keycloak: RestClient,
                                   allow_notifications: bool,
                                   dryrun: bool):
     """Synchronize membership of the synchronized group at `target_path`.
@@ -612,7 +614,7 @@ async def sync_synchronized_group(target_path: str,
     Args:
         target_path (str): path to the target synchronized group
         cfg (SyncGroupConfig): runtime configuration options
-        keycloak (ClientCredentialsAuth): REST client to the KeyCloak server
+        keycloak (RestClient): REST client to the KeyCloak server
         dryrun (bool): perform a trial run with no changes made
         allow_notifications (bool): if False, suppress all email notifications
     """
@@ -675,7 +677,7 @@ async def sync_synchronized_group(target_path: str,
                                      cfg, dryrun, allow_notifications, keycloak)
 
 
-def print_configuration_help():  # ref:ooK1Ua1B
+def print_configuration_help():  # link:ooK1Ua1B
     from textwrap import wrap
     print("\n\033[4;7m" + "Core configuration attributes:".upper() + "\033[0m\n")
     # noinspection PyTypeChecker
@@ -721,24 +723,25 @@ def main():
     parser = argparse.ArgumentParser(
         description='Sync membership of synchronized group(s) with their corresponding '
                     'source groups. See file docstring for details and examples.',
+        epilog="*** SEE FILE DOCSTRING FOR DETAILS AND EXAMPLES ***",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     mutex = parser.add_mutually_exclusive_group(required=True)
-    mutex.add_argument('--configuration-help', action='store_true',  # ref:ooK1Ua1B
-                       help="Display help on configuring synchronized groups and exit.")
+    mutex.add_argument('--configuration-help', action='store_true',  # link:ooK1Ua1B
+                       help="Display help on synchronized groups' configuration attributes and exit.")
     mutex.add_argument('--display-notifications', metavar='TARGET_GROUP_PATH',
                        help="Display all notification TARGET_GROUP_PATH is configured to send and exit.")
     mutex.add_argument('--auto', action='store_true',
                        help='Automatically discover all enabled synchronized groups and sync them.')
-    mutex.add_argument('--manual', nargs=2, metavar=('TARGET_GROUP_PATH', 'JSONPATH_EXPR|""'),  # ref:so5X1opu
+    mutex.add_argument('--manual', nargs=2, metavar=('TARGET_GROUP_PATH', 'JSONPATH_EXPR|""'),  # link:so5X1opu
                        help="Sync the synchronized group at TARGET_GROUP_PATH with the "
-                            "source groups defined by JSONPATH_EXPR. If JSONPATH_EXPR "
+                            "source groups at paths defined by JSONPATH_EXPR. If JSONPATH_EXPR "
                             "is empty, use the expression from the group's configuration.")
     parser.add_argument('--allow-notifications', action='store_true',
-                        help="Send email notifications. Required in automatic mode.")
+                        help="Do send out email notifications if so configured. Required in automatic mode.")
     parser.add_argument('--log-level', default='info', choices=('debug', 'info', 'warning', 'error'),
                         help='Global logging level.')
     parser.add_argument('--log-level-this', default='info', choices=('debug', 'info', 'warning', 'error'),
-                        help='Logging level of this application.')
+                        help='Logging level of this application (not dependencies).')
     parser.add_argument('--log-level-client', default='warning', choices=('debug', 'info', 'warning', 'error'),
                         help='REST client logging level.')
     parser.add_argument('--dryrun', action='store_true',
@@ -746,7 +749,7 @@ def main():
 
     args = vars(parser.parse_args())
 
-    if args['configuration_help']:   # ref:ooK1Ua1B
+    if args['configuration_help']:   # link:ooK1Ua1B
         print_configuration_help()
         parser.exit()
 
