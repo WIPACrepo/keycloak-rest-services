@@ -52,7 +52,8 @@ Examples::
             "$..subGroups[?path =~ '^/path/to/parent/((constituent-1)|(constituent-2))$'].path" \
         --dryrun                                                            # link:so5X1opu
 
-    # JSONPath for all direct subgroups of certain parent groups
+    # JSONPath for all direct subgroups of certain parent groups,
+    # in this case all institution groups of certain experiments.
     python -m actions.sync_synchronized_groups \
         --manual /path/to/group/composite-group \
             "$..subGroups[?path =~ '^/institutions/((ARA)|(CTA))$'].subGroups[*].path" \
