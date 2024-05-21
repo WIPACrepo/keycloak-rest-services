@@ -180,8 +180,7 @@ async def sync_kc_group_to_gws(kc_group, group_email, keycloak_client, gws_membe
     Note that only group members whose role is 'MANAGER' or 'MEMBER' are managed.
     Nothing is done with the 'OWNER' members (it's assumed these are managed out
     ouf band). List of members who ought to be subscribed to the list are determined
-    recursively. See file docstring for important information on how the subgroups
-    named _admin are handled.
+    recursively. See file docstring for important information subgroup handling.
     """
     # First, determine who should be subscribed to the list and in what role.
     member_kc_groups = defaultdict(list)  # track member's source keycloak group by email
