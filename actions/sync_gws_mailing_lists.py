@@ -89,9 +89,8 @@ emails. This allows using https://groups.google.com with the IceCube
 account without receiving duplicate emails."""
 
 SUBSCRIPTION_MESSAGE = ("""You have been subscribed to {group_email} mailing
-list as {email} with role {role} and delivery option {delivery} because you
-are a member of group(s) {qualifying_groups}.{
-PARA_SEP + none_explanation if none_explanation else ''}"""
+list as {email} with role {role} and delivery mode {delivery} because you
+are a member of group(s) {qualifying_groups}.{none_explanation}"""
                         + PARA_SEP + MESSAGE_FOOTER)
 
 ROLE_CHANGE_MESSAGE = ("""The role of {email} in {group_email} has changed from
@@ -258,7 +257,7 @@ async def sync_kc_group_to_gws(kc_group, group_email, keycloak_client, gws_membe
                                    group_email=group_email, email=email, role=body['role'],
                                    delivery=body['delivery_settings'],
                                    qualifying_groups=', '.join(member_kc_groups[email]),
-                                   none_explanation=(NONE_EXPLANATION
+                                   none_explanation=(PARA_SEP + NONE_EXPLANATION
                                                      if body['delivery_settings'] == 'NONE'
                                                      else '')),
                                para_sep=PARA_SEP),
