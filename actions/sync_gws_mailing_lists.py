@@ -60,8 +60,11 @@ from asyncache import cached  # type: ignore
 from cachetools import Cache
 from collections import defaultdict
 
-from googleapiclient.discovery import build  # type: ignore
+# noinspection PyProtectedMember
+from googleapiclient.discovery import build, Resource  # type: ignore
 from google.oauth2 import service_account  # type: ignore
+
+from rest_tools.client import RestClient
 
 from krs.token import get_rest_client
 from krs.groups import get_group_membership, group_info
@@ -167,8 +170,8 @@ async def get_gws_members_from_kc_group(group_path, role, keycloak_client) -> di
     return ret
 
 
-async def sync_kc_group_tree_to_gws(kc_root_group, group_email, keycloak_client, gws_members_client,
-                                    send_notifications, dryrun):
+async def sync_kc_group_tree_to_gws(kc_root_group: dict, group_email: str, keycloak_client: RestClient,
+                                    gws_members_client: Resource, send_notifications: bool, dryrun: bool):
     """
     Sync a single KeyCloak mailing group with subgroups to Google Workspace Group.
 
