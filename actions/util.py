@@ -112,6 +112,28 @@ def retry_execute(request, max_attempts=8):
         raise RetryError(sleep_time_history, exception_history)
 
 
+def reflow_text(text, para_sep="\n\n", **kwargs):
+    """Try to make the message look nice by re-flowing it
+
+    Args:
+        text (str): Text to re-flow.
+        para_sep (str): paragraph separator
+        kwargs: kwargs to pass to textwrap.wrap
+
+    Returns:
+        Re-wrapped text
+    """
+    import textwrap
+    from itertools import chain
+    # .strip() removes possible newlines if paragraphs are separated by too
+    # many newlines (which otherwise would be converted to spaces and make
+    # everything look weird)
+    paragraphs = [para.strip() for para in text.split(para_sep)]
+    wrapped_para_list = [textwrap.wrap(para, **kwargs) for para in paragraphs]
+    wrapped_paras = ['\n'.join(para) for para in wrapped_para_list]
+    return para_sep.join(wrapped_paras)
+
+
 def ssh(host, *args):
     """Run command on remote machine via ssh."""
     cmd = ['ssh'] + ssh_opts + [f'{host}'] + list(args)
