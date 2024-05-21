@@ -4,7 +4,9 @@ to match their corresponding Keycloak "mail groups".
 
 First, some nomenclature. A "[Keycloak] mail group" is a direct subgroup
 of the /mail group. Subgroups of a Keycloak mail group are NOT considered
-here to be mail groups.
+here to be mail groups per se, even though their members may be subscribed
+to the mailing list associated with their ancestor group that is a direct
+subgroup of /mail (subgroup handling described below).
 
 In order to be operated on by this script, mail groups must define attribute
 `email` to match them to the corresponding Google Workspace mailing group/list.
@@ -13,45 +15,18 @@ Note the `email` attribute of recursive subgroups, if defined, will be ignored.
 Only Google Workspace group members whose role is 'MANAGER' or 'MEMBER'
 are managed. 'OWNER' members should be managed by other means.
 
-This script gathers group members recursively, in a somewhat convoluted way.
-If the Keycloak mailing group (i.e. the direct subgroup of /mail) has subgroups,
-this script will process all of them recursively and add their members to the
-Google Workspace group/mailing list as regular members, unless the subgroup's
-name is "_admin", which are handled as follows.
- - Members of the Keycloak mailing group's direct subgroup "_admin" (i.e.
-/mail/<GROUP-NAME>/_admin), if it exists, will be subscribed as managers.
- - Members of all other recursive subgroups named "_admin" will be ignored.
+Members of all recursive subgroups of a mail groups will be subscribed to the
+list. This is to support such use patterns as:
+ - A mail group membership is managed by an automated process, but the
+    corresponding mailing list needs to have some extra members that the
+    process doesn't recognize.
+ - A subgroup of a mail group is automatically managed, for example when
+    policy requires members of one group to also be members of another group.
 
-This somewhat awkward procedure was originally devised to support a use
-pattern where membership of the Keycloak mail group is managed by some
-automated process, but the corresponding mailing list needs to have some
-extra members that the process doesn't recognize. And, these extra members
-need to be managed by some users who should not be members of the mailing
-list.
-
-For example, consider this somewhat unrealistic but illustrative example:
-/mail
-    + autolist
-        + _admin
-        + extras
-            + _admin
-
-- /mail/autolist: membership managed automatically by some process.
-    Members of this group will become regular subscribers of the
-    corresponding mailing list.
-- /mail/autolist/_admins: will become the mailing list's managers.
-    Membership management of this group could be either automatic
-    or manual by Keycloak administrators. (This group is for purposes
-    or illustration only. In reality, it wouldn't make sense to have
-    this group since /mail/autolist is managed automatically. However,
-    this group would be necessary if the mailing list were managed
-    manually via https://user-management.icecube.aq)
-- /mail/autolist/extras: will be added to the mailing list as regular
-    members. Members of this group will be managed manually via
-    https://user-management.icecube.aq by folks who are members of
-    /mail/autolist/extras/_admins.
-- /mail/autolist/extras/_admin: managed manually by Keycloak admins.
-    members will not be subscribed to the mailing list.
+Furthermore, all recursive subgroups called "_admin" and "_managers" will be
+subscribed as managers. The special group _managers is needed to designate
+users with role MANAGER for groups that are automatically generated (and
+therefore can't have an _admin subgroup).
 
 Users are subscribed to Google Workspace groups using their KeyCloak
 `canonical_email` attribute, unless it is overridden by `mailing_list_email`.
@@ -59,8 +34,10 @@ Use of `canonical_email`, instead of just username@icecube.wisc.edu, is needed
 for the *VERY* rare case of the keycloak user not being in Google Workspace.
 (In this case, the user would send messages to the list from their canonical
 address, as this is what our mail server is configured to do, so that's the
-address they must be subscribed to the list with. Once we stop using our
-own mail server, this requirement will become unnecessary.)
+address they must be subscribed to the list with.) Once we stop using our
+own mail server, this requirement will become unnecessary. Removing code
+that implements this requirement will necessitate some member conversions
+but will simplify code.
 
 Users can optionally be notified of changes via email. SMTP server is
 controlled by the EMAIL_SMTP_SERVER environmental variable and defaults
@@ -78,58 +55,53 @@ have "Service Account Token Creator" role (in Google Cloud project under IAM).
 
 This code uses custom keycloak attributes that are documented here:
 https://bookstack.icecube.wisc.edu/ops/books/services/page/custom-keycloak-attributes
-PLEASE KEEP THAT PAGE UPDATED IF YOU MAKE CHANGES RELATED TO CUSTOM
-KEYCLOAK ATTRIBUTES USED IN THIS CODE.
+PLEASE KEEP THAT PAGE IN-SYNC WITH THIS CODE.
 """
 import asyncio
 import logging
 
 from asyncache import cached  # type: ignore
 from cachetools import Cache
+from collections import defaultdict
 
 from googleapiclient.discovery import build  # type: ignore
 from google.oauth2 import service_account  # type: ignore
 
 from krs.token import get_rest_client
-from krs.groups import get_group_membership, group_info, GroupDoesNotExist
+from krs.groups import get_group_membership, group_info
 from krs.users import user_info, UserDoesNotExist
 from krs.email import send_email
 
-from actions.util import retry_execute, group_tree_to_list
+from actions.util import retry_execute, group_tree_to_list, reflow_text
 
 logger = logging.getLogger('sync_gws_mailing_lists')
 
+# Paragraph separator. Used for re-flowing text.
+PARA_SEP = "\n\n"
+
 MESSAGE_FOOTER = """
-This message was generated by the sync_gws_mailing_lists robot.
-Please contact help@icecube.wisc.edu for support.
-"""
+This message was generated by the sync_gws_mailing_lists
+robot. Please contact help@icecube.wisc.edu for support and feedback."""
 
-NONE_EXPLANATION = """
-Note: delivery option NONE is used for IceCube addresses of individuals
-who subscribe to mailing lists with non-IceCube emails. This allows using
-https://groups.google.com with the IceCube account without receiving
-duplicate emails.
-"""
+NONE_EXPLANATION = """Note: delivery option NONE is used for IceCube
+addresses of individuals who subscribe to mailing lists with non-IceCube
+emails. This allows using https://groups.google.com with the IceCube
+account without receiving duplicate emails."""
 
-SUBSCRIPTION_MESSAGE = """
-You have been subscribed to {group_email} mailing list as {email}
-with role {role} and delivery option {delivery} because you are a
-member of group {group_path} or {group_path}/_admin.
+SUBSCRIPTION_MESSAGE = ("""You have been subscribed to {group_email} mailing
+list as {email} with role {role} and delivery option {delivery} because you
+are a member of group(s) {qualifying_groups}.{
+PARA_SEP + none_explanation if none_explanation else ''}"""
+                        + PARA_SEP + MESSAGE_FOOTER)
 
-{none_explanation}
-""" + "\n\n" + MESSAGE_FOOTER
+ROLE_CHANGE_MESSAGE = ("""The role of {email} in {group_email} has changed from
+{old_role} to {new_role} because of membership change involving a subgroup of
+{group_path}.""" + PARA_SEP + MESSAGE_FOOTER)
 
-ROLE_CHANGE_MESSAGE = """
-The role of {email} in {group_email} has changed to {role} because
-of membership change involving {group_path} and {group_path}/_admin.
-""" + "\n\n" + MESSAGE_FOOTER
-
-UNSUBSCRIPTION_MESSAGE = """
-{email} has been unsubscribed from {group_email} mailing list
-because (a) you are no longer a member of either {group_path} or
-{group_path}/_admin group, or (b) you have updated your preferred
-email address for mailing lists.
-""" + "\n\n" + MESSAGE_FOOTER
+UNSUBSCRIPTION_MESSAGE = ("""{email} has been unsubscribed from {group_email}
+mailing list because either you are no longer a member of {group_path} and its
+subgroups, or you have updated your preferred address for mailing lists."""
+                          + PARA_SEP + MESSAGE_FOOTER)
 
 
 @cached(Cache(maxsize=5000))
@@ -160,7 +132,7 @@ def get_gws_group_members(group_email, gws_members_client) -> list:
     return ret
 
 
-async def get_gws_members_from_keycloak_group(group_path, role, keycloak_client) -> dict:
+async def get_gws_members_from_kc_group(group_path, role, keycloak_client) -> dict:
     """Return a dict of GWS group member object dicts based on member emails of the
     keycloak group"""
     ret = {}
@@ -203,7 +175,7 @@ async def get_gws_members_from_keycloak_group(group_path, role, keycloak_client)
 async def sync_kc_group_to_gws(kc_group, group_email, keycloak_client, gws_members_client,
                                send_notifications, dryrun):
     """
-    Sync a single KeyCloak mailing group to Google Workspace Group.
+    Sync a single KeyCloak mailing group with subgroups to Google Workspace Group.
 
     Note that only group members whose role is 'MANAGER' or 'MEMBER' are managed.
     Nothing is done with the 'OWNER' members (it's assumed these are managed out
@@ -211,24 +183,23 @@ async def sync_kc_group_to_gws(kc_group, group_email, keycloak_client, gws_membe
     recursively. See file docstring for important information on how the subgroups
     named _admin are handled.
     """
-    # First, determine who should be subscribed to the list and who
-    # is currently subscribed.
+    # First, determine who should be subscribed to the list and in what role.
+    member_kc_groups = defaultdict(list)  # track member's source keycloak group by email
+    all_intended_members = {}
+    all_intended_managers = {}
+    for group in group_tree_to_list(kc_group):
+        if group['name'] in ('_admin', '_managers'):
+            group_members = await get_gws_members_from_kc_group(group['path'], 'MANAGER', keycloak_client)
+            all_intended_managers |= group_members
+        else:
+            group_members = await get_gws_members_from_kc_group(group['path'], 'MEMBER', keycloak_client)
+            all_intended_members |= group_members
+        for email in group_members:
+            member_kc_groups[email].append(group['path'])
 
-    # List managers are the members of the _admin subgroup of kc_group.
-    try:
-        managers = await get_gws_members_from_keycloak_group(
-            kc_group['path'] + '/_admin', 'MANAGER', keycloak_client)
-    except GroupDoesNotExist:
-        managers = {}
-    # Regular list subscribers are the members of all recursive subgroups of
-    # kc_group whose names aren't _admin.
-    members = {}
-    for group in [g for g in group_tree_to_list(kc_group) if g['name'] != '_admin']:
-        members |= await get_gws_members_from_keycloak_group(
-            group['path'], 'MEMBER', keycloak_client)
-    # A user may be a member of both the mailing list group and its _admin subgroup.
+    # A user may belong to both a regular group and a managerial group.
     # If that's the case, we want to use their manager settings.
-    target_membership = members | managers
+    target_membership = all_intended_members | all_intended_managers
     actual_membership = {member['email']: {'email': member['email'], 'role': member['role']}
                          for member in get_gws_group_members(group_email, gws_members_client)}
 
@@ -240,16 +211,18 @@ async def sync_kc_group_to_gws(kc_group, group_email, keycloak_client, gws_membe
         # Unsubscribe if non-owner. Owners are presumed to be managed out-of-band.
         if actual_membership[email]['role'] != 'OWNER':
             logger.info(f"Removing from {group_email} {email} (dryrun={dryrun})")
-            if not dryrun:
-                retry_execute(gws_members_client.delete(groupKey=group_email, memberKey=email))
-                if send_notifications:
-                    send_email(email, f"You have been unsubscribed from {group_email}",
-                               UNSUBSCRIPTION_MESSAGE.format(
-                                   group_email=group_email,
-                                   email=email,
-                                   role=actual_membership[email]['role'],
-                                   group_path=kc_group['path']),
-                               headline='IceCube Mailing List Management')
+        if dryrun:
+            continue
+        retry_execute(gws_members_client.delete(groupKey=group_email, memberKey=email))
+        if send_notifications:
+            send_email(email, f"You have been unsubscribed from {group_email}",
+                       reflow_text(
+                           UNSUBSCRIPTION_MESSAGE.format(
+                               group_email=group_email, email=email,
+                               role=actual_membership[email]['role'],
+                               group_path=kc_group['path']),
+                           para_sep=PARA_SEP),
+                       headline='IceCube Mailing List Management')
 
     # Build list of owners' canonical emails. Because owners are managed out of band,
     # we can have a situation where an owner who is a member of the Keycloak group is
@@ -276,34 +249,37 @@ async def sync_kc_group_to_gws(kc_group, group_email, keycloak_client, gws_membe
             continue
         if email not in actual_membership:
             logger.info(f"Inserting into {group_email} {body} (dryrun={dryrun})")
-            if not dryrun:
-                retry_execute(gws_members_client.insert(groupKey=group_email, body=body))
-                if send_notifications:
-                    send_email(email, f"You have been subscribed to {group_email}",
+            if dryrun:
+                continue
+            retry_execute(gws_members_client.insert(groupKey=group_email, body=body))
+            if send_notifications:
+                send_email(email, f"You have been subscribed to {group_email}",
+                           reflow_text(
                                SUBSCRIPTION_MESSAGE.format(
-                                   group_email=group_email,
-                                   email=email,
-                                   role=body['role'],
+                                   group_email=group_email, email=email, role=body['role'],
                                    delivery=body['delivery_settings'],
-                                   group_path=kc_group['path'],
+                                   qualifying_groups=', '.join(member_kc_groups[email]),
                                    none_explanation=(NONE_EXPLANATION
                                                      if body['delivery_settings'] == 'NONE'
                                                      else '')),
-                               headline='IceCube Mailing List Management')
+                               para_sep=PARA_SEP),
+                           headline='IceCube Mailing List Management')
         # If email already subscribed, check if we need to update the role
         elif body['role'] != actual_membership[email]['role']:
             logger.info(f"Patching in {group_email} role of {email} to {body['role']} (dryrun={dryrun})")
-            if not dryrun:
-                retry_execute(gws_members_client.patch(groupKey=group_email, memberKey=email,
-                                                       body={'email': email, 'role': body['role']}))
-                if send_notifications:
-                    send_email(email, f"Your member role in {group_email} has changed",
+            if dryrun:
+                continue
+            retry_execute(gws_members_client.patch(groupKey=group_email, memberKey=email,
+                                                   body={'email': email, 'role': body['role']}))
+            if send_notifications:
+                send_email(email, f"Your member role in {group_email} has changed",
+                           reflow_text(
                                ROLE_CHANGE_MESSAGE.format(
-                                   group_email=group_email,
-                                   email=email,
-                                   role=body['role'],
-                                   group_path=kc_group['path']),
-                               headline='IceCube Mailing List Management')
+                                   group_email=group_email, email=email,
+                                   old_role=actual_membership[email]['role'],
+                                   new_role=body['role'], group_path=kc_group['path']),
+                               para_sep=PARA_SEP),
+                           headline='IceCube Mailing List Management')
 
 
 async def sync_gws_mailing_lists(gws_members_client, gws_groups_client, keycloak_client,
