@@ -2,15 +2,11 @@
 Synchronize/update memberships of Google Workspace mailing groups/lists
 to match their corresponding Keycloak "mail groups".
 
-First, some nomenclature. A "[Keycloak] mail group" is a direct subgroup
-of the /mail group. Subgroups of a Keycloak mail group are NOT considered
-here to be mail groups per se, even though their members may be subscribed
-to the mailing list associated with their ancestor group that is a direct
-subgroup of /mail (subgroup handling described below).
+First, some nomenclature. A Keycloak group is a " mail group" if and only
+if it is a direct subgroup of the /mail group.
 
 In order to be operated on by this script, mail groups must define attribute
 `email` to match them to the corresponding Google Workspace mailing group/list.
-Note the `email` attribute of recursive subgroups, if defined, will be ignored.
 
 Only Google Workspace group members whose role is 'MANAGER' or 'MEMBER'
 are managed. 'OWNER' members should be managed by other means.
@@ -171,8 +167,8 @@ async def get_gws_members_from_kc_group(group_path, role, keycloak_client) -> di
     return ret
 
 
-async def sync_kc_group_to_gws(kc_group, group_email, keycloak_client, gws_members_client,
-                               send_notifications, dryrun):
+async def sync_kc_group_tree_to_gws(kc_root_group, group_email, keycloak_client, gws_members_client,
+                                    send_notifications, dryrun):
     """
     Sync a single KeyCloak mailing group with subgroups to Google Workspace Group.
 
@@ -181,11 +177,11 @@ async def sync_kc_group_to_gws(kc_group, group_email, keycloak_client, gws_membe
     ouf band). List of members who ought to be subscribed to the list are determined
     recursively. See file docstring for important information subgroup handling.
     """
-    # First, determine who should be subscribed to the list and in what role.
+    # Determine who should be subscribed to the list and in what role.
     member_kc_groups = defaultdict(list)  # track member's source keycloak group by email
     all_intended_members = {}
     all_intended_managers = {}
-    for group in group_tree_to_list(kc_group):
+    for group in group_tree_to_list(kc_root_group):
         if group['name'] in ('_admin', '_managers'):
             group_members = await get_gws_members_from_kc_group(group['path'], 'MANAGER', keycloak_client)
             all_intended_managers |= group_members
@@ -206,9 +202,10 @@ async def sync_kc_group_to_gws(kc_group, group_email, keycloak_client, gws_membe
     # sets their `mailing_list_email` attribute to their username@icecube.wisc.edu
     # address or a non-canonical alias.
     for email in set(actual_membership) - set(target_membership):
-        # Unsubscribe if non-owner. Owners are presumed to be managed out-of-band.
-        if actual_membership[email]['role'] != 'OWNER':
-            logger.info(f"Removing from {group_email} {email} (dryrun={dryrun})")
+        if actual_membership[email]['role'] == 'OWNER':
+            # Don't unsubscribe owners. They are managed out-of-band
+            continue
+        logger.info(f"Removing from {group_email} {email} (dryrun={dryrun})")
         if dryrun:
             continue
         retry_execute(gws_members_client.delete(groupKey=group_email, memberKey=email))
@@ -218,7 +215,7 @@ async def sync_kc_group_to_gws(kc_group, group_email, keycloak_client, gws_membe
                            UNSUBSCRIPTION_MESSAGE.format(
                                group_email=group_email, email=email,
                                role=actual_membership[email]['role'],
-                               group_path=kc_group['path']),
+                               group_path=kc_root_group['path']),
                            para_sep=PARA_SEP),
                        headline='IceCube Mailing List Management')
 
@@ -275,7 +272,7 @@ async def sync_kc_group_to_gws(kc_group, group_email, keycloak_client, gws_membe
                                ROLE_CHANGE_MESSAGE.format(
                                    group_email=group_email, email=email,
                                    old_role=actual_membership[email]['role'],
-                                   new_role=body['role'], group_path=kc_group['path']),
+                                   new_role=body['role'], group_path=kc_root_group['path']),
                                para_sep=PARA_SEP),
                            headline='IceCube Mailing List Management')
 
@@ -306,23 +303,33 @@ async def sync_gws_mailing_lists(gws_members_client, gws_groups_client, keycloak
     res = retry_execute(gws_groups_client.list(customer='my_customer'))
     gws_group_emails = [g['email'] for g in res.get('groups', [])]
 
-    kc_ml_root_group = await group_info('/mail', rest_client=keycloak_client)
+    kc_ml_group_root = await group_info('/mail', rest_client=keycloak_client)
     if single_group:
         logger.warning(f"Only group {single_group} will be considered.")
-        kc_ml_groups = [sg for sg in kc_ml_root_group['subGroups'] if sg['name'] == single_group]
+        kc_ml_groups = [sg for sg in kc_ml_group_root['subGroups'] if sg['name'] == single_group]
     else:
-        kc_ml_groups = [sg for sg in kc_ml_root_group['subGroups'] if sg['name'] != '_admin']
-    for ml_group in kc_ml_groups:
-        if not ml_group['attributes'].get('email'):
-            logger.warning(f"Attribute 'email' of {ml_group['path']} is missing or empty'. Skipping.")
+        kc_ml_groups = kc_ml_group_root['subGroups']
+    for kc_ml_group in kc_ml_groups:
+        if not (group_email := kc_ml_group['attributes'].get('email')):
+            logger.warning(f"Attribute 'email' of {kc_ml_group['path']} is missing or empty'. Skipping.")
             continue
-        group_email = ml_group['attributes']['email']
         if group_email not in gws_group_emails:
             logger.error(f"Group '{group_email}' doesn't exist in Google Workspace. Skipping.")
             continue
 
-        await sync_kc_group_to_gws(ml_group, group_email, keycloak_client, gws_members_client,
-                                   send_notifications, dryrun)
+        # Sanity check. Subgroups of mail groups shouldn't have attribute 'email',
+        # and if they do, it definitely can't be different from the root mail group.
+        for subgroup in group_tree_to_list(kc_ml_group)[1:]:
+            if sg_email := subgroup.get('attributes', {}).get('email'):
+                if sg_email == group_email:
+                    logger.warning(f"Group {subgroup['path']} shouldn't define attribute 'email'.")
+                else:
+                    logger.error(f"Group {subgroup['path']} defines email={sg_email},"
+                                 f" which is different from {kc_ml_group['path']}'s email={group_email}."
+                                 f"This is not allowed. Skipping {kc_ml_group['path']}")
+
+        await sync_kc_group_tree_to_gws(kc_ml_group, group_email, keycloak_client, gws_members_client,
+                                        send_notifications, dryrun)
 
 
 def main():
