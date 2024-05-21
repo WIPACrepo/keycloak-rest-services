@@ -90,7 +90,7 @@ async def test_sync_gws_mailing_lists_delete(keycloak_bootstrap):  # noqa: F811
             {'email': 'keep.keep@icecube.wisc.edu', 'role': 'MEMBER'},
             {'email': 'keep.sub@icecube.wisc.edu', 'role': 'MEMBER'},
             {'email': 'owner-dont-delete@test', 'role': 'OWNER'},
-            {'email': 'keep.subadin@icecube.wisc.edu', 'role': 'MANAGER'},
+            {'email': 'keep.subadmin@icecube.wisc.edu', 'role': 'MANAGER'},
             {'email': 'remove@test', 'role': 'MEMBER'},
         ]})
     gws_members_client = MagicMock()
@@ -119,8 +119,8 @@ async def test_sync_gws_mailing_lists_delete(keycloak_bootstrap):  # noqa: F811
             sorted(map(repr, [
                 call(groupKey='test@gws', memberKey='remove@test'),
             ])))
-    assert gws_members_client.insert.call_count == 0
-    assert gws_members_client.patch.call_count == 0
+    assert gws_members_client.insert.call_args_list == []
+    assert gws_members_client.patch.call_args_list == []
 
 
 @pytest.mark.asyncio
