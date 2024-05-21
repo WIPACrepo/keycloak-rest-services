@@ -327,6 +327,7 @@ async def sync_gws_mailing_lists(gws_members_client, gws_groups_client, keycloak
                     logger.error(f"Group {subgroup['path']} defines email={sg_email},"
                                  f" which is different from {kc_ml_group['path']}'s email={group_email}."
                                  f"This is not allowed. Skipping {kc_ml_group['path']}")
+                    continue
 
         await sync_kc_group_tree_to_gws(kc_ml_group, group_email, keycloak_client, gws_members_client,
                                         send_notifications, dryrun)
