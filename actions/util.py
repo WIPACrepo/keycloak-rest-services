@@ -124,7 +124,6 @@ def reflow_text(text, para_sep="\n\n", **kwargs):
         Re-wrapped text
     """
     import textwrap
-    from itertools import chain
     # .strip() removes possible newlines if paragraphs are separated by too
     # many newlines (which otherwise would be converted to spaces and make
     # everything look weird)
