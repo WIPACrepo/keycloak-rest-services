@@ -118,7 +118,7 @@ async def test_sync_gws_mailing_lists_delete(keycloak_bootstrap):  # noqa: F811
     assert (sorted(map(repr, gws_members_client.delete.call_args_list)) ==
             sorted(map(repr, [
                 call(groupKey='test@gws', memberKey='remove@test'),
-    ])))
+            ])))
     assert gws_members_client.insert.call_count == 0
     assert gws_members_client.patch.call_count == 0
 
