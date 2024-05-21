@@ -90,7 +90,7 @@ async def test_sync_gws_mailing_lists_delete(keycloak_bootstrap):  # noqa: F811
             {'email': 'keep.keep@icecube.wisc.edu', 'role': 'MEMBER'},
             {'email': 'keep.sub@icecube.wisc.edu', 'role': 'MEMBER'},
             {'email': 'owner-dont-delete@test', 'role': 'OWNER'},
-            {'email': 'remove.subadmin@icecube.wisc.edu', 'role': 'MEMBER'},
+            {'email': 'keep.subadin@icecube.wisc.edu', 'role': 'MANAGER'},
             {'email': 'remove@test', 'role': 'MEMBER'},
         ]})
     gws_members_client = MagicMock()
@@ -110,14 +110,13 @@ async def test_sync_gws_mailing_lists_delete(keycloak_bootstrap):  # noqa: F811
 
     await setup_user('keep', 'keep', ['/mail/list'], rest_client=keycloak_bootstrap)
     await setup_user('keep', 'sub',  ['/mail/list/sub'], rest_client=keycloak_bootstrap)
-    await setup_user('remove', 'subadmin',  ['/mail/list/sub/_admin'], rest_client=keycloak_bootstrap)
+    await setup_user('keep', 'subadmin',  ['/mail/list/sub/_admin'], rest_client=keycloak_bootstrap)
 
     await sync_gws_mailing_lists(gws_members_client, gws_groups_client, keycloak_bootstrap,
                                  send_notifications=False, dryrun=False)
 
     assert (sorted(map(repr, gws_members_client.delete.call_args_list)) ==
             sorted(map(repr, [
-                call(groupKey='test@gws', memberKey='remove.subadmin@icecube.wisc.edu'),
                 call(groupKey='test@gws', memberKey='remove@test'),
     ])))
     assert gws_members_client.insert.call_count == 0
