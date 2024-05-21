@@ -16,7 +16,7 @@ charset-normalizer==3.3.2
 cryptography==42.0.7
 dnspython==2.6.1
 google-api-core==2.19.0
-google-api-python-client==2.128.0
+google-api-python-client==2.129.0
 google-auth==2.29.0
 google-auth-httplib2==0.2.0
 google-auth-oauthlib==1.2.0
@@ -40,7 +40,7 @@ pymongo==4.7.2
 pyparsing==3.1.2
 pypng==0.20220715.0
 qrcode==7.4.2
-requests==2.31.0
+requests==2.32.2
 requests-futures==1.0.1
 requests-oauthlib==2.0.0
 rsa==4.9
@@ -61,7 +61,7 @@ asyncache==0.3.1
 cryptography==42.0.7
 └── cffi [required: >=1.12, installed: 1.16.0]
     └── pycparser [required: Any, installed: 2.22]
-google-api-python-client==2.128.0
+google-api-python-client==2.129.0
 ├── google-api-core [required: >=1.31.5,<3.0.0.dev0,!=2.3.0,!=2.2.*,!=2.1.*,!=2.0.*, installed: 2.19.0]
 │   ├── google-auth [required: >=2.14.1,<3.0.dev0, installed: 2.29.0]
 │   │   ├── cachetools [required: >=2.0.0,<6.0, installed: 5.3.3]
@@ -74,7 +74,7 @@ google-api-python-client==2.128.0
 │   ├── proto-plus [required: >=1.22.3,<2.0.0dev, installed: 1.23.0]
 │   │   └── protobuf [required: >=3.19.0,<5.0.0dev, installed: 4.25.3]
 │   ├── protobuf [required: >=3.19.5,<5.0.0.dev0,!=4.21.5,!=4.21.4,!=4.21.3,!=4.21.2,!=4.21.1,!=4.21.0,!=3.20.1,!=3.20.0, installed: 4.25.3]
-│   └── requests [required: >=2.18.0,<3.0.0.dev0, installed: 2.31.0]
+│   └── requests [required: >=2.18.0,<3.0.0.dev0, installed: 2.32.2]
 │       ├── certifi [required: >=2017.4.17, installed: 2024.2.2]
 │       ├── charset-normalizer [required: >=2,<4, installed: 3.3.2]
 │       ├── idna [required: >=2.5,<4, installed: 3.7]
@@ -106,14 +106,14 @@ google-auth-oauthlib==1.2.0
 │       └── pyasn1 [required: >=0.1.3, installed: 0.6.0]
 └── requests-oauthlib [required: >=0.7.0, installed: 2.0.0]
     ├── oauthlib [required: >=3.0.0, installed: 3.2.2]
-    └── requests [required: >=2.0.0, installed: 2.31.0]
+    └── requests [required: >=2.0.0, installed: 2.32.2]
         ├── certifi [required: >=2017.4.17, installed: 2024.2.2]
         ├── charset-normalizer [required: >=2,<4, installed: 3.3.2]
         ├── idna [required: >=2.5,<4, installed: 3.7]
         └── urllib3 [required: >=1.21.1,<3, installed: 2.2.1]
 jsonpath-ng==1.6.1
 └── ply [required: Any, installed: 3.11]
-pipdeptree==2.20.0
+pipdeptree==2.21.0
 ├── packaging [required: >=23.1, installed: 24.0]
 └── pip [required: >=23.1.2, installed: 24.0]
 setuptools==65.5.1
@@ -133,14 +133,14 @@ wipac-keycloak-rest-services
 ├── motor [required: Any, installed: 3.4.0]
 │   └── pymongo [required: >=4.5,<5, installed: 4.7.2]
 │       └── dnspython [required: >=1.16.0,<3.0.0, installed: 2.6.1]
-├── requests [required: Any, installed: 2.31.0]
+├── requests [required: Any, installed: 2.32.2]
 │   ├── certifi [required: >=2017.4.17, installed: 2024.2.2]
 │   ├── charset-normalizer [required: >=2,<4, installed: 3.3.2]
 │   ├── idna [required: >=2.5,<4, installed: 3.7]
 │   └── urllib3 [required: >=1.21.1,<3, installed: 2.2.1]
 ├── Unidecode [required: Any, installed: 1.3.8]
 ├── wipac-dev-tools [required: Any, installed: 1.9.1]
-│   ├── requests [required: Any, installed: 2.31.0]
+│   ├── requests [required: Any, installed: 2.32.2]
 │   │   ├── certifi [required: >=2017.4.17, installed: 2024.2.2]
 │   │   ├── charset-normalizer [required: >=2,<4, installed: 3.3.2]
 │   │   ├── idna [required: >=2.5,<4, installed: 3.7]
@@ -152,13 +152,13 @@ wipac-keycloak-rest-services
     ├── qrcode [required: Any, installed: 7.4.2]
     │   ├── pypng [required: Any, installed: 0.20220715.0]
     │   └── typing_extensions [required: Any, installed: 4.11.0]
-    ├── requests [required: Any, installed: 2.31.0]
+    ├── requests [required: Any, installed: 2.32.2]
     │   ├── certifi [required: >=2017.4.17, installed: 2024.2.2]
     │   ├── charset-normalizer [required: >=2,<4, installed: 3.3.2]
     │   ├── idna [required: >=2.5,<4, installed: 3.7]
     │   └── urllib3 [required: >=1.21.1,<3, installed: 2.2.1]
     ├── requests-futures [required: Any, installed: 1.0.1]
-    │   └── requests [required: >=1.2.0, installed: 2.31.0]
+    │   └── requests [required: >=1.2.0, installed: 2.32.2]
     │       ├── certifi [required: >=2017.4.17, installed: 2024.2.2]
     │       ├── charset-normalizer [required: >=2,<4, installed: 3.3.2]
     │       ├── idna [required: >=2.5,<4, installed: 3.7]
@@ -166,7 +166,7 @@ wipac-keycloak-rest-services
     ├── tornado [required: Any, installed: 6.4]
     ├── urllib3 [required: >=2.0.4, installed: 2.2.1]
     └── wipac-dev-tools [required: Any, installed: 1.9.1]
-        ├── requests [required: Any, installed: 2.31.0]
+        ├── requests [required: Any, installed: 2.32.2]
         │   ├── certifi [required: >=2017.4.17, installed: 2024.2.2]
         │   ├── charset-normalizer [required: >=2,<4, installed: 3.3.2]
         │   ├── idna [required: >=2.5,<4, installed: 3.7]
