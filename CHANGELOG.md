@@ -2,6 +2,18 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.92 (2024-05-22)
+
+### Other
+
+* Sync_gws_mailing_lists.py: change group skipping mechanism ([#155](https://github.com/WIPACrepo/keycloak-rest-services/issues/155)) ([`eef1a73`](https://github.com/WIPACrepo/keycloak-rest-services/commit/eef1a73be0fda05298ae89b4f9bde707aa2b68f4))
+
+## v1.4.91 (2024-05-22)
+
+### Other
+
+* Actions/sync_gws_mailing_lists.py: support for automation_blocklist ([#154](https://github.com/WIPACrepo/keycloak-rest-services/issues/154)) ([`79833da`](https://github.com/WIPACrepo/keycloak-rest-services/commit/79833dafb9d72d5af80fd68955694c282c0fac51))
+
 ## v1.4.90 (2024-05-22)
 
 ### Other
