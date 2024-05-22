@@ -113,7 +113,7 @@ def retry_execute(request, max_attempts=8):
 
 
 def reflow_text(text, para_sep="\n\n", **kwargs):
-    """Try to make the message look nice by re-flowing it
+    """Try to make the message look nice by re-wrapping lines
 
     Args:
         text (str): Text to re-flow.
