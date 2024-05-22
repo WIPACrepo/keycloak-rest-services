@@ -58,7 +58,7 @@ async def test_sync_gws_mailing_lists_insert(keycloak_bootstrap):  # noqa: F811
     await sync_gws_mailing_lists(gws_members_client, gws_groups_client, keycloak_bootstrap,
                                  send_notifications=False, dryrun=False)
 
-    assert (sorted(map(repr(gws_members_client.insert.call_args_list))) ==
+    assert (sorted(map(repr, gws_members_client.insert.call_args_list)) ==
             sorted(map(repr, [
                 call(groupKey='test@gws', body={'email': 'add.add@icecube.wisc.edu',
                                                 'delivery_settings': 'ALL_MAIL',
