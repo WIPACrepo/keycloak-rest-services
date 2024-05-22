@@ -5,6 +5,8 @@ a " mail group" if and only if it is a direct subgroup of the /mail group.
 
 In order to be operated on by this script, mail groups must define attribute
 `email` to match them to the corresponding Google Workspace mailing group/list.
+Automatic action on a group can be disabled (e.g. while testing manually) by
+adding this action to the group's `automation_blocklist` attribute.
 
 Only Google Workspace group members whose role is 'MANAGER' or 'MEMBER'
 are managed. 'OWNER' members should be managed by other means.
