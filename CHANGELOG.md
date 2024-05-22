@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.90 (2024-05-22)
+
+### Other
+
+* Recursive mail list sync tweaks ([#153](https://github.com/WIPACrepo/keycloak-rest-services/issues/153)) ([`cf625c5`](https://github.com/WIPACrepo/keycloak-rest-services/commit/cf625c56b1a83cdfb12f4491a84ab22c9de5750d))
+
 ## v1.4.89 (2024-05-10)
 
 ### Other
