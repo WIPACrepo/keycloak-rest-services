@@ -47,13 +47,13 @@ async def test_sync_gws_mailing_lists_insert(keycloak_bootstrap):  # noqa: F811
 
     _setup_user = partial(setup_user, rest_client=keycloak_bootstrap)
 
-    await _setup_user('keep', 'keep',  ['/mail/list'])
-    await _setup_user('add', 'add',    ['/mail/list'])
-    await _setup_user('add', 'custom',    ['/mail/list'], {'mailing_list_email': 'custom@ext'})
-    await _setup_user('add', 'manager',   ['/mail/list/_admin'])
-    await _setup_user('add', 'subgroup',  ['/mail/list/subgroup'])
+    await _setup_user('keep', 'keep', ['/mail/list'])
+    await _setup_user('add', 'add', ['/mail/list'])
+    await _setup_user('add', 'custom', ['/mail/list'], {'mailing_list_email': 'custom@ext'})
+    await _setup_user('add', 'manager', ['/mail/list/_admin'])
+    await _setup_user('add', 'subgroup', ['/mail/list/subgroup'])
     await _setup_user('keep', 'subgroup', ['/mail/list/subgroup'])
-    await _setup_user('add', 'sub-mgr',   ['/mail/list/subgroup/_managers'])
+    await _setup_user('add', 'sub-mgr', ['/mail/list/subgroup/_managers'])
 
     await sync_gws_mailing_lists(gws_members_client, gws_groups_client, keycloak_bootstrap,
                                  send_notifications=False, dryrun=False)
@@ -78,7 +78,7 @@ async def test_sync_gws_mailing_lists_insert(keycloak_bootstrap):  # noqa: F811
                 call(groupKey='test@gws', body={'email': 'add.sub-mgr@icecube.wisc.edu',
                                                 'delivery_settings': 'ALL_MAIL',
                                                 'role': 'MANAGER'}),
-        ])))
+            ])))
     assert gws_members_client.delete.call_args_list == []
     assert gws_members_client.patch.call_args_list == []
 
@@ -110,8 +110,8 @@ async def test_sync_gws_mailing_lists_delete(keycloak_bootstrap):  # noqa: F811
     await create_group('/mail/list/sub/_admin', rest_client=keycloak_bootstrap)
 
     await setup_user('keep', 'keep', ['/mail/list'], rest_client=keycloak_bootstrap)
-    await setup_user('keep', 'sub',  ['/mail/list/sub'], rest_client=keycloak_bootstrap)
-    await setup_user('keep', 'subadmin',  ['/mail/list/sub/_admin'], rest_client=keycloak_bootstrap)
+    await setup_user('keep', 'sub', ['/mail/list/sub'], rest_client=keycloak_bootstrap)
+    await setup_user('keep', 'subadmin', ['/mail/list/sub/_admin'], rest_client=keycloak_bootstrap)
 
     await sync_gws_mailing_lists(gws_members_client, gws_groups_client, keycloak_bootstrap,
                                  send_notifications=False, dryrun=False)
