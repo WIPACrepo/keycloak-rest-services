@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.91 (2024-05-22)
+
+### Other
+
+* Actions/sync_gws_mailing_lists.py: support for automation_blocklist ([#154](https://github.com/WIPACrepo/keycloak-rest-services/issues/154)) ([`79833da`](https://github.com/WIPACrepo/keycloak-rest-services/commit/79833dafb9d72d5af80fd68955694c282c0fac51))
+
 ## v1.4.90 (2024-05-22)
 
 ### Other
