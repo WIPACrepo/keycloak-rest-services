@@ -160,5 +160,5 @@ async def test_sync_gws_mailing_lists_patch(keycloak_bootstrap):  # noqa: F811
                 call(groupKey='test@gws', memberKey='make.member@icecube.wisc.edu',
                      body={'email': 'make.member@icecube.wisc.edu', 'role': 'MEMBER'}),
             ])))
-    assert gws_members_client.insert.call_count == 0
-    assert gws_members_client.delete.call_count == 0
+    assert gws_members_client.insert.call_args_list == []
+    assert gws_members_client.delete.call_args_list == []
