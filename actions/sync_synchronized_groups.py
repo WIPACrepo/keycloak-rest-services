@@ -343,6 +343,8 @@ class SyncGroupConfig(SyncGroupCoreConfig):
             if global_no_notify or not notify:
                 return ''
             else:
+                # Note that the email text formatting code assumes paragraphs are separated
+                # by \n\n. Things might look weird if there are extra newlines.
                 return (override or (default + ("\n\n" + append if append else ''))) + "\n\n" + footer
 
         self.message_addition_occurred: str = construct_message(
