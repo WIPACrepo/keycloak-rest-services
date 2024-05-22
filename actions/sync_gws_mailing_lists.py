@@ -318,7 +318,7 @@ async def sync_gws_mailing_lists(gws_members_client, gws_groups_client, keycloak
         if group_email not in gws_group_emails:
             logger.error(f"Group '{group_email}' doesn't exist in Google Workspace. Skipping.")
             continue
-        if ACTION_ID in kc_ml_group['attributes'].get('automation_blocklist'):
+        if ACTION_ID in kc_ml_group['attributes'].get('automation_blocklist', []):
             if single_group:
                 logger.warning(f"Bypassing {kc_ml_group['path']}'s blocklist since we are in single-group mode")
             else:
