@@ -5,8 +5,9 @@ a " mail group" if and only if it is a direct subgroup of the /mail group.
 
 In order to be operated on by this script, mail groups must define attribute
 `email` to match them to the corresponding Google Workspace mailing group/list.
-Automatic action on a group can be disabled (e.g. while testing manually) by
-adding this action to the group's `automation_blocklist` attribute.
+This script will skip groups with `email` set if their SKIP_GROUP_ATTR_NAME
+[link:Uo1in3ae] (see code) is set to true. This is intended to facilitate
+manual testing.
 
 Only Google Workspace group members whose role is 'MANAGER' or 'MEMBER'
 are managed. 'OWNER' members should be managed by other means.
@@ -325,12 +326,6 @@ async def sync_gws_mailing_lists(gws_members_client, gws_groups_client, keycloak
         if group_email not in gws_group_emails:
             logger.error(f"Group '{group_email}' doesn't exist in Google Workspace. Skipping.")
             continue
-        if ACTION_ID in kc_ml_group['attributes'].get('automation_blocklist', []):
-            if single_group:
-                logger.warning(f"Bypassing {kc_ml_group['path']}'s blocklist since we are in single-group mode")
-            else:
-                logger.warning(f"Skipping {kc_ml_group['path']} because we are on its blocklist")
-                continue
 
         # Sanity check. Subgroups of mail groups shouldn't have attribute 'email',
         # and if they do, it definitely can't be different from the root mail group.
