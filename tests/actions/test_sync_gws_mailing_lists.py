@@ -43,40 +43,44 @@ async def test_sync_gws_mailing_lists_insert(keycloak_bootstrap):  # noqa: F811
     await create_group('/mail/list', attrs={'email': 'test@gws'}, rest_client=keycloak_bootstrap)
     await create_group('/mail/list/_admin', rest_client=keycloak_bootstrap)
     await create_group('/mail/list/subgroup', rest_client=keycloak_bootstrap)
-    await create_group('/mail/list/subgroup/_admin', rest_client=keycloak_bootstrap)
+    await create_group('/mail/list/subgroup/_managers', rest_client=keycloak_bootstrap)
 
     _setup_user = partial(setup_user, rest_client=keycloak_bootstrap)
 
-    await _setup_user('keep', 'keep',  ['/mail/list'])
-    await _setup_user('add', 'add',    ['/mail/list'])
-    await _setup_user('add', 'custom',    ['/mail/list'], {'mailing_list_email': 'custom@ext'})
-    await _setup_user('add', 'manager',   ['/mail/list/_admin'])
-    await _setup_user('add', 'subgroup',  ['/mail/list/subgroup'])
+    await _setup_user('keep', 'keep', ['/mail/list'])
+    await _setup_user('add', 'add', ['/mail/list'])
+    await _setup_user('add', 'custom', ['/mail/list'], {'mailing_list_email': 'custom@ext'})
+    await _setup_user('add', 'manager', ['/mail/list/_admin'])
+    await _setup_user('add', 'subgroup', ['/mail/list/subgroup'])
     await _setup_user('keep', 'subgroup', ['/mail/list/subgroup'])
-    await _setup_user('dont', 'add',      ['/mail/list/subgroup/_admin'])
+    await _setup_user('add', 'sub-mgr', ['/mail/list/subgroup/_managers'])
 
     await sync_gws_mailing_lists(gws_members_client, gws_groups_client, keycloak_bootstrap,
                                  send_notifications=False, dryrun=False)
 
-    assert gws_members_client.insert.call_args_list == [
-        call(groupKey='test@gws', body={'email': 'add.add@icecube.wisc.edu',
-                                        'delivery_settings': 'ALL_MAIL',
-                                        'role': 'MEMBER'}),
-        call(groupKey='test@gws', body={'email': 'custom@ext',
-                                        'delivery_settings': 'ALL_MAIL',
-                                        'role': 'MEMBER'}),
-        call(groupKey='test@gws', body={'email': 'add.custom@icecube.wisc.edu',
-                                        'delivery_settings': 'NONE',
-                                        'role': 'MEMBER'}),
-        call(groupKey='test@gws', body={'email': 'add.subgroup@icecube.wisc.edu',
-                                        'delivery_settings': 'ALL_MAIL',
-                                        'role': 'MEMBER'}),
-        call(groupKey='test@gws', body={'email': 'add.manager@icecube.wisc.edu',
-                                        'delivery_settings': 'ALL_MAIL',
-                                        'role': 'MANAGER'}),
-        ]
-    assert gws_members_client.delete.call_count == 0
-    assert gws_members_client.patch.call_count == 0
+    assert (sorted(map(repr, gws_members_client.insert.call_args_list)) ==
+            sorted(map(repr, [
+                call(groupKey='test@gws', body={'email': 'add.add@icecube.wisc.edu',
+                                                'delivery_settings': 'ALL_MAIL',
+                                                'role': 'MEMBER'}),
+                call(groupKey='test@gws', body={'email': 'custom@ext',
+                                                'delivery_settings': 'ALL_MAIL',
+                                                'role': 'MEMBER'}),
+                call(groupKey='test@gws', body={'email': 'add.custom@icecube.wisc.edu',
+                                                'delivery_settings': 'NONE',
+                                                'role': 'MEMBER'}),
+                call(groupKey='test@gws', body={'email': 'add.subgroup@icecube.wisc.edu',
+                                                'delivery_settings': 'ALL_MAIL',
+                                                'role': 'MEMBER'}),
+                call(groupKey='test@gws', body={'email': 'add.manager@icecube.wisc.edu',
+                                                'delivery_settings': 'ALL_MAIL',
+                                                'role': 'MANAGER'}),
+                call(groupKey='test@gws', body={'email': 'add.sub-mgr@icecube.wisc.edu',
+                                                'delivery_settings': 'ALL_MAIL',
+                                                'role': 'MANAGER'}),
+            ])))
+    assert gws_members_client.delete.call_args_list == []
+    assert gws_members_client.patch.call_args_list == []
 
 
 @pytest.mark.asyncio
@@ -87,7 +91,7 @@ async def test_sync_gws_mailing_lists_delete(keycloak_bootstrap):  # noqa: F811
             {'email': 'keep.keep@icecube.wisc.edu', 'role': 'MEMBER'},
             {'email': 'keep.sub@icecube.wisc.edu', 'role': 'MEMBER'},
             {'email': 'owner-dont-delete@test', 'role': 'OWNER'},
-            {'email': 'remove.subadmin@icecube.wisc.edu', 'role': 'MEMBER'},
+            {'email': 'keep.subadmin@icecube.wisc.edu', 'role': 'MANAGER'},
             {'email': 'remove@test', 'role': 'MEMBER'},
         ]})
     gws_members_client = MagicMock()
@@ -106,19 +110,18 @@ async def test_sync_gws_mailing_lists_delete(keycloak_bootstrap):  # noqa: F811
     await create_group('/mail/list/sub/_admin', rest_client=keycloak_bootstrap)
 
     await setup_user('keep', 'keep', ['/mail/list'], rest_client=keycloak_bootstrap)
-    await setup_user('keep', 'sub',  ['/mail/list/sub'], rest_client=keycloak_bootstrap)
-    await setup_user('remove', 'subadmin',  ['/mail/list/sub/_admin'], rest_client=keycloak_bootstrap)
+    await setup_user('keep', 'sub', ['/mail/list/sub'], rest_client=keycloak_bootstrap)
+    await setup_user('keep', 'subadmin', ['/mail/list/sub/_admin'], rest_client=keycloak_bootstrap)
 
     await sync_gws_mailing_lists(gws_members_client, gws_groups_client, keycloak_bootstrap,
                                  send_notifications=False, dryrun=False)
 
     assert (sorted(map(repr, gws_members_client.delete.call_args_list)) ==
             sorted(map(repr, [
-                call(groupKey='test@gws', memberKey='remove.subadmin@icecube.wisc.edu'),
                 call(groupKey='test@gws', memberKey='remove@test'),
-    ])))
-    assert gws_members_client.insert.call_count == 0
-    assert gws_members_client.patch.call_count == 0
+            ])))
+    assert gws_members_client.insert.call_args_list == []
+    assert gws_members_client.patch.call_args_list == []
 
 
 @pytest.mark.asyncio
@@ -157,5 +160,5 @@ async def test_sync_gws_mailing_lists_patch(keycloak_bootstrap):  # noqa: F811
                 call(groupKey='test@gws', memberKey='make.member@icecube.wisc.edu',
                      body={'email': 'make.member@icecube.wisc.edu', 'role': 'MEMBER'}),
             ])))
-    assert gws_members_client.insert.call_count == 0
-    assert gws_members_client.delete.call_count == 0
+    assert gws_members_client.insert.call_args_list == []
+    assert gws_members_client.delete.call_args_list == []
