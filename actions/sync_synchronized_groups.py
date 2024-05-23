@@ -501,8 +501,8 @@ async def send_notification(username: str, subject: str, body: str, keycloak: Re
         cc_addresses.remove(user_attrs.get('canonical_email'))
 
     logger.info(f"Sending '{subject}' notification to {to_address,cc_addresses=}")
-    send_email(to_address, subject, reflow_text(body), cc=cc_addresses,
-               headline="IceCube Automatic Group Management")
+    send_email(to_address, subject, reflow_text(body, break_on_hyphens=False),
+               cc=cc_addresses, headline="IceCube Automatic Group Management")
 
 
 async def clear_deferred_removal(username: str, cfg: SyncGroupConfig, dryrun: bool,
