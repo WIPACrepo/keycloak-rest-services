@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.93 (2024-05-24)
+
+### Other
+
+* <bot> update dependencies*.log files(s) ([`70e1fdd`](https://github.com/WIPACrepo/keycloak-rest-services/commit/70e1fddde01a837fb273216e22af64051bb99a9f))
+* Sync_synchronized_groups.py ([#152](https://github.com/WIPACrepo/keycloak-rest-services/issues/152)) ([`181d38b`](https://github.com/WIPACrepo/keycloak-rest-services/commit/181d38beff430b08b1a79933c5e9bda09500e2d4))
+
 ## v1.4.92 (2024-05-22)
 
 ### Other
