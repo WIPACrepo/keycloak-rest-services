@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.94 (2024-05-28)
+
+### Other
+
+* <bot> update dependencies*.log files(s) ([`dc5c05f`](https://github.com/WIPACrepo/keycloak-rest-services/commit/dc5c05f59da5183f645aaba9d26d257a041628c7))
+* Minor fixes ([`e9ebda4`](https://github.com/WIPACrepo/keycloak-rest-services/commit/e9ebda49cbb899aee70c072ecdccc8111a1170d2))
+
 ## v1.4.93 (2024-05-24)
 
 ### Other
