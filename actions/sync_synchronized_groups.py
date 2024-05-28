@@ -500,7 +500,7 @@ async def send_notification(username: str, subject: str, body: str, keycloak: Re
     with suppress(ValueError):
         cc_addresses.remove(user_attrs.get('canonical_email'))
 
-    logger.info(f"Sending '{subject}' notification to {to_address,cc_addresses=}")
+    logger.info(f"Sending '{subject}' notification to={to_address}, cc={cc_addresses}")
     send_email(to_address, subject, reflow_text(body, break_on_hyphens=False),
                cc=cc_addresses, headline="IceCube Automatic Group Management")
 
@@ -711,13 +711,13 @@ async def display_notifications(target_path, keycloak):
 
     no_notification = "<notifications disabled for this event>"
     print("\n\033[4;7m" + "Addition occurred:".upper() + "\033[0m")
-    print(cfg.message_addition_occurred or no_notification, '\n')
+    print(reflow_text(cfg.message_addition_occurred) or no_notification, '\n')
     print("\n\033[4;7m" + "Removal pending:".upper() + "\033[0m")
-    print(cfg.message_removal_pending or no_notification, '\n')
+    print(reflow_text(cfg.message_removal_pending) or no_notification, '\n')
     print("\n\033[4;7m" + "Removal averted:".upper() + "\033[0m")
-    print(cfg.message_removal_averted or no_notification, '\n')
+    print(reflow_text(cfg.message_removal_averted) or no_notification, '\n')
     print("\n\033[4;7m" + "Removal occurred:".upper() + "\033[0m")
-    print(cfg.message_removal_occurred or no_notification, '\n')
+    print(reflow_text(cfg.message_removal_occurred) or no_notification, '\n')
 
 
 def main():

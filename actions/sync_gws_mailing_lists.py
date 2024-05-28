@@ -318,7 +318,7 @@ async def sync_gws_mailing_lists(gws_members_client, gws_groups_client, keycloak
             if single_group:
                 logger.warning(f"Ignoring {SKIP_GROUP_ATTR_NAME} setting since we are in single-group mode.")
             else:
-                logger.warning(f"Skipping {kc_ml_group['path']} because its {SKIP_GROUP_ATTR_NAME} is ture.")
+                logger.warning(f"Skipping {kc_ml_group['path']} because its {SKIP_GROUP_ATTR_NAME} is true.")
                 continue
         if not (group_email := kc_ml_group['attributes'].get('email')):
             logger.warning(f"Attribute 'email' of {kc_ml_group['path']} is missing or empty'. Skipping.")
