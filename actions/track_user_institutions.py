@@ -85,7 +85,7 @@ async def update_institution_tracking(keycloak_client=None, notify=True, dryrun=
                 await modify_user(username, attribs=attribs, rest_client=keycloak_client)
                 if not insts_actual and notify:
                     logger.info(f"Notifying {username} that they have just become institutionless")
-                    send_email(userinfo['email'],
+                    send_email(userinfo.get('email', f"{username}@icecube.wisc.edu"),
                                "You are no longer registered with any WIPAC institution",
                                NEWLY_INSTITUTIONLESS_MESSAGE)
 
