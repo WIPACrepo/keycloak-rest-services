@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.95 (2024-05-31)
+
+### Other
+
+* <bot> update dependencies*.log files(s) ([`697d460`](https://github.com/WIPACrepo/keycloak-rest-services/commit/697d460eb577d456cec93010123bd4a3db9f17f5))
+* Track_user_institutions.py: handle missing email ([`7e44fcd`](https://github.com/WIPACrepo/keycloak-rest-services/commit/7e44fcd31650e5d3dc14ceb53e40b6d14016b1f7))
+
 ## v1.4.94 (2024-05-28)
 
 ### Other
