@@ -318,10 +318,10 @@ async def sync_gws_mailing_lists(gws_members_client, gws_groups_client, keycloak
             if single_group:
                 logger.warning(f"Ignoring {SKIP_GROUP_ATTR_NAME} setting since we are in single-group mode.")
             else:
-                logger.warning(f"Skipping {kc_ml_group['path']} because its {SKIP_GROUP_ATTR_NAME} is true.")
+                logger.info(f"Skipping {kc_ml_group['path']} because its {SKIP_GROUP_ATTR_NAME} is true.")
                 continue
         if not (group_email := kc_ml_group['attributes'].get('email')):
-            logger.warning(f"Attribute 'email' of {kc_ml_group['path']} is missing or empty'. Skipping.")
+            logger.info(f"Attribute 'email' of {kc_ml_group['path']} is missing or empty'. Skipping.")
             continue
         if group_email not in gws_group_emails:
             logger.error(f"Group '{group_email}' doesn't exist in Google Workspace. Skipping.")
