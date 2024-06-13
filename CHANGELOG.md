@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.97 (2024-06-13)
+
+### Other
+
+* More tweaks to action logging ([`a7665f7`](https://github.com/WIPACrepo/keycloak-rest-services/commit/a7665f75d980b889b67d6d4867704692c36a7805))
+
 ## v1.4.96 (2024-06-12)
 
 ### Other
