@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.99 (2024-06-13)
+
+### Other
+
+* Docstring update ([`9ad2212`](https://github.com/WIPACrepo/keycloak-rest-services/commit/9ad22125b6c876f29f680e61cefa993b2c6e6586))
+
 ## v1.4.98 (2024-06-13)
 
 ### Other
