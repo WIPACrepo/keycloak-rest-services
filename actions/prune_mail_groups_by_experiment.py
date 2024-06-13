@@ -50,7 +50,8 @@ from krs.email import send_email
 
 from actions.util import group_tree_to_list
 
-logger = logging.getLogger('prune_mail_groups_by_experiment')
+ACTION_ID = 'prune_mail_groups_by_experiment'
+logger = logging.getLogger(ACTION_ID)
 
 REMOVAL_MESSAGE = """
 You have been removed from group {group_path} because you do not meet
@@ -139,7 +140,7 @@ async def prune_mail_groups(removal_grace_days, single_group,
         # Build a list of allowed institutions
         allowed_experiments = ml_group['attributes'].get('allow_members_from_experiments')
         if not allowed_experiments:
-            logger.info(f"Skipping {ml_group['path']} because allow_members_from_experiments is missing or empty")
+            logger.debug(f"Skipping {ml_group['path']} because allow_members_from_experiments is missing or empty")
             continue
         allowed_experiments_list = (allowed_experiments if isinstance(allowed_experiments, list)
                                     else [allowed_experiments])
@@ -158,11 +159,11 @@ async def prune_mail_groups(removal_grace_days, single_group,
             continue
 
         for group in groups_for_pruning:
-            logger.info(f"Pruning group {group['path']}")
+            logger.debug(f"Pruning group {group['path']}")
             if removed_users := await _prune_group(group['path'], removal_grace_days,
                                                    allowed_institutions, user_info_cache,
                                                    keycloak_client, dryrun):
-                logger.info(f"Removed users: {removed_users} ({dryrun=} {send_notifications=})")
+                logger.info(f"Removed users from {group['path']}: {removed_users} ({dryrun=} {send_notifications=})")
                 if not dryrun and send_notifications:
                     for username in removed_users:
                         logger.info(f"Notifying {username} of removal from {group['path']}")
@@ -188,15 +189,21 @@ def main():
                         help='send email notifications to users')
     parser.add_argument('--single-group', metavar='NAME',
                         help='only consider group /mail/NAME')
-    parser.add_argument('--log-level', default='info',
-                        choices=('debug', 'info', 'warning', 'error'),
-                        help='logging level')
+    parser.add_argument('--log-level', default='info', choices=('debug', 'info', 'warning', 'error'),
+                        help='Global logging level.')
+    parser.add_argument('--log-level-this', default='info', choices=('debug', 'info', 'warning', 'error'),
+                        help='Logging level of this application (not dependencies).')
+    parser.add_argument('--log-level-client', default='warning', choices=('debug', 'info', 'warning', 'error'),
+                        help='REST client logging level.')
     parser.add_argument('--dryrun', action='store_true',
                         help='dry run: make no changes and send no notifications')
-
     args = vars(parser.parse_args())
 
     logging.basicConfig(level=getattr(logging, args['log_level'].upper()))
+    cca_logger = logging.getLogger('ClientCredentialsAuth')
+    cca_logger.setLevel(getattr(logging, args['log_level_client'].upper()))
+    this_logger = logging.getLogger(ACTION_ID)
+    this_logger.setLevel(getattr(logging, args['log_level_this'].upper()))
 
     keycloak_client = get_rest_client()
 

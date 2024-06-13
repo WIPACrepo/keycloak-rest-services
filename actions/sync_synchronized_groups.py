@@ -617,7 +617,7 @@ async def sync_synchronized_group(target_path: str,
         allow_notifications (bool): if False, suppress all email notifications
     """
     # Set up partials to make the code easier to read
-    logger.info(f"Processing synchronized group {target_path}")
+    logger.debug(f"Processing synchronized group {target_path}")
 
     # noinspection PyCallingNonCallable
     group_hierarchy = await get_group_hierarchy_cached(keycloak)
@@ -748,7 +748,6 @@ def main():
                         help='REST client logging level.')
     parser.add_argument('--dryrun', action='store_true',
                         help='dry run')
-
     args = vars(parser.parse_args())
 
     if args['configuration_help']:   # link:ooK1Ua1B
