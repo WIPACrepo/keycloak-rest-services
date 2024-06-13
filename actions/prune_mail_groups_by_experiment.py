@@ -1,4 +1,12 @@
 """
+NOTE: Functionality of this script can be implemented in a more flexible way
+using sync_synchronized_groups.py script (which would also make unnecessary
+track_user_institutions.py that, which this script relies on).
+However, sync_synchronized_groups takes more effort to configure, and this
+script satisfies a very common use-case, so it's still being used.
+IF TIME COMES WHEN THIS SCRIPT REQUIRES NON-TRIVIAL MODIFICATION, CONSIDER
+JUST SWITCHING TO SYNC_SYNCHRONIZED_GROUPS.PY.
+
 Recursively remove from either the given group, or every mailing list group
 (i.e. direct subgroups of /mail) users who are not active members of the
 institutions belonging to the experiments listed in the top-level group's
