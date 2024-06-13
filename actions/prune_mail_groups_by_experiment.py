@@ -190,7 +190,7 @@ def main():
     parser.add_argument('--single-group', metavar='NAME',
                         help='only consider group /mail/NAME')
     parser.add_argument('--log-level', default='info', choices=('debug', 'info', 'warning', 'error'),
-                        help='Global logging level.')
+                        help='Root logger level.')
     parser.add_argument('--log-level-this', default='info', choices=('debug', 'info', 'warning', 'error'),
                         help='Logging level of this application (not dependencies).')
     parser.add_argument('--log-level-client', default='warning', choices=('debug', 'info', 'warning', 'error'),

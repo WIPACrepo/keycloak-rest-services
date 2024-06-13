@@ -741,7 +741,7 @@ def main():
     parser.add_argument('--allow-notifications', action='store_true',
                         help="Do send out email notifications if so configured. Required in automatic mode.")
     parser.add_argument('--log-level', default='info', choices=('debug', 'info', 'warning', 'error'),
-                        help='Global logging level.')
+                        help='Root logging level.')
     parser.add_argument('--log-level-this', default='info', choices=('debug', 'info', 'warning', 'error'),
                         help='Logging level of this application (not dependencies).')
     parser.add_argument('--log-level-client', default='warning', choices=('debug', 'info', 'warning', 'error'),
