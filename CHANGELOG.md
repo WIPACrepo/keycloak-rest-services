@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.98 (2024-06-13)
+
+### Other
+
+* Make help less confusing ([`248ad90`](https://github.com/WIPACrepo/keycloak-rest-services/commit/248ad90cde3547102b3c8be8bd9ba1f18356a46e))
+
 ## v1.4.97 (2024-06-13)
 
 ### Other
