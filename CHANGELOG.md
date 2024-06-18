@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.102 (2024-06-18)
+
+### Other
+
+* Update group member email script to allow globs, multiple emails ([`cb0298d`](https://github.com/WIPACrepo/keycloak-rest-services/commit/cb0298dd95ab5151d934bf85f9f58337dcdfb4e8))
+
 ## v1.4.101 (2024-06-18)
 
 ### Other
