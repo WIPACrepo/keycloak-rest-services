@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.101 (2024-06-18)
+
+### Other
+
+* Sync_gws_mailing_lists: add more logging ([`e1abba2`](https://github.com/WIPACrepo/keycloak-rest-services/commit/e1abba2b4a4df7c426acb4e18d5b44fb601811dd))
+
 ## v1.4.100 (2024-06-18)
 
 ### Other
