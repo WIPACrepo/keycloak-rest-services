@@ -217,6 +217,7 @@ async def sync_kc_group_tree_to_gws(kc_root_group: dict, group_email: str, keycl
             continue
         retry_execute(gws_members_client.delete(groupKey=group_email, memberKey=email))
         if send_notifications:
+            logger.info(f"Sending notification to {email}")
             send_email(email, f"You have been unsubscribed from {group_email}",
                        reflow_text(
                            UNSUBSCRIPTION_MESSAGE.format(
@@ -255,6 +256,7 @@ async def sync_kc_group_tree_to_gws(kc_root_group: dict, group_email: str, keycl
                 continue
             retry_execute(gws_members_client.insert(groupKey=group_email, body=body))
             if send_notifications:
+                logger.info(f"Sending notification to {email}")
                 send_email(email, f"You have been subscribed to {group_email}",
                            reflow_text(
                                SUBSCRIPTION_MESSAGE.format(
@@ -274,6 +276,7 @@ async def sync_kc_group_tree_to_gws(kc_root_group: dict, group_email: str, keycl
             retry_execute(gws_members_client.patch(groupKey=group_email, memberKey=email,
                                                    body={'email': email, 'role': body['role']}))
             if send_notifications:
+                logger.info(f"Sending notification to {email}")
                 send_email(email, f"Your member role in {group_email} has changed",
                            reflow_text(
                                ROLE_CHANGE_MESSAGE.format(
