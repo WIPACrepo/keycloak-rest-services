@@ -198,7 +198,10 @@ async def sync_kc_group_tree_to_gws(kc_root_group: dict, group_email: str, keycl
     # A user may belong to both a regular group and a managerial group.
     # If that's the case, we want to use their manager settings.
     target_membership = all_intended_members | all_intended_managers
-    actual_membership = {member['email']: {'email': member['email'], 'role': member['role']}
+    # When we subscribe a non-icecube email in lower case, it may end up being subscribed
+    # as mixed case, so we need to normalize. My theory is that it happens when the email
+    # is associated with another Google Workspace where it exists in mixed case form.
+    actual_membership = {member['email'].lower(): {'email': member['email'].lower(), 'role': member['role']}
                          for member in get_gws_group_members(group_email, gws_members_client)}
 
     # Unsubscribe extraneous addresses. This needs to be done before adding new
