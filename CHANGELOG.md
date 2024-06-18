@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.100 (2024-06-18)
+
+### Other
+
+* <bot> update dependencies*.log files(s) ([`8b860ab`](https://github.com/WIPACrepo/keycloak-rest-services/commit/8b860abc5c086d8b963cc9bd8b3e914af67b0b95))
+* Sync_gws_mailing_lists: normalize address case ([`62417dc`](https://github.com/WIPACrepo/keycloak-rest-services/commit/62417dc83a4ec8365991d17e78c8d44767d94b11))
+
 ## v1.4.99 (2024-06-13)
 
 ### Other
