@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.103 (2024-06-19)
+
+### Other
+
+* <bot> update dependencies*.log files(s) ([`f49c535`](https://github.com/WIPACrepo/keycloak-rest-services/commit/f49c535b6d5f30f212580f82ec2612fa4fd6c1e7))
+* Actions/track_user_institutions.py: handle HTTP 400 ([`a0cb90c`](https://github.com/WIPACrepo/keycloak-rest-services/commit/a0cb90c21315f854b81e58ef2ccb2cd6ee3e70a4))
+
 ## v1.4.102 (2024-06-18)
 
 ### Other
