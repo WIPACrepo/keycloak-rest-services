@@ -100,8 +100,8 @@ async def update_institution_tracking(keycloak_client=None, notify=True, dryrun=
                 send_email(userinfo.get('email', f"{username}@icecube.wisc.edu"),
                            "Your WIPAC institution registration has changed",
                            INSTITUTIONS_CHANGED_MESSAGE.format(
-                               old=', '.join(insts_last_seen) or "none",
-                               new=', '.join(insts_actual) or "none"))
+                               old=', '.join(sorted(insts_last_seen)) or "none",
+                               new=', '.join(sorted(insts_actual)) or "none"))
 
 
 def main():
