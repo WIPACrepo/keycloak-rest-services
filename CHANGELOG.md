@@ -2,6 +2,15 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.104 (2024-06-19)
+
+### Other
+
+* <bot> update dependencies*.log files(s) ([`76bb5af`](https://github.com/WIPACrepo/keycloak-rest-services/commit/76bb5afdea01a2ce5d80abab9facfd4093fc72ac))
+* Actions/track_user_institutions.py: small improvement ([`0f4827a`](https://github.com/WIPACrepo/keycloak-rest-services/commit/0f4827a086f34a3054a31eed9ae9914d442e0615))
+* Actions/track_user_institutions.py: flake8 fix ([`25b6234`](https://github.com/WIPACrepo/keycloak-rest-services/commit/25b6234a8e708d2554dd83a49a8f61f58229bb29))
+* Actions/track_user_institutions.py: notify on all changes ([`aac0d63`](https://github.com/WIPACrepo/keycloak-rest-services/commit/aac0d632a11492f2ce3825dc92b58d202c5d9a3b))
+
 ## v1.4.103 (2024-06-19)
 
 ### Other
