@@ -26,6 +26,7 @@ import asyncio
 import logging
 from datetime import datetime
 from collections import defaultdict
+from requests.exceptions import HTTPError
 
 from krs.token import get_rest_client
 from krs.groups import get_group_membership
@@ -82,7 +83,15 @@ async def update_institution_tracking(keycloak_client=None, notify=True, dryrun=
             attribs = {"institutions_last_seen": (','.join(insts_actual) or "none"),
                        "institutions_last_changed": datetime.now().isoformat()}
             if not dryrun:
-                await modify_user(username, attribs=attribs, rest_client=keycloak_client)
+                try:
+                    await modify_user(username, attribs=attribs, rest_client=keycloak_client)
+                except HTTPError as exc:
+                    if exc.response.status_code == 400:
+                        logger.info(f"Got HTTP 400 (bad request): {repr(exc)}")
+                        logger.info("Field probably failed validation. Invalid 'email' is often the cause.")
+                        continue
+                    else:
+                        raise
                 if not insts_actual and notify:
                     logger.info(f"Notifying {username} that they have just become institutionless")
                     send_email(userinfo.get('email', f"{username}@icecube.wisc.edu"),
