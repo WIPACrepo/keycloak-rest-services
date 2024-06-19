@@ -1,4 +1,27 @@
-#!/usr/bin/env python
+"""
+Subscribe members of KeyCloak "calendar groups" to the specified Google calendars
+and make those calendars visible to users on https://groups.google.com.
+
+A KeyCloak group is a "calendar group" if it defines the "calendar_id" attribute.
+
+Calendar owners are assumed to be managed out-of-band and are ignored.
+Users' subscription role can be either "reader" or "writer". Subscription
+role can be controlled in two ways:
+a) using "gws_calendar_role" attribute of a calendar group.
+b) using subgroups "reader" and "writer" of a calendar group.
+
+
+
+"writer" role.
+There are two ways to con
+
+:
+a) it is a direct su
+
+
+
+
+"""
 import argparse
 import asyncio
 import logging
