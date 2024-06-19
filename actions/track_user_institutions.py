@@ -11,7 +11,7 @@ currently our KeyCloak instance can't store lists as user attribute values.
 The special value "none" is necessary because Keycloak 22 (and later?) deletes
 attributes that are empty or are set to the empty string, which can be confusing.
 
-Users that have just become institutionless can optionally be alerted to
+When a user's institutions change, they can optionally be alerted to
 this fact via email. SMTP server is controlled by the EMAIL_SMTP_SERVER
 environmental variable and defaults to localhost. See krs/email.py for
 more email options.
@@ -36,10 +36,12 @@ from krs.email import send_email
 
 logger = logging.getLogger('track_user_institutions')
 
-NEWLY_INSTITUTIONLESS_MESSAGE = """
-According to our identity management system, you are no longer a member of
-any institution that is part of the IceCube Collaboration. Consequently,
-you may soon lose access to some resources, such as certain mailing lists.
+INSTITUTIONS_CHANGED_MESSAGE = """
+According to our identity management system, your institutions have changed
+from {old} to {new}.
+
+Your access to institution-dependent resources, such as some mailing lists,
+will change accordingly.
 
 If you believe this is a mistake, please join the appropriate institution(s)
 on https://user-management.icecube.aq, or email help@icecube.wisc.edu.
@@ -82,21 +84,25 @@ async def update_institution_tracking(keycloak_client=None, notify=True, dryrun=
             # instead, to make this code future-proof.
             attribs = {"institutions_last_seen": (','.join(insts_actual) or "none"),
                        "institutions_last_changed": datetime.now().isoformat()}
-            if not dryrun:
-                try:
-                    await modify_user(username, attribs=attribs, rest_client=keycloak_client)
-                except HTTPError as exc:
-                    if exc.response.status_code == 400:
-                        logger.info(f"Got HTTP 400 (bad request): {repr(exc)}")
-                        logger.info("Field probably failed validation. Invalid 'email' is often the cause.")
-                        continue
-                    else:
-                        raise
-                if not insts_actual and notify:
-                    logger.info(f"Notifying {username} that they have just become institutionless")
-                    send_email(userinfo.get('email', f"{username}@icecube.wisc.edu"),
-                               "You are no longer registered with any WIPAC institution",
-                               NEWLY_INSTITUTIONLESS_MESSAGE)
+            if dryrun:
+                continue
+            try:
+                await modify_user(username, attribs=attribs, rest_client=keycloak_client)
+            except HTTPError as exc:
+                if exc.response.status_code == 400:
+                    logger.info(f"Got HTTP 400 (bad request): {repr(exc)}")
+                    logger.info("Field probably failed validation. Invalid 'email' is often the cause.")
+                    continue
+                else:
+                    raise
+            if notify:
+                logger.info(f"Notifying {username} of institution change")
+                send_email(userinfo.get('email', f"{username}@icecube.wisc.edu"),
+                           "Your WIPAC institution registration has changed",
+                           INSTITUTIONS_CHANGED_MESSAGE.format(
+                               old=', '.join(insts_last_seen) or "none",
+                               new=', '.join(insts_actual) or "none"
+                           ))
 
 
 def main():
