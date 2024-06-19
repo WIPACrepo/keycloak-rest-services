@@ -101,8 +101,7 @@ async def update_institution_tracking(keycloak_client=None, notify=True, dryrun=
                            "Your WIPAC institution registration has changed",
                            INSTITUTIONS_CHANGED_MESSAGE.format(
                                old=', '.join(insts_last_seen) or "none",
-                               new=', '.join(insts_actual) or "none"
-                           ))
+                               new=', '.join(insts_actual) or "none"))
 
 
 def main():
