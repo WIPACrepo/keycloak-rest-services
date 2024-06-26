@@ -105,8 +105,8 @@ async def sync_gws_calendars(calendar_acl, keycloak, creds, dryrun, notify):
     kc_cal_groups = [g for g in cal_root_group_info['subGroups'] if ATTR_CAL_ID in g['attributes']]
 
     for kc_cal_group in kc_cal_groups:
-        if not (cal_id := kc_cal_group.get('attributes', {}).get('calendar_id')):  # link:quaZ0hc1
-            logger.debug(f"Skipping {kc_cal_group['path']} because it doesn't have calendar_id attribute.")
+        if not (cal_id := kc_cal_group.get('attributes', {}).get(ATTR_CAL_ID)):  # link:quaZ0hc1
+            logger.debug(f"Skipping {kc_cal_group['path']} because it doesn't have {ATTR_CAL_ID} attribute.")
             continue
         logger.debug(f"Processing {kc_cal_group['path']} {cal_id}")
 
