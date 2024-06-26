@@ -1,226 +1,170 @@
 import pytest
 
-from unittest.mock import MagicMock, call, patch, Mock
+from unittest.mock import MagicMock, call, patch
 
 from ..util import keycloak_bootstrap  # type: ignore # noqa: F401
-from krs.groups import create_group, add_user_group
-from krs.users import create_user, modify_user
+from krs.groups import create_group, add_user_group, delete_group
+from krs.users import create_user
 
-from actions.sync_gws_calendars import sync_gws_calendars, foo, ATTR_CAL_ID
-
-
-# class MockCalendar:
-#     def __init__(self, *args, **kwargs):
-#         self._acl = MagicMock()
-#
-#     def acl(self):
-#         return self._acl
-#
-#
-# MOCK_CALENDAR = MockCalendar()
-#
-#
-# def _build(*args, **kwargs):
-#     return MagicMock()
-#
-#
-# @pytest.fixture(autouse=True, scope="function")
-# def mock_build():
-#     with patch("actions.sync_gws_calendars.build", new=_build) as build:
-#         yield build
-#
-#
-# def _retry(request, max_attempts):
-#     return
-#
-#
-# @pytest.fixture(autouse=True, scope="function")
-# def mock_get_gws_cal_user_acl_rules():
-#     with patch("actions.util.retry_execute") as retry:
-#         yield retry
-#     yield None
+from actions.sync_gws_calendars import sync_gws_calendars, ATTR_CAL_ID
 
 
 # noinspection SpellCheckingInspection
-CAL_ALC_RESP = \
-    {'etag': '"p33genhe8obmoc0o"',
-     'items': [{'etag': '"00000000000000000000"',
-                'id': 'user:c_8f80ce209d89e843f9c01ff6e57543e03d7e5ef8f06d00d453aed0b8eabcf943@group.calendar.google.com',
-                'kind': 'calendar#aclRule',
-                'role': 'owner',
-                'scope': {'type': 'user',
-                          'value': 'c_8f80ce209d89e843f9c01ff6e57543e03d7e5ef8f06d00d453aed0b8eabcf943@group.calendar.google.com'}},
-               {'etag': '"00001718817190267000"',
-                'id': 'user:vbrik_gadm@icecube.wisc.edu',
-                'kind': 'calendar#aclRule',
-                'role': 'owner',
-                'scope': {'type': 'user', 'value': 'vbrik_gadm@icecube.wisc.edu'}},
-               {'etag': '"00001719001219334000"',
-                'id': 'user:vbrik@icecube.wisc.edu',
-                'kind': 'calendar#aclRule',
-                'role': 'writer',
-                'scope': {'type': 'user', 'value': 'vbrik@icecube.wisc.edu'}}],
-     'kind': 'calendar#acl',
-     'nextSyncToken': '00001719001219692000'}
+CALENDAR_ACL_LIST_RESPONSE = {
+    'etag': '"p33genhe8obmoc0o"',
+    'items': [
+        # Not sure what this represents but all calendars have it
+        {'etag': '"00000000000000000000"', 'kind': 'calendar#aclRule',
+         'id': 'user:c_8@group.calendar.google.com',
+         'role': 'owner', 'scope': {'type': 'user', 'value': 'c_8@group.calendar.google.com'}},
+        # owner
+        {'etag': '"00001718817190267000"', 'kind': 'calendar#aclRule',
+         'id': 'user:owner@icecube.wisc.edu',
+         'role': 'owner', 'scope': {'type': 'user', 'value': 'owner@icecube.wisc.edu'}},
+        # writer
+        {'etag': '"00001719001219334000"', 'kind': 'calendar#aclRule',
+         'id': 'user:writer@icecube.wisc.edu',
+         'role': 'writer', 'scope': {'type': 'user', 'value': 'writer@icecube.wisc.edu'}},
+        # reader
+        {'etag': '"00001719001219334000"', 'kind': 'calendar#aclRule',
+         'id': 'user:reader@icecube.wisc.edu',
+         'role': 'reader', 'scope': {'type': 'user', 'value': 'reader@icecube.wisc.edu'}},
+        # group
+        {'etag': '"00001719423647961000"', 'kind': 'calendar#aclRule',
+            'id': 'group:group@icecube.wisc.edu',
+            'role': 'reader', 'scope': {'type': 'group', 'value': 'group@icecube.wisc.edu'}},
+        # domain
+        {'etag': '"00001719423953352000"', 'kind': 'calendar#aclRule',
+            'id': 'domain:icecube.wisc.edu',
+            'role': 'reader', 'scope': {'type': 'domain', 'value': 'icecube.wisc.edu'}},
+        # unexpected kind (not sure if it can be anything other than calendar#aclRule though)
+        {'etag': '"00001719423647961000"', 'kind': 'NOT-AN-ACL-RULE',
+         'id': 'user:not-an-acl-rule@icecube.wisc.edu',
+         'role': 'reader', 'scope': {'type': 'user', 'value': 'not-an-acl-rule@icecube.wisc.edu'}},
+    ],
+    'kind': 'calendar#acl',
+    'nextSyncToken': '00001719001219692000'}
 
 
-@pytest.mark.asyncio
-async def test_sync_gws_calendars_remove(keycloak_bootstrap):  # noqa: F811
+def get_standard_mock_calendar_acl_client():
     mock_calendar_acl_request = MagicMock()
-    mock_calendar_acl_request.execute = MagicMock(return_value=CAL_ALC_RESP)
+    mock_calendar_acl_request.execute = MagicMock(return_value=CALENDAR_ACL_LIST_RESPONSE)
     mock_calendar_acl_client = MagicMock()
     mock_calendar_acl_client.list = MagicMock(return_value=mock_calendar_acl_request)
     mock_calendar_acl_client.list_next = MagicMock(return_value=None)
+    return mock_calendar_acl_client
 
-    await create_group('/calendars', rest_client=keycloak_bootstrap)
-    await create_group('/calendars/cal', {ATTR_CAL_ID: 'id'}, rest_client=keycloak_bootstrap)
-    await create_group('/calendars/cal/readers', rest_client=keycloak_bootstrap)
-    await create_group('/calendars/cal/writers', rest_client=keycloak_bootstrap)
 
-    await create_user("add", "f", "l", "add@test", rest_client=keycloak_bootstrap)
-    await add_user_group("/calendars/cal/readers", "add", rest_client=keycloak_bootstrap)
+async def setup_standard_keycloak_calendar(rest_client):
+    await create_group('/calendars', rest_client=rest_client)
+    await create_group('/calendars/cal', {ATTR_CAL_ID: 'id'}, rest_client=rest_client)
+    await create_group('/calendars/cal/readers', rest_client=rest_client)
+    await create_group('/calendars/cal/writers', rest_client=rest_client)
 
-    with patch("actions.sync_gws_calendars.build") as build:
-        await sync_gws_calendars(mock_calendar_acl_client, keycloak_bootstrap, MagicMock(), False, False)
-        print(build)
-        assert False
-        
-#     request_list_members = MagicMock()
-#     request_list_members.execute = MagicMock(
-#         return_value={'members': [
-#             {'email': 'keep.keep@icecube.wisc.edu', 'role': 'MEMBER'},
-#             {'email': 'keep.subgroup@icecube.wisc.edu', 'role': 'MEMBER'},
-#             {'email': 'owner-dont-delete@test', 'role': 'OWNER'}]})
-#     gws_members_client = MagicMock()
-#     gws_members_client.list = MagicMock(return_value=request_list_members)
-#     gws_members_client.list_next = MagicMock(return_value=None)
-#
-#     request_groups = MagicMock()
-#     request_groups.execute = MagicMock(
-#         return_value={'groups': [{'email': 'test@gws'}]})
-#     gws_groups_client = MagicMock()
-#     gws_groups_client.list = MagicMock(return_value=request_groups)
-#
-#     await create_group('/mail', rest_client=keycloak_bootstrap)
-#     await create_group('/mail/list', attrs={'email': 'test@gws'}, rest_client=keycloak_bootstrap)
-#     await create_group('/mail/list/_admin', rest_client=keycloak_bootstrap)
-#     await create_group('/mail/list/subgroup', rest_client=keycloak_bootstrap)
-#     await create_group('/mail/list/subgroup/_managers', rest_client=keycloak_bootstrap)
-#
-#     _setup_user = partial(setup_user, rest_client=keycloak_bootstrap)
-#
-#     await _setup_user('keep', 'keep', ['/mail/list'])
-#     await _setup_user('add', 'add', ['/mail/list'])
-#     await _setup_user('add', 'custom', ['/mail/list'], {'mailing_list_email': 'custom@ext'})
-#     await _setup_user('add', 'manager', ['/mail/list/_admin'])
-#     await _setup_user('add', 'subgroup', ['/mail/list/subgroup'])
-#     await _setup_user('keep', 'subgroup', ['/mail/list/subgroup'])
-#     await _setup_user('add', 'sub-mgr', ['/mail/list/subgroup/_managers'])
-#
-#     await sync_gws_mailing_lists(gws_members_client, gws_groups_client, keycloak_bootstrap,
-#                                  send_notifications=False, dryrun=False)
-#
-#     assert (sorted(map(repr, gws_members_client.insert.call_args_list)) ==
-#             sorted(map(repr, [
-#                 call(groupKey='test@gws', body={'email': 'add.add@icecube.wisc.edu',
-#                                                 'delivery_settings': 'ALL_MAIL',
-#                                                 'role': 'MEMBER'}),
-#                 call(groupKey='test@gws', body={'email': 'custom@ext',
-#                                                 'delivery_settings': 'ALL_MAIL',
-#                                                 'role': 'MEMBER'}),
-#                 call(groupKey='test@gws', body={'email': 'add.custom@icecube.wisc.edu',
-#                                                 'delivery_settings': 'NONE',
-#                                                 'role': 'MEMBER'}),
-#                 call(groupKey='test@gws', body={'email': 'add.subgroup@icecube.wisc.edu',
-#                                                 'delivery_settings': 'ALL_MAIL',
-#                                                 'role': 'MEMBER'}),
-#                 call(groupKey='test@gws', body={'email': 'add.manager@icecube.wisc.edu',
-#                                                 'delivery_settings': 'ALL_MAIL',
-#                                                 'role': 'MANAGER'}),
-#                 call(groupKey='test@gws', body={'email': 'add.sub-mgr@icecube.wisc.edu',
-#                                                 'delivery_settings': 'ALL_MAIL',
-#                                                 'role': 'MANAGER'}),
-#             ])))
-#     assert gws_members_client.delete.call_args_list == []
-#     assert gws_members_client.patch.call_args_list == []
-#
-#
-# @pytest.mark.asyncio
-# async def test_sync_gws_mailing_lists_delete(keycloak_bootstrap):  # noqa: F811
-#     request_members = MagicMock()
-#     request_members.execute = MagicMock(
-#         return_value={'members': [
-#             {'email': 'keep.keep@icecube.wisc.edu', 'role': 'MEMBER'},
-#             {'email': 'keep.sub@icecube.wisc.edu', 'role': 'MEMBER'},
-#             {'email': 'owner-dont-delete@test', 'role': 'OWNER'},
-#             {'email': 'keep.subadmin@icecube.wisc.edu', 'role': 'MANAGER'},
-#             {'email': 'remove@test', 'role': 'MEMBER'},
-#         ]})
-#     gws_members_client = MagicMock()
-#     gws_members_client.list = MagicMock(return_value=request_members)
-#     gws_members_client.list_next = MagicMock(return_value=None)
-#
-#     request_groups = MagicMock()
-#     request_groups.execute = MagicMock(
-#         return_value={'groups': [{'email': 'test@gws'}]})
-#     gws_groups_client = MagicMock()
-#     gws_groups_client.list = MagicMock(return_value=request_groups)
-#
-#     await create_group('/mail', rest_client=keycloak_bootstrap)
-#     await create_group('/mail/list', attrs={'email': 'test@gws'}, rest_client=keycloak_bootstrap)
-#     await create_group('/mail/list/sub', rest_client=keycloak_bootstrap)
-#     await create_group('/mail/list/sub/_admin', rest_client=keycloak_bootstrap)
-#
-#     await setup_user('keep', 'keep', ['/mail/list'], rest_client=keycloak_bootstrap)
-#     await setup_user('keep', 'sub', ['/mail/list/sub'], rest_client=keycloak_bootstrap)
-#     await setup_user('keep', 'subadmin', ['/mail/list/sub/_admin'], rest_client=keycloak_bootstrap)
-#
-#     await sync_gws_mailing_lists(gws_members_client, gws_groups_client, keycloak_bootstrap,
-#                                  send_notifications=False, dryrun=False)
-#
-#     assert (sorted(map(repr, gws_members_client.delete.call_args_list)) ==
-#             sorted(map(repr, [
-#                 call(groupKey='test@gws', memberKey='remove@test'),
-#             ])))
-#     assert gws_members_client.insert.call_args_list == []
-#     assert gws_members_client.patch.call_args_list == []
-#
-#
-# @pytest.mark.asyncio
-# async def test_sync_gws_mailing_lists_patch(keycloak_bootstrap):  # noqa: F811
-#     request_members = MagicMock()
-#     request_members.execute.side_effect = [
-#         {'members': [
-#             {'email': 'make.manager@icecube.wisc.edu', 'role': 'MEMBER'},
-#             {'email': 'make.member@icecube.wisc.edu', 'role': 'MANAGER'},
-#         ]},
-#     ]
-#     gws_members_client = MagicMock()
-#     gws_members_client.list = MagicMock(return_value=request_members)
-#     gws_members_client.list_next = MagicMock(return_value=None)
-#
-#     request_groups = MagicMock()
-#     request_groups.execute = MagicMock(
-#         return_value={'groups': [{'email': 'test@gws'}]})
-#     gws_groups_client = MagicMock()
-#     gws_groups_client.list = MagicMock(return_value=request_groups)
-#
-#     await create_group('/mail', rest_client=keycloak_bootstrap)
-#     await create_group('/mail/list', attrs={'email': 'test@gws'}, rest_client=keycloak_bootstrap)
-#     await create_group('/mail/list/_admin', rest_client=keycloak_bootstrap)
-#
-#     await setup_user('make', 'manager', ['/mail/list', '/mail/list/_admin'], rest_client=keycloak_bootstrap)
-#     await setup_user('make', 'member', ['/mail/list'], rest_client=keycloak_bootstrap)
-#
-#     await sync_gws_mailing_lists(gws_members_client, gws_groups_client, keycloak_bootstrap,
-#                                  send_notifications=False, dryrun=False)
-#
-#     assert (sorted(map(repr, gws_members_client.patch.call_args_list)) ==
-#             sorted(map(repr, [
-#                 call(groupKey='test@gws', memberKey='make.manager@icecube.wisc.edu',
-#                      body={'email': 'make.manager@icecube.wisc.edu', 'role': 'MANAGER'}),
-#                 call(groupKey='test@gws', memberKey='make.member@icecube.wisc.edu',
-#                      body={'email': 'make.member@icecube.wisc.edu', 'role': 'MEMBER'}),
-#             ])))
-#     assert gws_members_client.insert.call_args_list == []
-#     assert gws_members_client.delete.call_args_list == []
+    await create_user("reader", "f", "l", "reader@test", rest_client=rest_client)
+    await add_user_group("/calendars/cal/readers", "reader", rest_client=rest_client)
+
+    await create_user("writer", "f", "l", "writer@test", rest_client=rest_client)
+    await add_user_group("/calendars/cal/writers", "writer", rest_client=rest_client)
+
+
+@pytest.mark.asyncio
+async def test_sync_gws_calendars_no_changes(keycloak_bootstrap):  # noqa: F811
+    await setup_standard_keycloak_calendar(keycloak_bootstrap)
+    mock_calendar_acl_client = get_standard_mock_calendar_acl_client()
+    service_account_creds = MagicMock()
+    with patch("actions.sync_gws_calendars.build") as resource_builder:
+        await sync_gws_calendars(mock_calendar_acl_client, keycloak_bootstrap,
+                                 service_account_creds, dryrun=False, notify=False)
+        assert resource_builder.call_args_list == []
+        assert service_account_creds.call_args_list == []
+        assert mock_calendar_acl_client.delete.call_args_list == []
+        assert mock_calendar_acl_client.insert.call_args_list == []
+        assert mock_calendar_acl_client.patch.call_args_list == []
+
+
+@pytest.mark.asyncio
+async def test_sync_gws_calendars_ignore_owner(keycloak_bootstrap):  # noqa: F811
+    await setup_standard_keycloak_calendar(keycloak_bootstrap)
+    await create_user("owner", "f", "l", "owner@test", rest_client=keycloak_bootstrap)
+    await add_user_group("/calendars/cal/writers", "owner", rest_client=keycloak_bootstrap)
+
+    mock_calendar_acl_client = get_standard_mock_calendar_acl_client()
+    service_account_creds = MagicMock()
+    with patch("actions.sync_gws_calendars.build") as resource_builder:
+        await sync_gws_calendars(mock_calendar_acl_client, keycloak_bootstrap,
+                                 service_account_creds, dryrun=False, notify=False)
+        assert resource_builder.call_args_list == []
+        assert service_account_creds.call_args_list == []
+        assert mock_calendar_acl_client.delete.call_args_list == []
+        assert mock_calendar_acl_client.insert.call_args_list == []
+        assert mock_calendar_acl_client.patch.call_args_list == []
+
+
+@pytest.mark.asyncio
+async def test_sync_gws_calendars_delete(keycloak_bootstrap):  # noqa: F811
+    await setup_standard_keycloak_calendar(keycloak_bootstrap)
+    await delete_group("/calendars/cal/readers", rest_client=keycloak_bootstrap)
+    mock_calendar_acl_client = get_standard_mock_calendar_acl_client()
+    service_account_creds = MagicMock()
+    with (patch("actions.sync_gws_calendars.build") as resource_builder):
+        await sync_gws_calendars(mock_calendar_acl_client, keycloak_bootstrap,
+                                 service_account_creds, dryrun=False, notify=False)
+        assert resource_builder.call_args_list == []
+        assert service_account_creds.call_args_list == []
+        assert mock_calendar_acl_client.delete.call_args_list == \
+            [call(calendarId='id', ruleId='user:reader@icecube.wisc.edu')]
+        assert mock_calendar_acl_client.insert.call_args_list == []
+        assert mock_calendar_acl_client.patch.call_args_list == []
+
+
+@pytest.mark.asyncio
+async def test_sync_gws_calendars_insert(keycloak_bootstrap):  # noqa: F811
+    await setup_standard_keycloak_calendar(keycloak_bootstrap)
+
+    await create_user("new_reader", "f", "l", "new_eader@test", rest_client=keycloak_bootstrap)
+    await add_user_group("/calendars/cal/readers", "new_reader", rest_client=keycloak_bootstrap)
+    await create_user("new_writer", "f", "l", "new_writer@test", rest_client=keycloak_bootstrap)
+    await add_user_group("/calendars/cal/writers", "new_writer", rest_client=keycloak_bootstrap)
+
+    mock_calendar_acl_client = get_standard_mock_calendar_acl_client()
+    service_account_creds = MagicMock()
+    with (patch("actions.sync_gws_calendars.build") as resource_builder):
+        await sync_gws_calendars(mock_calendar_acl_client, keycloak_bootstrap,
+                                 service_account_creds, dryrun=False, notify=False)
+        assert resource_builder.call_args_list == \
+            [call('calendar', 'v3', credentials=service_account_creds.with_subject(), cache_discovery=False),
+             call('calendar', 'v3', credentials=service_account_creds.with_subject(), cache_discovery=False)]
+        assert sorted(service_account_creds.with_subject.call_args_list) == \
+            [call(), call(), call('new_reader@icecube.wisc.edu'), call('new_writer@icecube.wisc.edu')]
+        expected_insert_calls = [
+            call(calendarId='id',
+                 body={'role': 'reader',
+                       'scope': {'type': 'user', 'value': 'new_reader@icecube.wisc.edu'}}, sendNotifications=False),
+            call(calendarId='id',
+                 body={'role': 'writer',
+                       'scope': {'type': 'user', 'value': 'new_writer@icecube.wisc.edu'}}, sendNotifications=False)]
+        for call_ in mock_calendar_acl_client.insert.call_args_list:
+            assert call_ in expected_insert_calls
+        assert mock_calendar_acl_client.delete.call_args_list == []
+        assert mock_calendar_acl_client.patch.call_args_list == []
+
+
+@pytest.mark.asyncio
+async def test_sync_gws_calendars_patch(keycloak_bootstrap):  # noqa: F811
+    await setup_standard_keycloak_calendar(keycloak_bootstrap)
+    # user reader becomes a writer
+    await add_user_group("/calendars/cal/writers", "reader", rest_client=keycloak_bootstrap)
+    mock_calendar_acl_client = get_standard_mock_calendar_acl_client()
+    service_account_creds = MagicMock()
+    with patch("actions.sync_gws_calendars.build") as resource_builder:
+        await sync_gws_calendars(mock_calendar_acl_client, keycloak_bootstrap,
+                                 service_account_creds, dryrun=False, notify=False)
+        assert resource_builder.call_args_list == []
+        assert service_account_creds.call_args_list == []
+        assert mock_calendar_acl_client.delete.call_args_list == []
+        assert mock_calendar_acl_client.insert.call_args_list == []
+        assert mock_calendar_acl_client.patch.call_args_list == [
+            call(calendarId='id', ruleId='user:reader@icecube.wisc.edu',
+                 body={'role': 'writer',
+                       'scope': {'type': 'user', 'value': 'reader@icecube.wisc.edu'}})]
