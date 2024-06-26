@@ -9,6 +9,7 @@ from krs.users import create_user
 from actions.sync_gws_calendars import sync_gws_calendars, ATTR_CAL_ID
 
 
+# Data returned by the calendar ACL resource's list()
 # noinspection SpellCheckingInspection
 CALENDAR_ACL_LIST_RESPONSE = {
     'etag': '"p33genhe8obmoc0o"',
@@ -57,7 +58,7 @@ def get_standard_mock_calendar_acl_client():
 
 async def setup_standard_keycloak_calendar(rest_client):
     await create_group('/calendars', rest_client=rest_client)
-    await create_group('/calendars/cal', {ATTR_CAL_ID: 'id'}, rest_client=rest_client)
+    await create_group('/calendars/cal', {ATTR_CAL_ID: 'calendar_id'}, rest_client=rest_client)
     await create_group('/calendars/cal/readers', rest_client=rest_client)
     await create_group('/calendars/cal/writers', rest_client=rest_client)
 
@@ -113,7 +114,7 @@ async def test_sync_gws_calendars_delete(keycloak_bootstrap):  # noqa: F811
         assert resource_builder.call_args_list == []
         assert service_account_creds.call_args_list == []
         assert mock_calendar_acl_client.delete.call_args_list == \
-            [call(calendarId='id', ruleId='user:reader@icecube.wisc.edu')]
+            [call(calendarId='calendar_id', ruleId='user:reader@icecube.wisc.edu')]
         assert mock_calendar_acl_client.insert.call_args_list == []
         assert mock_calendar_acl_client.patch.call_args_list == []
 
@@ -138,10 +139,10 @@ async def test_sync_gws_calendars_insert(keycloak_bootstrap):  # noqa: F811
         assert sorted(service_account_creds.with_subject.call_args_list) == \
             [call(), call(), call('new_reader@icecube.wisc.edu'), call('new_writer@icecube.wisc.edu')]
         expected_insert_calls = [
-            call(calendarId='id',
+            call(calendarId='calendar_id',
                  body={'role': 'reader',
                        'scope': {'type': 'user', 'value': 'new_reader@icecube.wisc.edu'}}, sendNotifications=False),
-            call(calendarId='id',
+            call(calendarId='calendar_id',
                  body={'role': 'writer',
                        'scope': {'type': 'user', 'value': 'new_writer@icecube.wisc.edu'}}, sendNotifications=False)]
         for call_ in mock_calendar_acl_client.insert.call_args_list:
@@ -165,6 +166,6 @@ async def test_sync_gws_calendars_patch(keycloak_bootstrap):  # noqa: F811
         assert mock_calendar_acl_client.delete.call_args_list == []
         assert mock_calendar_acl_client.insert.call_args_list == []
         assert mock_calendar_acl_client.patch.call_args_list == [
-            call(calendarId='id', ruleId='user:reader@icecube.wisc.edu',
+            call(calendarId='calendar_id', ruleId='user:reader@icecube.wisc.edu',
                  body={'role': 'writer',
                        'scope': {'type': 'user', 'value': 'reader@icecube.wisc.edu'}})]
