@@ -116,7 +116,7 @@ jsonpath-ng==1.6.1
 └── ply [required: Any, installed: 3.11]
 pipdeptree==2.23.0
 ├── packaging [required: >=23.1, installed: 24.1]
-└── pip [required: >=23.1.2, installed: 24.1]
+└── pip [required: >=23.1.2, installed: 24.1.1]
 setuptools==65.5.1
 wheel==0.43.0
 wipac-keycloak-rest-services
