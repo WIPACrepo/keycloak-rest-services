@@ -3,7 +3,7 @@ Add Google Workspace calendars to users' calendar lists on https://calendar.goog
 based on KeyCloak groups.
 
 A KeyCloak group is a "calendar group" if it is a direct subgroup of /calendars
-(link:Ish1u6Xo) and defines one or more "calendar_id" (link:quaZ0hc1) attributes.                                 # link:quaZ0hc1
+(link:Ish1u6Xo) and defines one or more "calendar_id" (link:quaZ0hc1) attributes.
 
 The subscription role is based on whether the user is a member of the calendar
 group's "readers" or "writers" subgroup (link:ahPhe3x2).
@@ -12,7 +12,7 @@ Subgroups other than the ones described here are ignored.
 
 Calendar owners are assumed to be managed out-of-band and are ignored.
 
-Only users of a calendar are managed (Google Workspace groups are ignored).
+Only users of a calendar are managed (Google Workspace groups and domains are ignored).
 
 If a user "unsubscribes" from a calendar after it's been added, this script
 will not make the calendar reappear in the user's calendar list.
@@ -88,16 +88,6 @@ async def get_kc_user_acl_rules(group, role, keycloak):
     return acl_rules
 
 
-async def foo(arg):
-    from pprint import pprint
-    pprint(arg)
-    pprint(build)
-    b = build()
-    acl=b.acl()
-    pprint(f"{acl=}")
-    acl.insert(i=1)
-
-
 async def sync_gws_calendars(calendar_acl, keycloak, creds, dryrun, notify):
     cal_root_group_info = await group_info('/calendars', rest_client=keycloak)
     kc_cal_groups = [g for g in cal_root_group_info['subGroups'] if 'calendar_id' in g['attributes']]
@@ -140,7 +130,7 @@ async def sync_gws_calendars(calendar_acl, keycloak, creds, dryrun, notify):
             if dryrun:
                 continue
             req = calendar_acl.patch(calendarId=cal_id, ruleId=actual_rules[existing_addr]['id'],
-                                    body={target_rules[existing_addr]})
+                                     body=target_rules[existing_addr])
             retry_execute(req)
 
         # Add missing subscribers.
