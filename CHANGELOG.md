@@ -2,6 +2,34 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.104 (2024-06-19)
+
+### Other
+
+* <bot> update dependencies*.log files(s) ([`76bb5af`](https://github.com/WIPACrepo/keycloak-rest-services/commit/76bb5afdea01a2ce5d80abab9facfd4093fc72ac))
+* Actions/track_user_institutions.py: small improvement ([`0f4827a`](https://github.com/WIPACrepo/keycloak-rest-services/commit/0f4827a086f34a3054a31eed9ae9914d442e0615))
+* Actions/track_user_institutions.py: flake8 fix ([`25b6234`](https://github.com/WIPACrepo/keycloak-rest-services/commit/25b6234a8e708d2554dd83a49a8f61f58229bb29))
+* Actions/track_user_institutions.py: notify on all changes ([`aac0d63`](https://github.com/WIPACrepo/keycloak-rest-services/commit/aac0d632a11492f2ce3825dc92b58d202c5d9a3b))
+
+## v1.4.103 (2024-06-19)
+
+### Other
+
+* <bot> update dependencies*.log files(s) ([`f49c535`](https://github.com/WIPACrepo/keycloak-rest-services/commit/f49c535b6d5f30f212580f82ec2612fa4fd6c1e7))
+* Actions/track_user_institutions.py: handle HTTP 400 ([`a0cb90c`](https://github.com/WIPACrepo/keycloak-rest-services/commit/a0cb90c21315f854b81e58ef2ccb2cd6ee3e70a4))
+
+## v1.4.102 (2024-06-18)
+
+### Other
+
+* Update group member email script to allow globs, multiple emails ([`cb0298d`](https://github.com/WIPACrepo/keycloak-rest-services/commit/cb0298dd95ab5151d934bf85f9f58337dcdfb4e8))
+
+## v1.4.101 (2024-06-18)
+
+### Other
+
+* Sync_gws_mailing_lists: add more logging ([`e1abba2`](https://github.com/WIPACrepo/keycloak-rest-services/commit/e1abba2b4a4df7c426acb4e18d5b44fb601811dd))
+
 ## v1.4.100 (2024-06-18)
 
 ### Other

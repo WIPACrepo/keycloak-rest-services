@@ -32,7 +32,7 @@ def get_rest_client(retries=None, timeout=10):
         'KEYCLOAK_CLIENT_REALM': 'master',
     })
     kwargs = {'timeout': timeout}
-    if retries:
+    if retries is not None:
         kwargs['retries'] = retries
     if config['KEYCLOAK_CLIENT_SECRET']:
         return ClientCredentialsAuth(
