@@ -75,8 +75,11 @@ async def test_sync_gws_calendars_no_changes(keycloak_bootstrap):  # noqa: F811
     mock_calendar_acl_client = get_standard_mock_calendar_acl_client()
     service_account_creds = MagicMock()
     with patch("actions.sync_gws_calendars.build") as resource_builder:
-        await sync_gws_calendars(mock_calendar_acl_client, keycloak_bootstrap,
-                                 service_account_creds, dryrun=False, notify=False)
+        await sync_gws_calendars(calendar_acl=mock_calendar_acl_client,
+                                 calendar_cals=MagicMock(),
+                                 keycloak=keycloak_bootstrap,
+                                 creds=service_account_creds,
+                                 dryrun=False, notify=False)
         assert resource_builder.call_args_list == []
         assert service_account_creds.call_args_list == []
         assert mock_calendar_acl_client.delete.call_args_list == []
@@ -93,8 +96,11 @@ async def test_sync_gws_calendars_ignore_owner(keycloak_bootstrap):  # noqa: F81
     mock_calendar_acl_client = get_standard_mock_calendar_acl_client()
     service_account_creds = MagicMock()
     with patch("actions.sync_gws_calendars.build") as resource_builder:
-        await sync_gws_calendars(mock_calendar_acl_client, keycloak_bootstrap,
-                                 service_account_creds, dryrun=False, notify=False)
+        await sync_gws_calendars(calendar_acl=mock_calendar_acl_client,
+                                 calendar_cals=MagicMock(),
+                                 keycloak=keycloak_bootstrap,
+                                 creds=service_account_creds,
+                                 dryrun=False, notify=False)
         assert resource_builder.call_args_list == []
         assert service_account_creds.call_args_list == []
         assert mock_calendar_acl_client.delete.call_args_list == []
@@ -109,8 +115,11 @@ async def test_sync_gws_calendars_delete(keycloak_bootstrap):  # noqa: F811
     mock_calendar_acl_client = get_standard_mock_calendar_acl_client()
     service_account_creds = MagicMock()
     with (patch("actions.sync_gws_calendars.build") as resource_builder):
-        await sync_gws_calendars(mock_calendar_acl_client, keycloak_bootstrap,
-                                 service_account_creds, dryrun=False, notify=False)
+        await sync_gws_calendars(calendar_acl=mock_calendar_acl_client,
+                                 calendar_cals=MagicMock(),
+                                 keycloak=keycloak_bootstrap,
+                                 creds=service_account_creds,
+                                 dryrun=False, notify=False)
         assert resource_builder.call_args_list == []
         assert service_account_creds.call_args_list == []
         assert mock_calendar_acl_client.delete.call_args_list == \
@@ -131,8 +140,11 @@ async def test_sync_gws_calendars_insert(keycloak_bootstrap):  # noqa: F811
     mock_calendar_acl_client = get_standard_mock_calendar_acl_client()
     service_account_creds = MagicMock()
     with (patch("actions.sync_gws_calendars.build") as resource_builder):
-        await sync_gws_calendars(mock_calendar_acl_client, keycloak_bootstrap,
-                                 service_account_creds, dryrun=False, notify=False)
+        await sync_gws_calendars(calendar_acl=mock_calendar_acl_client,
+                                 calendar_cals=MagicMock(),
+                                 keycloak=keycloak_bootstrap,
+                                 creds=service_account_creds,
+                                 dryrun=False, notify=False)
         assert resource_builder.call_args_list == \
             [call('calendar', 'v3', credentials=service_account_creds.with_subject(), cache_discovery=False),
              call('calendar', 'v3', credentials=service_account_creds.with_subject(), cache_discovery=False)]
@@ -159,8 +171,11 @@ async def test_sync_gws_calendars_patch(keycloak_bootstrap):  # noqa: F811
     mock_calendar_acl_client = get_standard_mock_calendar_acl_client()
     service_account_creds = MagicMock()
     with patch("actions.sync_gws_calendars.build") as resource_builder:
-        await sync_gws_calendars(mock_calendar_acl_client, keycloak_bootstrap,
-                                 service_account_creds, dryrun=False, notify=False)
+        await sync_gws_calendars(calendar_acl=mock_calendar_acl_client,
+                                 calendar_cals=MagicMock(),
+                                 keycloak=keycloak_bootstrap,
+                                 creds=service_account_creds,
+                                 dryrun=False, notify=False)
         assert resource_builder.call_args_list == []
         assert service_account_creds.call_args_list == []
         assert mock_calendar_acl_client.delete.call_args_list == []
