@@ -138,8 +138,13 @@ async def sync_gws_calendars(calendar_acl, calendar_cals, keycloak, creds, dryru
         change_log = ChangeLog(defaultdict(list), defaultdict(list), defaultdict(list))
         for cal_id in cal_ids:
             cal_meta = retry_execute(calendar_cals.get(calendarId=cal_id))
-            change_log = await sync_gws_calendar(cal_id, cal_meta['summary'], calendar_acl,
-                                                 target_rules, creds, change_log, dryrun)
+            change_log = await sync_gws_calendar(cal_id=cal_id,
+                                                 cal_name=cal_meta['summary'],
+                                                 calendar_acl=calendar_acl,
+                                                 target_rules=target_rules,
+                                                 creds=creds,
+                                                 change_log=change_log,
+                                                 dryrun=dryrun)
 
         # Notify users of changes. In most cases, a user will experience the same
         # change (add/update/remove) for all calendars associated with the keycloak
@@ -175,14 +180,16 @@ async def sync_gws_calendars(calendar_acl, calendar_cals, keycloak, creds, dryru
 
 async def sync_gws_calendar(cal_id, cal_name, calendar_acl, target_rules, creds, change_log, dryrun):
     actual_rules = get_gws_cal_user_acl_rules(cal_id, calendar_acl)
+    logger.debug(f"{target_rules=}")
 
     # Owners are managed out of band. Exclude them from actual and target ACL rules.
     owners = set(addr for addr, rule in actual_rules.items() if rule["role"] == "owner")
+    target_rules = target_rules.copy()
     for owner_addr in owners:
         logger.debug(f"Excluding owner {owner_addr} of '{cal_name}'")
         actual_rules.pop(owner_addr)
         with suppress(KeyError):
-            target_rules = target_rules.copy().pop(owner_addr)
+            target_rules.pop(owner_addr)
     logger.debug(f"{actual_rules=}")
     logger.debug(f"{target_rules=}")
 
