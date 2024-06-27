@@ -21,6 +21,9 @@ will not make the calendar reappear in the user's calendar list.
 
 Users can optionally be notified via email of being added/removed/changed.
 
+A good guide for setting up a Google Workspace service account:
+https://yagisanatode.com/how-to-force-subscribe-a-user-in-your-domain-to-a-google-calendar-in-google-apps-script/
+
 This code uses custom keycloak attributes that are documented here:
 https://bookstack.icecube.wisc.edu/ops/books/services/page/custom-keycloak-attributes
 
@@ -71,7 +74,7 @@ because you are no longer a member of any subgroups of {group}.
 """ + MSG_FOOTER
 
 CALENDAR_ROLE_CHANGED_MSG = """
-{addr}'s role has changed to {new_role} for the following calendar(s)
+{addr}'s role has changed to {role} for the following calendar(s)
 because you were added or removed from the corresponding subgroup of
 {group}.
 
@@ -96,7 +99,7 @@ def get_cal_info_text(cal_ids, calendars_res):
             cal_infos.append(f"{metadata['summary']}: {metadata.get('description')}")
         else:
             cal_infos.append(f"{metadata['summary']}")
-    return '\n'.join(cal_infos)
+    return '\n'.join(sorted(cal_infos))
 
 
 def get_gws_cal_user_acl_rules(calendar_id, calendar_acl_res):
