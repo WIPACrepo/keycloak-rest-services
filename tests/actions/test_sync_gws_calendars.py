@@ -3,7 +3,7 @@ import pytest
 from unittest.mock import MagicMock, call, patch
 
 from ..util import keycloak_bootstrap  # type: ignore # noqa: F401
-from krs.groups import create_group, add_user_group, delete_group
+from krs.groups import create_group, add_user_group, delete_group, modify_group
 from krs.users import create_user
 
 from actions.sync_gws_calendars import sync_gws_calendars, ATTR_CAL_ID
@@ -184,3 +184,25 @@ async def test_sync_gws_calendars_patch(keycloak_bootstrap):  # noqa: F811
             call(calendarId='calendar_id', ruleId='user:reader@icecube.wisc.edu',
                  body={'role': 'writer',
                        'scope': {'type': 'user', 'value': 'reader@icecube.wisc.edu'}})]
+
+
+@pytest.mark.asyncio
+async def test_sync_gws_calendars_delete_multiple(keycloak_bootstrap):  # noqa: F811
+    await setup_standard_keycloak_calendar(keycloak_bootstrap)
+    await modify_group('/calendars/cal', attrs={ATTR_CAL_ID: ['XXX', 'YYY']}, rest_client=keycloak_bootstrap)
+    await delete_group("/calendars/cal/readers", rest_client=keycloak_bootstrap)
+    mock_calendar_acl_client = get_standard_mock_calendar_acl_client()
+    service_account_creds = MagicMock()
+    with patch("actions.sync_gws_calendars.build") as resource_builder:
+        await sync_gws_calendars(calendar_acl=mock_calendar_acl_client,
+                                 calendar_cals=MagicMock(),
+                                 keycloak=keycloak_bootstrap,
+                                 creds=service_account_creds,
+                                 dryrun=False, notify=False)
+        assert resource_builder.call_args_list == []
+        assert service_account_creds.call_args_list == []
+        assert sorted(map(str, mock_calendar_acl_client.delete.call_args_list)) == \
+               sorted(map(str, [call(calendarId='XXX', ruleId='user:reader@icecube.wisc.edu'),
+                                call(calendarId='YYY', ruleId='user:reader@icecube.wisc.edu')]))
+        assert mock_calendar_acl_client.insert.call_args_list == []
+        assert mock_calendar_acl_client.patch.call_args_list == []
