@@ -80,7 +80,7 @@ because you were added or removed from the corresponding subgroup of
 
 
 def get_cal_info_text(cal_ids, calendars_res):
-    """ Get a text block with summary (name) and descriptions of calendars.
+    """Get a text block with summary (name) and descriptions of calendars.
 
     Args:
         cal_ids (list[str]): List of Google Calendar IDs
@@ -100,7 +100,7 @@ def get_cal_info_text(cal_ids, calendars_res):
 
 
 def get_gws_cal_user_acl_rules(calendar_id, calendar_acl_res):
-    """ Get a filtered list of Google Calendar ACL rules.
+    """Get a filtered list of Google Calendar ACL rules.
 
     We filter out rules we are not supposed to deal with and cherry-pick
     the relevant rule fields.
