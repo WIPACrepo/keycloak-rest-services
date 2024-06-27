@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.105 (2024-06-27)
+
+### Other
+
+* Add actions/sync_gws_calendars.py ([`e034067`](https://github.com/WIPACrepo/keycloak-rest-services/commit/e03406714acf3b9b94c8622d699f0877a9d48a3f))
+
 ## v1.4.104 (2024-06-19)
 
 ### Other
