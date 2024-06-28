@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.106 (2024-06-28)
+
+### Other
+
+* Tiny tweaks to actions/sync_gws_calendars.py ([#157](https://github.com/WIPACrepo/keycloak-rest-services/issues/157)) ([`d7f08d9`](https://github.com/WIPACrepo/keycloak-rest-services/commit/d7f08d944b7eaef6f4404d2f9eb528d9fa48951c))
+
 ## v1.4.105 (2024-06-27)
 
 ### Other
