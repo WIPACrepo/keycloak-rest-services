@@ -17,7 +17,7 @@ charset-normalizer==3.3.2
 cryptography==42.0.8
 dnspython==2.6.1
 google-api-core==2.19.1
-google-api-python-client==2.134.0
+google-api-python-client==2.135.0
 google-auth==2.30.0
 google-auth-httplib2==0.2.0
 google-auth-oauthlib==1.2.0
@@ -52,7 +52,7 @@ uritemplate==4.1.1
 urllib3==2.2.2
 wipac-dev-tools==1.10.6
 -e /home/keycloak
-wipac-rest-tools==1.7.5
+wipac-rest-tools==1.7.6
 yarl==1.9.4
 ########################################################################
 #  pipdeptree
@@ -62,7 +62,7 @@ asyncache==0.3.1
 cryptography==42.0.8
 └── cffi [required: >=1.12, installed: 1.16.0]
     └── pycparser [required: Any, installed: 2.22]
-google-api-python-client==2.134.0
+google-api-python-client==2.135.0
 ├── google-api-core [required: >=1.31.5,<3.0.0.dev0,!=2.3.0,!=2.2.*,!=2.1.*,!=2.0.*, installed: 2.19.1]
 │   ├── google-auth [required: >=2.14.1,<3.0.dev0, installed: 2.30.0]
 │   │   ├── cachetools [required: >=2.0.0,<6.0, installed: 5.3.3]
@@ -148,7 +148,7 @@ wipac-keycloak-rest-services
 │   │   ├── idna [required: >=2.5,<4, installed: 3.7]
 │   │   └── urllib3 [required: >=1.21.1,<3, installed: 2.2.2]
 │   └── typing_extensions [required: Any, installed: 4.12.2]
-└── wipac-rest-tools [required: Any, installed: 1.7.5]
+└── wipac-rest-tools [required: Any, installed: 1.7.6]
     ├── cachetools [required: Any, installed: 5.3.3]
     ├── PyJWT [required: !=2.6.0, installed: 2.8.0]
     ├── qrcode [required: Any, installed: 7.4.2]
