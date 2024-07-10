@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.107 (2024-07-10)
+
+### Other
+
+* Reduce prune_mail_groups_by_experiment logging noise ([#158](https://github.com/WIPACrepo/keycloak-rest-services/issues/158)) ([`bc82613`](https://github.com/WIPACrepo/keycloak-rest-services/commit/bc82613021b2b89baf55ac38c28f5e21fb4b54a2))
+
 ## v1.4.106 (2024-06-28)
 
 ### Other
