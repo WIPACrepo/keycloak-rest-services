@@ -115,20 +115,20 @@ async def create_user(username, first_name, last_name, email, attribs=None, rest
     canonical_email = f"{name_part}@icecube.wisc.edu"
     bad_numbers = {'004', '009', '013', '042', '049', '069', '666', '999'}
     while True:
+        dup_canonical = bool( await list_users(query={'canonical_email': canonical_email}, rest_client=rest_client))
         local_part = canonical_email.split('@')
-        dup_canonical = bool(await list_users(query={'canonical_email': canonical_email}, rest_client=rest_client)
-        dup_username = bool([u for u in await list_users(search=local_part, rest_client=rest_client) if u['username'] == local_part])
-
+        dup_username = bool([u for u in await list_users(search=local_part, rest_client=rest_client)
+                             if u['username'] == local_part])
         if not dup_canonical and not dup_username:
             break
 
-            # Generate random salt taking care to avoid problematic numbers
-            while True:
-                # zero-pad the random salt to avoid addresses like like first.last.91,
-                # where 91 could be interpreted as the user's year of birth.
-                salt = f"{randint(0,999):03}"
-                if salt not in bad_numbers:
-                    break
+        # Generate random salt taking care to avoid problematic numbers
+        while True:
+            # zero-pad the random salt to avoid addresses like like first.last.91,
+            # where 91 could be interpreted as the user's year of birth.
+            salt = f"{randint(0,999):03}"
+            if salt not in bad_numbers:
+                break
         canonical_email = f'{name_part}.{salt}@icecube.wisc.edu'
 
 
