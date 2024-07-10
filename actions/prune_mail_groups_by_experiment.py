@@ -101,13 +101,13 @@ async def _prune_group(group_path, removal_grace_days, allowed_institutions,
         user_insts = user['attributes'].get('institutions_last_seen', '')
         user_insts = [i.strip() for i in user_insts.split(',') if i.strip()]
         if not allowed_institutions.intersection(user_insts):
-            logger.info(f'User {username} is not allowed to be in {group_path}')
+            logger.debug(f'User {username} is not allowed to be in {group_path}')
             if 'institutions_last_changed' in user['attributes']:
                 insts_changed = user['attributes']['institutions_last_changed']
                 insts_changed = datetime.fromisoformat(insts_changed)
                 time_since_inst_change = datetime.now() - insts_changed
                 if time_since_inst_change < timedelta(days=removal_grace_days):
-                    logger.info(f"Leaving {username} alone because grace period hasn't expired")
+                    logger.debug(f"Leaving {username} alone because grace period hasn't expired")
                     continue
             logger.info(f'Removing {username} from {group_path} (dryrun={dryrun})')
             removed_users.append(username)
