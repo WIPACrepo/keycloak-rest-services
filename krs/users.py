@@ -20,13 +20,36 @@ class UserDoesNotExist(Exception):
     pass
 
 
-async def list_users(search=None, rest_client=None):
+async def list_users(search=None, query=None, rest_client=None):
     """
     List users in Keycloak.
 
+    The `search` parameter filters by a string contained in username, first or
+    last name, or email. Default search behavior is prefix-based (e.g., foo
+    or foo*). Use *foo* for infix search and "foo" for exact search. As of
+    Keycloak 24, suffix searching is not possible.
+
+    The `query` parameter filters by custom attributes. It should be of the
+    form {'attr_name': 'attr_value', ...}.
+
+    Args:
+        search (str|None): username/name/email search (see above)
+        query (dict|None): attribute search (see above)
     Returns:
         dict: username: user info
     """
+    if search and query:
+        # As of KeyCloak 24, the q parameter is ignored if search is specified,
+        raise ValueError("Parameters search and query are mutually exclusive")
+
+    if query:
+        for key, value in query.items():
+            if {'&', '"', "'"} & set(value):
+                raise NotImplementedError(f"Handling of special characters not implemented")
+            if ' ' in value:
+                query[key] = f'"{value}"'
+
+
     inc = 50
     ret = {}
 
@@ -36,6 +59,8 @@ async def list_users(search=None, rest_client=None):
         url = f'/users?&max={min(inc, num_users - start)}&first={start}'
         if search:
             url += f'&search={search}'
+        if query:
+            url += "&q=" + " ".join(f"{key}:{val}" for key, val in query.items())
         data = await rest_client.request('GET', url)
         for u in data:
             fix_singleton_attributes(u)
@@ -81,24 +106,59 @@ async def create_user(username, first_name, last_name, email, attribs=None, rest
     try:
         await user_info(username, rest_client=rest_client)
     except Exception:
-        logger.info(f'creating user "{username}"')
-        user = {
-            'email': email,
-            'firstName': first_name,
-            'lastName': last_name,
-            'username': username,
-            'enabled': True,
-            'attributes': attribs,
-        }
-
-        try:
-            await rest_client.request('POST', '/users', user)
-        except requests.exceptions.HTTPError as e:
-            logger.error('Keycloak returned HTTP error %r: %r', e.response.status_code, e.response.text)
-            raise
-        logger.info(f'user "{username}" created')
+        pass
     else:
         logger.info(f'user "{username}" already exists')
+        return
+
+    name_part = unidecode(first_name + '.' + last_name).lower().replace(' ', '.')
+    canonical_email = f"{name_part}@icecube.wisc.edu"
+    bad_numbers = {'004', '009', '013', '042', '049', '069', '666', '999'}
+    while True:
+        local_part = canonical_email.split('@')
+        dup_canonical = bool(await list_users(query={'canonical_email': canonical_email}, rest_client=rest_client)
+        dup_username = bool([u for u in await list_users(search=local_part, rest_client=rest_client) if u['username'] == local_part])
+
+        if not dup_canonical and not dup_username:
+            break
+
+            # Generate random salt taking care to avoid problematic numbers
+            while True:
+                # zero-pad the random salt to avoid addresses like like first.last.91,
+                # where 91 could be interpreted as the user's year of birth.
+                salt = f"{randint(0,999):03}"
+                if salt not in bad_numbers:
+                    break
+        canonical_email = f'{name_part}.{salt}@icecube.wisc.edu'
+
+
+
+        # Come up with a canonical email for the user, making sure it's not
+        # the same as an existing primary or canonical email. At this time,
+        # it's impossible for a canonical email to match a primary email, but
+        # be paranoid of future changes and check anyway.
+        while await list_users(search=)
+
+
+        canonical_email = f'{name_part}.{randint(0,999):03}@icecube.wisc.edu'
+    attribs['canonical_email'] = canonical_email
+
+    logger.info(f'creating user "{username}"')
+    user = {
+        'email': email,
+        'firstName': first_name,
+        'lastName': last_name,
+        'username': username,
+        'enabled': True,
+        'attributes': attribs,
+    }
+    try:
+        await rest_client.request('POST', '/users', user)
+    except requests.exceptions.HTTPError as e:
+        logger.error('Keycloak returned HTTP error %r: %r', e.response.status_code, e.response.text)
+        raise
+    else:
+        logger.info(f'user "{username}" created')
 
 
 async def modify_user(username, first_name=None, last_name=None, email=None, attribs=None, actions=None, actions_reset=False, rest_client=None):
