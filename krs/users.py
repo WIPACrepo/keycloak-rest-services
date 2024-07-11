@@ -7,8 +7,10 @@ https://bookstack.icecube.wisc.edu/ops/books/services/page/custom-keycloak-attri
 import asyncio
 import logging
 from random import randint
+# noinspection PyPackageRequirements
 from unidecode import unidecode
 
+# noinspection PyPackageRequirements
 import requests.exceptions
 
 from .token import get_rest_client
@@ -21,7 +23,7 @@ class UserDoesNotExist(Exception):
     pass
 
 
-async def list_users(search=None, query=None, rest_client=None):
+async def list_users(search=None, attr_query=None, rest_client=None):
     """
     List users in Keycloak.
 
@@ -35,33 +37,31 @@ async def list_users(search=None, query=None, rest_client=None):
 
     Args:
         search (str|None): username/name/email search (see above)
-        query (dict|None): attribute search (see above)
+        attr_query (dict|None): attribute search (see above)
+        rest_client (RestClient): Keycloak REST client
     Returns:
         dict: username: user info
     """
-    if search and query:
+    if search and attr_query:
         # As of KeyCloak 24, the q parameter is ignored if search is specified,
         raise ValueError("Parameters search and query are mutually exclusive")
 
-    if query:
-        for key, value in query.items():
+    if attr_query:
+        for key, value in attr_query.items():
             if {'&', '"', "'"} & set(value):
-                raise NotImplementedError(f"Handling of special characters not implemented")
+                raise NotImplementedError("Handling of special characters not implemented")
             if ' ' in value:
-                query[key] = f'"{value}"'
-
+                attr_query[key] = f'"{value}"'
 
     inc = 50
     ret = {}
-
     num_users = await rest_client.request('GET', '/users/count')
-
     for start in range(0, num_users, inc):
         url = f'/users?&max={min(inc, num_users - start)}&first={start}'
         if search:
             url += f'&search={search}'
-        if query:
-            url += "&q=" + " ".join(f"{key}:{val}" for key, val in query.items())
+        if attr_query:
+            url += "&q=" + " ".join(f"{key}:{val}" for key, val in attr_query.items())
         data = await rest_client.request('GET', url)
         for u in data:
             fix_singleton_attributes(u)
@@ -75,6 +75,7 @@ async def user_info(username, rest_client=None):
 
     Args:
         username (str): username of user
+        rest_client (RestClient): Keycloak REST client
 
     Returns:
         dict: user info
@@ -89,7 +90,7 @@ async def user_info(username, rest_client=None):
 
 
 async def __address_in_use(address, rest_client):
-    if await list_users(query={'canonical_email': address}, rest_client=rest_client):
+    if await list_users(attr_query={'canonical_email': address}, rest_client=rest_client):
         return True
     local_part = address.split('@')
     try:
@@ -160,7 +161,8 @@ async def create_user(username, first_name, last_name, email, attribs=None, rest
         logger.info(f'user "{username}" created')
 
 
-async def modify_user(username, first_name=None, last_name=None, email=None, attribs=None, actions=None, actions_reset=False, rest_client=None):
+async def modify_user(username, first_name=None, last_name=None, email=None, attribs=None,
+                      actions=None, actions_reset=False, rest_client=None):
     """
     Modify a user in Keycloak.
 
@@ -228,6 +230,7 @@ async def set_user_password(username, password=None, temporary=False, rest_clien
         username (str): username of user
         password (str): new password
         temporary (bool): is this a temporary password that must be changed?
+        rest_client (RestClient): Keycloak REST client
     """
     if password is None:
         # get password from cmdline
@@ -239,7 +242,7 @@ async def set_user_password(username, password=None, temporary=False, rest_clien
 
     try:
         ret = await user_info(username, rest_client=rest_client)
-    except Exception:
+    except UserDoesNotExist:
         logger.info(f'user "{username}" does not exist')
     else:
         url = f'/users/{ret["id"]}/reset-password'
@@ -257,10 +260,11 @@ async def delete_user(username, rest_client=None):
 
     Args:
         username (str): username of user to delete
+        rest_client (RestClient): Keycloak REST client
     """
     try:
         ret = await user_info(username, rest_client=rest_client)
-    except Exception:
+    except UserDoesNotExist:
         logger.info(f'user "{username}" does not exist')
     else:
         url = f'/users/{ret["id"]}'
@@ -292,7 +296,8 @@ def main():
     parser_modify.add_argument('--first_name', help='first name')
     parser_modify.add_argument('--last_name', help='last name')
     parser_modify.add_argument('--email', help='email address')
-    parser_modify.add_argument('--actions', action='append', help='required actions', choices=['CONFIGURE_TOTP', 'UPDATE_PASSWORD', 'UPDATE_PROFILE', 'VERIFY_EMAIL'])
+    parser_modify.add_argument('--actions', action='append', help='required actions',
+                               choices=['CONFIGURE_TOTP', 'UPDATE_PASSWORD', 'UPDATE_PROFILE', 'VERIFY_EMAIL'])
     parser_modify.add_argument('--actions-reset', action='store_true', help='reset required actions')
     parser_modify.add_argument('attribs', nargs=argparse.REMAINDER)
     parser_modify.set_defaults(func=modify_user)
