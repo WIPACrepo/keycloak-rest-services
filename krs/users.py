@@ -6,6 +6,7 @@ https://bookstack.icecube.wisc.edu/ops/books/services/page/custom-keycloak-attri
 """
 import asyncio
 import logging
+import sys
 from random import randint
 # noinspection PyPackageRequirements
 from unidecode import unidecode
@@ -46,7 +47,7 @@ async def list_users(search=None, attr_query=None, rest_client=None):
         dict: username: user info
     """
     if search and attr_query:
-        # As of KeyCloak 24, the q parameter is ignored if search is specified,
+        # As of KeyCloak 24, the q parameter is ignored if search is specified
         raise ValueError("Parameters search and query are mutually exclusive")
 
     # Validate and if necessary/possible make the queries suitable for embedding in URL
@@ -135,7 +136,7 @@ async def create_user(username, first_name, last_name, email, attribs=None, rest
         logger.info(f'user "{username}" already exists')
         return
 
-    # Generate an available canonical address
+    # Generate a canonical address that is not being used
     name_part = unidecode(first_name + '.' + last_name).lower().replace(' ', '.')
     canonical_email = f"{name_part}@icecube.wisc.edu"
     while await __address_in_use(canonical_email, rest_client):
@@ -144,13 +145,12 @@ async def create_user(username, first_name, last_name, email, attribs=None, rest
         # - Start with 100 or zero-pad to avoid local parts like first.last.91,
         #   where 91 could be interpreted as the user's date of birth.
         # - Avoid culturally problematic numbers. Starting from 100 takes care
-        #   of 13, 69, and all the Asian ones I know. Avoid 690 (69 with a zero).
+        #   of 13, 69, and all the Asian ones I know.
         # - Avoid 666+/-1, 999 (666 upside down).
         while True:
             salt = str(randint(100, 998))
-            if any(bad in salt for bad in ('69', '66')):
-                continue
-            break
+            if all(bad not in salt for bad in ('69', '66', '999')):
+                break
         canonical_email = f'{name_part}{salt}@icecube.wisc.edu'
     attribs['canonical_email'] = canonical_email
 
@@ -291,6 +291,8 @@ def main():
     subparsers = parser.add_subparsers()
     parser_list = subparsers.add_parser('list', help='list users')
     parser_list.add_argument('--search', default=None, help='search string')
+    parser_list.add_argument('--attr-query', nargs='+', default=None, metavar='NAME VALUE',
+                             help='query by conjunction of custom attributes')
     parser_list.set_defaults(func=list_users)
     parser_info = subparsers.add_parser('info', help='user info')
     parser_info.add_argument('username', help='user name')
@@ -326,6 +328,11 @@ def main():
 
     rest_client = get_rest_client()
     func = args.pop('func')
+    if 'attr_query' in args:
+        query_pairs = args['attr_query']
+        if len(query_pairs) % 2:
+            parser.error('The number arguments to --attr-query must be even')
+        args['attr_query'] = dict(zip(query_pairs[:-1:2], query_pairs[1::2]))
     if 'attribs' in args:
         args['attribs'] = {item.split('=', 1)[0]: item.split('=', 1)[-1] for item in args['attribs']}
     ret = asyncio.run(func(rest_client=rest_client, **args))
