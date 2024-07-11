@@ -6,6 +6,7 @@ https://bookstack.icecube.wisc.edu/ops/books/services/page/custom-keycloak-attri
 """
 import asyncio
 import logging
+from random import randint
 from unidecode import unidecode
 
 import requests.exceptions
@@ -87,6 +88,18 @@ async def user_info(username, rest_client=None):
     return ret[0]
 
 
+async def __address_in_use(address, rest_client):
+    if await list_users(query={'canonical_email': address}, rest_client=rest_client):
+        return True
+    local_part = address.split('@')
+    try:
+        await user_info(local_part, rest_client=rest_client)
+    except UserDoesNotExist:
+        return False
+    else:
+        return True
+
+
 async def create_user(username, first_name, last_name, email, attribs=None, rest_client=None):
     """
     Create a user in Keycloak.
@@ -101,46 +114,32 @@ async def create_user(username, first_name, last_name, email, attribs=None, rest
     """
     if not attribs:
         attribs = {}
-    attribs['canonical_email'] = unidecode(first_name + '.' + last_name).lower().replace(' ', '.') + "@icecube.wisc.edu"
 
     try:
         await user_info(username, rest_client=rest_client)
-    except Exception:
+    except UserDoesNotExist:
         pass
     else:
         logger.info(f'user "{username}" already exists')
         return
 
+    # Generate an available canonical address
     name_part = unidecode(first_name + '.' + last_name).lower().replace(' ', '.')
     canonical_email = f"{name_part}@icecube.wisc.edu"
-    bad_numbers = {'004', '009', '013', '042', '049', '069', '666', '999'}
-    while True:
-        dup_canonical = bool( await list_users(query={'canonical_email': canonical_email}, rest_client=rest_client))
-        local_part = canonical_email.split('@')
-        dup_username = bool([u for u in await list_users(search=local_part, rest_client=rest_client)
-                             if u['username'] == local_part])
-        if not dup_canonical and not dup_username:
-            break
-
-        # Generate random salt taking care to avoid problematic numbers
+    while await __address_in_use(canonical_email, rest_client):
+        # Generate a "nice" random salt. Human sensitivities considerations:
+        # - Avoid small numbers. First.last.2 is a disappointing address to have.
+        # - Start with 100 or zero-pad to avoid local parts like first.last.91,
+        #   where 91 could be interpreted as the user's date of birth.
+        # - Avoid culturally problematic numbers. Starting from 100 takes care
+        #   of 13, 69, and all the Asian ones I know. Avoid 690 (69 with a zero).
+        # - Avoid 666+/-1, 999 (666 upside down).
         while True:
-            # zero-pad the random salt to avoid addresses like like first.last.91,
-            # where 91 could be interpreted as the user's year of birth.
-            salt = f"{randint(0,999):03}"
-            if salt not in bad_numbers:
-                break
-        canonical_email = f'{name_part}.{salt}@icecube.wisc.edu'
-
-
-
-        # Come up with a canonical email for the user, making sure it's not
-        # the same as an existing primary or canonical email. At this time,
-        # it's impossible for a canonical email to match a primary email, but
-        # be paranoid of future changes and check anyway.
-        while await list_users(search=)
-
-
-        canonical_email = f'{name_part}.{randint(0,999):03}@icecube.wisc.edu'
+            salt = str(randint(100, 998))
+            if any(bad in salt for bad in ('69', '66')):
+                continue
+            break
+        canonical_email = f'{name_part}{salt}@icecube.wisc.edu'
     attribs['canonical_email'] = canonical_email
 
     logger.info(f'creating user "{username}"')
