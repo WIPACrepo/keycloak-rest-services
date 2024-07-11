@@ -33,7 +33,7 @@ async def test_list_user_attr_query_simple(keycloak_bootstrap):
     await users.create_user('mult_attrs_non_match', first_name='f', last_name='l', email='9@test',
                             attribs={'mult1': 1, 'mult2': 999}, rest_client=keycloak_bootstrap)
 
-    ret = await users.list_users(attr_query={'mult1': 1, 'mult2': 1}, rest_client=keycloak_bootstrap)
+    ret = await users.list_users(attr_query={'mult1': 1, 'mult2': 2}, rest_client=keycloak_bootstrap)
     assert sorted(ret.keys()) == ['mult_attrs_match1', 'mult_attrs_match2']
 
 
