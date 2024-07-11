@@ -33,6 +33,19 @@ async def test_create_user(keycloak_bootstrap):
     ret = await users.user_info('testuser', rest_client=keycloak_bootstrap)
     assert ret['attributes'] == {'canonical_email': 'first.mu.last@icecube.wisc.edu'}
 
+
+# noinspection LongLine
+@pytest.mark.asyncio
+async def test_create_user_same_names(keycloak_bootstrap):
+    await users.create_user('same-name-1', first_name='Fĭrst', last_name='Mü Lăst', email='foo1@test', rest_client=keycloak_bootstrap)
+    await users.create_user('same-name-2', first_name='Fĭrst', last_name='Mü Lăst', email='foo2@test', rest_client=keycloak_bootstrap)
+    user1 = await users.user_info('same-name-1', rest_client=keycloak_bootstrap)
+    assert user1['attributes']['canonical_email'] == 'first.mu.last@icecube.wisc.edu'
+    user2 = await users.user_info('same-name-2', rest_client=keycloak_bootstrap)
+    assert user2['attributes']['canonical_email'] != 'first.mu.last@icecube.wisc.edu'
+    assert user2['attributes']['canonical_email'].startswith('first.mu.last')
+
+
 @pytest.mark.asyncio
 async def test_modify_user(keycloak_bootstrap):
     await users.create_user('testuser', first_name='first', last_name='last', email='foo@test', rest_client=keycloak_bootstrap)

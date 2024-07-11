@@ -20,22 +20,56 @@ class UserDoesNotExist(Exception):
     pass
 
 
-async def list_users(search=None, rest_client=None):
+async def list_users(search=None, attr_query=None, rest_client=None):
     """
     List users in Keycloak.
 
+    Search and query format and semantics here:
+    https://www.keycloak.org/docs-api/24.0.1/rest-api/index.html
+
+    The `search` parameter filters by a string contained in username, first or
+    last name, or email. Default search behavior is prefix-based (e.g., foo
+    or foo*). Use *foo* for infix search and "foo" for exact search. As of
+    Keycloak 24, suffix searching is not possible.
+
+    The `query` parameter filters by custom attributes. It should be of the
+    form {'attr_name': 'attr_value', ...}.
+
+    Args:
+        search (str|None): username/name/email search (see above)
+        attr_query (dict|None): attribute search (see above)
+        rest_client (RestClient): Keycloak REST client
     Returns:
         dict: username: user info
     """
+    if search and attr_query:
+        # As of KeyCloak 24, the q parameter is ignored if search is specified
+        raise ValueError("Parameters search and query are mutually exclusive")
+
+    # Validate and if necessary/possible make the queries suitable for embedding in URL
+    if attr_query:
+        for key, value in attr_query.copy().items():
+            if set('&"\'') & (set(str(value)) | set(str(key))):
+                raise NotImplementedError(f"Not yet capable of encoding attribute query {attr_query}")
+            if ' ' in str(value):
+                attr_query[key] = f'"{value}"'
+            if ' ' in str(key) or ':' in str(key):
+                new_key = f'"{key}"'
+                if new_key in attr_query:
+                    raise NotImplementedError(f"Not yet capable of encoding attribute {attr_query}")
+                attr_query[new_key] = attr_query[key]
+                attr_query.pop(key)
+
     inc = 50
     ret = {}
-
     num_users = await rest_client.request('GET', '/users/count')
-
     for start in range(0, num_users, inc):
         url = f'/users?&max={min(inc, num_users - start)}&first={start}'
         if search:
             url += f'&search={search}'
+        if attr_query:
+            # query format here: https://www.keycloak.org/docs-api/24.0.1/rest-api/index.html
+            url += "&q=" + " ".join(f"{key}:{val}" for key, val in attr_query.items())
         data = await rest_client.request('GET', url)
         for u in data:
             fix_singleton_attributes(u)
@@ -217,6 +251,8 @@ def main():
     subparsers = parser.add_subparsers()
     parser_list = subparsers.add_parser('list', help='list users')
     parser_list.add_argument('--search', default=None, help='search string')
+    parser_list.add_argument('--attr-query', nargs='+', default=None, metavar='NAME VALUE',
+                             help='query by conjunction of custom attributes')
     parser_list.set_defaults(func=list_users)
     parser_info = subparsers.add_parser('info', help='user info')
     parser_info.add_argument('username', help='user name')
@@ -251,6 +287,11 @@ def main():
 
     rest_client = get_rest_client()
     func = args.pop('func')
+    if 'attr_query' in args:
+        query_pairs = args['attr_query']
+        if len(query_pairs) % 2:
+            parser.error('The number of arguments to --attr-query must be even')
+        args['attr_query'] = dict(zip(query_pairs[:-1:2], query_pairs[1::2]))
     if 'attribs' in args:
         args['attribs'] = {item.split('=', 1)[0]: item.split('=', 1)[-1] for item in args['attribs']}
     ret = asyncio.run(func(rest_client=rest_client, **args))
