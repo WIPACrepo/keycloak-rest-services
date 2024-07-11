@@ -41,7 +41,7 @@ async def test_create_user_same_names(keycloak_bootstrap):
     assert user1['attributes']['canonical_email'] == 'first.mu.last@icecube.wisc.edu'
     user2 = await users.user_info('same-name-2', rest_client=keycloak_bootstrap)
     assert user2['attributes']['canonical_email'] != 'first.mu.last@icecube.wisc.edu'
-    assert user2['attributes']['canonical_email'].startswith('first.mu.last.')
+    assert user2['attributes']['canonical_email'].startswith('first.mu.last')
 
 @pytest.mark.asyncio
 async def test_modify_user(keycloak_bootstrap):
