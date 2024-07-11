@@ -46,12 +46,19 @@ async def list_users(search=None, attr_query=None, rest_client=None):
         # As of KeyCloak 24, the q parameter is ignored if search is specified,
         raise ValueError("Parameters search and query are mutually exclusive")
 
+    # Validate and if necessary/possible make the query suitable for embedding in URL
     if attr_query:
-        for key, value in attr_query.items():
-            if {'&', '"', "'"} & set(value):
-                raise NotImplementedError("Handling of special characters not implemented")
-            if ' ' in value:
+        for key, value in attr_query.copy().items():
+            if set("&'\"") & (set(value) | set(key)):
+                raise NotImplementedError(f"Not sure I am capable of correctly encoding query {attr_query}")
+            if isinstance(value, str) and ' ' in value:
                 attr_query[key] = f'"{value}"'
+            if ' ' in key or ':' in key:
+                new_key = f'"{key}"'
+                if new_key in attr_query:
+                    raise NotImplementedError(f"Not sure I am capable of correctly encoding query {attr_query}")
+                attr_query[new_key] = attr_query[key]
+                attr_query.pop(key)
 
     inc = 50
     ret = {}
