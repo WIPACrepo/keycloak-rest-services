@@ -6,7 +6,6 @@ https://bookstack.icecube.wisc.edu/ops/books/services/page/custom-keycloak-attri
 """
 import asyncio
 import logging
-import sys
 from random import randint
 # noinspection PyPackageRequirements
 from unidecode import unidecode
@@ -54,13 +53,13 @@ async def list_users(search=None, attr_query=None, rest_client=None):
     if attr_query:
         for key, value in attr_query.copy().items():
             if set('&"\'') & (set(str(value)) | set(str(key))):
-                raise NotImplementedError(f"Not yet capable of encoding {attr_query}")
+                raise NotImplementedError(f"Not yet capable of encoding attribute query {attr_query}")
             if ' ' in str(value):
                 attr_query[key] = f'"{value}"'
             if ' ' in str(key) or ':' in str(key):
                 new_key = f'"{key}"'
                 if new_key in attr_query:
-                    raise NotImplementedError(f"Not yet capable of encoding {attr_query}")
+                    raise NotImplementedError(f"Not yet capable of encoding attribute {attr_query}")
                 attr_query[new_key] = attr_query[key]
                 attr_query.pop(key)
 
@@ -261,7 +260,7 @@ async def set_user_password(username, password=None, temporary=False, rest_clien
             'value': password,
             'temporary': bool(temporary),
         }
-        ret = await rest_client.request('PUT', url, args)
+        await rest_client.request('PUT', url, args)
         logger.info(f'user "{username}" password set')
 
 
@@ -279,7 +278,7 @@ async def delete_user(username, rest_client=None):
         logger.info(f'user "{username}" does not exist')
     else:
         url = f'/users/{ret["id"]}'
-        ret = await rest_client.request('DELETE', url)
+        await rest_client.request('DELETE', url)
         logger.info(f'user "{username}" deleted')
 
 
@@ -331,7 +330,7 @@ def main():
     if 'attr_query' in args:
         query_pairs = args['attr_query']
         if len(query_pairs) % 2:
-            parser.error('The number arguments to --attr-query must be even')
+            parser.error('The number of arguments to --attr-query must be even')
         args['attr_query'] = dict(zip(query_pairs[:-1:2], query_pairs[1::2]))
     if 'attribs' in args:
         args['attribs'] = {item.split('=', 1)[0]: item.split('=', 1)[-1] for item in args['attribs']}
