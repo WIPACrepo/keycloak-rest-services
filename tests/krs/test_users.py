@@ -1,15 +1,18 @@
+# noinspection PyPackageRequirements
 import pytest
 
-from krs.token import get_token
 from krs import users
 
 from ..util import keycloak_bootstrap
+
 
 @pytest.mark.asyncio
 async def test_list_users_empty(keycloak_bootstrap):
     ret = await users.list_users(rest_client=keycloak_bootstrap)
     assert ret == {}
 
+
+# noinspection LongLine
 @pytest.mark.asyncio
 async def test_list_users(keycloak_bootstrap):
     await users.create_user('testuser', first_name='first', last_name='last', email='foo@test', rest_client=keycloak_bootstrap)
@@ -64,6 +67,7 @@ async def test_list_user_attr_query_invalid(keycloak_bootstrap):
             assert not await users.list_users(attr_query={f"{char}": "not_impl_name"}, rest_client=keycloak_bootstrap)
 
 
+# noinspection LongLine
 @pytest.mark.asyncio
 async def test_user_info(keycloak_bootstrap):
     await users.create_user('testuser', first_name='first', last_name='last', email='foo@test', rest_client=keycloak_bootstrap)
@@ -72,6 +76,8 @@ async def test_user_info(keycloak_bootstrap):
     assert ret['lastName'] == 'last'
     assert ret['email'] == 'foo@test'
 
+
+# noinspection LongLine
 @pytest.mark.asyncio
 async def test_create_user(keycloak_bootstrap):
     await users.create_user('testuser', first_name='Fĭrst', last_name='Mü Lăst', email='foo@test', rest_client=keycloak_bootstrap)
@@ -100,6 +106,9 @@ async def test_modify_user(keycloak_bootstrap):
     assert 'foo' in ret['attributes']
     assert ret['attributes']['foo'] == 'bar'
 
+
+# noinspection LongLine
+# noinspection PyTypeChecker
 @pytest.mark.asyncio
 async def test_modify_user_asserts(keycloak_bootstrap):
     await users.create_user('testuser', first_name='first', last_name='last', email='foo@test', rest_client=keycloak_bootstrap)
@@ -112,6 +121,9 @@ async def test_modify_user_asserts(keycloak_bootstrap):
     with pytest.raises(RuntimeError):
         await users.modify_user('testuser', email={'foo': 'bar'}, rest_client=keycloak_bootstrap)
 
+
+# noinspection LongLine
+# noinspection PyPep8Naming
 @pytest.mark.asyncio
 async def test_modify_user_firstName(keycloak_bootstrap):
     await users.create_user('testuser', first_name='first', last_name='last', email='foo@test', rest_client=keycloak_bootstrap)
@@ -119,6 +131,9 @@ async def test_modify_user_firstName(keycloak_bootstrap):
     ret = await users.user_info('testuser', rest_client=keycloak_bootstrap)
     assert ret['firstName'] == 'bar'
 
+
+# noinspection LongLine
+# noinspection PyPep8Naming
 @pytest.mark.asyncio
 async def test_modify_user_lastName(keycloak_bootstrap):
     await users.create_user('testuser', first_name='first', last_name='last', email='foo@test', rest_client=keycloak_bootstrap)
@@ -126,6 +141,8 @@ async def test_modify_user_lastName(keycloak_bootstrap):
     ret = await users.user_info('testuser', rest_client=keycloak_bootstrap)
     assert ret['lastName'] == 'bar'
 
+
+# noinspection LongLine
 @pytest.mark.asyncio
 async def test_modify_user_email(keycloak_bootstrap):
     await users.create_user('testuser', first_name='first', last_name='last', email='foo@test', rest_client=keycloak_bootstrap)
@@ -133,6 +150,8 @@ async def test_modify_user_email(keycloak_bootstrap):
     ret = await users.user_info('testuser', rest_client=keycloak_bootstrap)
     assert ret['email'] == 'bar@test'
 
+
+# noinspection LongLine
 @pytest.mark.asyncio
 async def test_modify_user_existing_attr(keycloak_bootstrap):
     await users.create_user('testuser', first_name='first', last_name='last', email='foo@test', attribs={'foo': 'bar'}, rest_client=keycloak_bootstrap)
@@ -140,6 +159,8 @@ async def test_modify_user_existing_attr(keycloak_bootstrap):
     ret = await users.user_info('testuser', rest_client=keycloak_bootstrap)
     assert ret['attributes'] == {'foo': 'bar', 'baz': 'foo', 'canonical_email': 'first.last@icecube.wisc.edu'}
 
+
+# noinspection LongLine
 @pytest.mark.asyncio
 async def test_modify_user_attr_list(keycloak_bootstrap):
     await users.create_user('testuser', first_name='first', last_name='last', email='foo@test', attribs={'foo': ['bar', 'baz']}, rest_client=keycloak_bootstrap)
@@ -147,6 +168,8 @@ async def test_modify_user_attr_list(keycloak_bootstrap):
     ret = await users.user_info('testuser', rest_client=keycloak_bootstrap)
     assert ret['attributes'] == {'foo': ['bar', 'baz'], 'baz': ['1', '2', '3'], 'canonical_email': 'first.last@icecube.wisc.edu'}
 
+
+# noinspection LongLine
 @pytest.mark.asyncio
 async def test_modify_user_del_attr(keycloak_bootstrap):
     await users.create_user('testuser', first_name='first', last_name='last', email='foo@test', attribs={'foo': 'bar'}, rest_client=keycloak_bootstrap)
@@ -154,17 +177,24 @@ async def test_modify_user_del_attr(keycloak_bootstrap):
     ret = await users.user_info('testuser', rest_client=keycloak_bootstrap)
     assert ret['attributes'] == {'baz': 'foo', 'canonical_email': 'first.last@icecube.wisc.edu'}
 
+
+# noinspection LongLine
 @pytest.mark.asyncio
 async def test_set_user_password(keycloak_bootstrap):
     await users.create_user('testuser', first_name='first', last_name='last', email='foo@test', rest_client=keycloak_bootstrap)
     await users.set_user_password('testuser', 'foo', rest_client=keycloak_bootstrap)
 
+
+# noinspection LongLine
 @pytest.mark.asyncio
 async def test_set_user_password_bad(keycloak_bootstrap):
     await users.create_user('testuser', first_name='first', last_name='last', email='foo@test', rest_client=keycloak_bootstrap)
     with pytest.raises(Exception):
+        # noinspection PyTypeChecker
         await users.set_user_password('testuser', ['f', 'o', 'o'], rest_client=keycloak_bootstrap)
 
+
+# noinspection LongLine
 @pytest.mark.asyncio
 async def test_delete_user(keycloak_bootstrap):
     await users.create_user('testuser', first_name='first', last_name='last', email='foo@test', rest_client=keycloak_bootstrap)

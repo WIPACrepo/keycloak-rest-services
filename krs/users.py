@@ -10,6 +10,7 @@ from random import randint
 # noinspection PyPackageRequirements
 from unidecode import unidecode
 
+# noinspection PyPackageRequirements
 import requests.exceptions
 
 from .token import get_rest_client
@@ -85,6 +86,7 @@ async def user_info(username, rest_client=None):
 
     Args:
         username (str): username of user
+        rest_client (RestClient): Keycloak REST client
 
     Returns:
         dict: user info
@@ -164,7 +166,8 @@ async def create_user(username, first_name, last_name, email, attribs=None, rest
         logger.info(f'user "{username}" created')
 
 
-async def modify_user(username, first_name=None, last_name=None, email=None, attribs=None, actions=None, actions_reset=False, rest_client=None):
+async def modify_user(username, first_name=None, last_name=None, email=None, attribs=None,
+                      actions=None, actions_reset=False, rest_client=None):
     """
     Modify a user in Keycloak.
 
@@ -232,6 +235,7 @@ async def set_user_password(username, password=None, temporary=False, rest_clien
         username (str): username of user
         password (str): new password
         temporary (bool): is this a temporary password that must be changed?
+        rest_client (RestClient): Keycloak REST client
     """
     if password is None:
         # get password from cmdline
@@ -243,7 +247,7 @@ async def set_user_password(username, password=None, temporary=False, rest_clien
 
     try:
         ret = await user_info(username, rest_client=rest_client)
-    except Exception:
+    except UserDoesNotExist:
         logger.info(f'user "{username}" does not exist')
     else:
         url = f'/users/{ret["id"]}/reset-password'
@@ -251,7 +255,7 @@ async def set_user_password(username, password=None, temporary=False, rest_clien
             'value': password,
             'temporary': bool(temporary),
         }
-        ret = await rest_client.request('PUT', url, args)
+        await rest_client.request('PUT', url, args)
         logger.info(f'user "{username}" password set')
 
 
@@ -261,14 +265,15 @@ async def delete_user(username, rest_client=None):
 
     Args:
         username (str): username of user to delete
+        rest_client (RestClient): Keycloak REST client
     """
     try:
         ret = await user_info(username, rest_client=rest_client)
-    except Exception:
+    except UserDoesNotExist:
         logger.info(f'user "{username}" does not exist')
     else:
         url = f'/users/{ret["id"]}'
-        ret = await rest_client.request('DELETE', url)
+        await rest_client.request('DELETE', url)
         logger.info(f'user "{username}" deleted')
 
 
@@ -298,7 +303,8 @@ def main():
     parser_modify.add_argument('--first_name', help='first name')
     parser_modify.add_argument('--last_name', help='last name')
     parser_modify.add_argument('--email', help='email address')
-    parser_modify.add_argument('--actions', action='append', help='required actions', choices=['CONFIGURE_TOTP', 'UPDATE_PASSWORD', 'UPDATE_PROFILE', 'VERIFY_EMAIL'])
+    parser_modify.add_argument('--actions', action='append', help='required actions',
+                               choices=['CONFIGURE_TOTP', 'UPDATE_PASSWORD', 'UPDATE_PROFILE', 'VERIFY_EMAIL'])
     parser_modify.add_argument('--actions-reset', action='store_true', help='reset required actions')
     parser_modify.add_argument('attribs', nargs=argparse.REMAINDER)
     parser_modify.set_defaults(func=modify_user)
