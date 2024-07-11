@@ -6,6 +6,8 @@ https://bookstack.icecube.wisc.edu/ops/books/services/page/custom-keycloak-attri
 """
 import asyncio
 import logging
+from random import randint
+# noinspection PyPackageRequirements
 from unidecode import unidecode
 
 import requests.exceptions
@@ -96,6 +98,18 @@ async def user_info(username, rest_client=None):
     return ret[0]
 
 
+async def __address_in_use(address, rest_client):
+    if await list_users(attr_query={'canonical_email': address}, rest_client=rest_client):
+        return True
+    local_part = address.split('@')
+    try:
+        await user_info(local_part, rest_client=rest_client)
+    except UserDoesNotExist:
+        return False
+    else:
+        return True
+
+
 async def create_user(username, first_name, last_name, email, attribs=None, rest_client=None):
     """
     Create a user in Keycloak.
@@ -110,29 +124,44 @@ async def create_user(username, first_name, last_name, email, attribs=None, rest
     """
     if not attribs:
         attribs = {}
-    attribs['canonical_email'] = unidecode(first_name + '.' + last_name).lower().replace(' ', '.') + "@icecube.wisc.edu"
 
     try:
         await user_info(username, rest_client=rest_client)
-    except Exception:
-        logger.info(f'creating user "{username}"')
-        user = {
-            'email': email,
-            'firstName': first_name,
-            'lastName': last_name,
-            'username': username,
-            'enabled': True,
-            'attributes': attribs,
-        }
-
-        try:
-            await rest_client.request('POST', '/users', user)
-        except requests.exceptions.HTTPError as e:
-            logger.error('Keycloak returned HTTP error %r: %r', e.response.status_code, e.response.text)
-            raise
-        logger.info(f'user "{username}" created')
+    except UserDoesNotExist:
+        pass
     else:
         logger.info(f'user "{username}" already exists')
+        return
+
+    if 'canonical_email' in attribs:
+        raise NotImplementedError("Support for custom canonical addresses not implemented")
+    # Generate a canonical address that is not being used
+    name_part = unidecode(first_name + '.' + last_name).lower().replace(' ', '.')
+    canonical_email = f"{name_part}@icecube.wisc.edu"
+    # If the standard canonical address is in use, generate a "nice" random salt.
+    while await __address_in_use(canonical_email, rest_client):
+        # The range was chosen to avoid numbers problematic in various cultures, small numbers
+        # (e.g. john.doe2@ is just sad), and numbers that look like birth years (e.g. foo.bar91)
+        salt = str(randint(100, 600))
+        canonical_email = f'{name_part}{salt}@icecube.wisc.edu'
+    attribs['canonical_email'] = canonical_email
+
+    logger.info(f'creating user "{username}"')
+    user = {
+        'email': email,
+        'firstName': first_name,
+        'lastName': last_name,
+        'username': username,
+        'enabled': True,
+        'attributes': attribs,
+    }
+    try:
+        await rest_client.request('POST', '/users', user)
+    except requests.exceptions.HTTPError as e:
+        logger.error('Keycloak returned HTTP error %r: %r', e.response.status_code, e.response.text)
+        raise
+    else:
+        logger.info(f'user "{username}" created')
 
 
 async def modify_user(username, first_name=None, last_name=None, email=None, attribs=None, actions=None, actions_reset=False, rest_client=None):

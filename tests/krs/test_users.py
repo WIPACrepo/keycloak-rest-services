@@ -19,6 +19,51 @@ async def test_list_users(keycloak_bootstrap):
     assert ret['testuser']['lastName'] == 'last'
     assert ret['testuser']['email'] == 'foo@test'
 
+
+# noinspection LongLine
+@pytest.mark.asyncio
+async def test_list_user_attr_query_simple(keycloak_bootstrap):
+    await users.create_user('mult_attrs_match1', first_name='f', last_name='l', email='7@test',
+                            attribs={'mult1': 1, 'mult2': 2}, rest_client=keycloak_bootstrap)
+    await users.create_user('mult_attrs_match2', first_name='f', last_name='l', email='8@test',
+                            attribs={'mult1': 1, 'mult2': 2}, rest_client=keycloak_bootstrap)
+    await users.create_user('mult_attrs_non_match', first_name='f', last_name='l', email='9@test',
+                            attribs={'mult1': 1, 'mult2': 999}, rest_client=keycloak_bootstrap)
+
+    ret = await users.list_users(attr_query={'mult1': 1, 'mult2': 2}, rest_client=keycloak_bootstrap)
+    assert sorted(ret.keys()) == ['mult_attrs_match1', 'mult_attrs_match2']
+
+
+# noinspection LongLine
+@pytest.mark.asyncio
+async def test_list_user_attr_query_transforms(keycloak_bootstrap):
+    await users.create_user('spaces', first_name='f', last_name='l', email='spaces@test',
+                            attribs={'_ _': '_ _'}, rest_client=keycloak_bootstrap)
+    ret = await users.list_users(attr_query={'_ _': '_ _'}, rest_client=keycloak_bootstrap)
+    assert sorted(ret.keys()) == ['spaces']
+
+    await users.create_user('colons', first_name='f', last_name='l', email='colons@test',
+                            attribs={':': ':'}, rest_client=keycloak_bootstrap)
+    ret = await users.list_users(attr_query={':': ':'}, rest_client=keycloak_bootstrap)
+    assert sorted(ret.keys()) == ['colons']
+
+
+# noinspection LongLine
+@pytest.mark.asyncio
+async def test_list_user_attr_query_invalid(keycloak_bootstrap):
+    bad_chars = "&'\""
+    for i, char in enumerate(bad_chars):
+        await users.create_user(f'attr_val_not_impl{i}', first_name='f', last_name='l', email=f'val-not-impl{i}@test',
+                                attribs={'not_impl_val': f"{char}"}, rest_client=keycloak_bootstrap)
+        with pytest.raises(NotImplementedError):
+            assert not await users.list_users(attr_query={'not_impl_val': f"{char}"}, rest_client=keycloak_bootstrap)
+
+        await users.create_user(f'attr_name_not_impl{i}', first_name='f', last_name='l', email=f'name-not-impl{i}@test',
+                                attribs={f'{char}': 'not_impl_name'}, rest_client=keycloak_bootstrap)
+        with pytest.raises(NotImplementedError):
+            assert not await users.list_users(attr_query={f"{char}": "not_impl_name"}, rest_client=keycloak_bootstrap)
+
+
 @pytest.mark.asyncio
 async def test_user_info(keycloak_bootstrap):
     await users.create_user('testuser', first_name='first', last_name='last', email='foo@test', rest_client=keycloak_bootstrap)
@@ -46,6 +91,7 @@ async def test_create_user_same_names(keycloak_bootstrap):
     assert user2['attributes']['canonical_email'].startswith('first.mu.last')
 
 
+# noinspection LongLine
 @pytest.mark.asyncio
 async def test_modify_user(keycloak_bootstrap):
     await users.create_user('testuser', first_name='first', last_name='last', email='foo@test', rest_client=keycloak_bootstrap)
