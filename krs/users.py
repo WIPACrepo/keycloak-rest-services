@@ -53,13 +53,13 @@ async def list_users(search=None, attr_query=None, rest_client=None):
     if attr_query:
         for key, value in attr_query.copy().items():
             if set('&"\'') & (set(str(value)) | set(str(key))):
-                raise NotImplementedError(f"Not sure I am capable of correctly encoding query {attr_query}")
-            if isinstance(value, str) and ' ' in value:
+                raise NotImplementedError(f"Not yet capable of encoding {attr_query}")
+            if ' ' in str(value):
                 attr_query[key] = f'"{value}"'
             if ' ' in str(key) or ':' in str(key):
                 new_key = f'"{key}"'
                 if new_key in attr_query:
-                    raise NotImplementedError(f"Not sure I am capable of correctly encoding query {attr_query}")
+                    raise NotImplementedError(f"Not yet capable of encoding {attr_query}")
                 attr_query[new_key] = attr_query[key]
                 attr_query.pop(key)
 
