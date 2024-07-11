@@ -41,8 +41,8 @@ async def test_list_user_attr_query_simple(keycloak_bootstrap):
 @pytest.mark.asyncio
 async def test_list_user_attr_query_transforms(keycloak_bootstrap):
     await users.create_user('spaces', first_name='f', last_name='l', email='spaces@test',
-                            attribs={' ': ' '}, rest_client=keycloak_bootstrap)
-    ret = await users.list_users(attr_query={' ': ' '}, rest_client=keycloak_bootstrap)
+                            attribs={'_ _': '_ _'}, rest_client=keycloak_bootstrap)
+    ret = await users.list_users(attr_query={'_ _': '_ _'}, rest_client=keycloak_bootstrap)
     assert sorted(ret.keys()) == ['spaces']
 
     await users.create_user('colons', first_name='f', last_name='l', email='colons@test',
