@@ -26,7 +26,7 @@ httplib2==0.22.0
 idna==3.7
 jsonpath-ng==1.6.1
 ldap3==2.9.1
-motor==3.5.0
+motor==3.5.1
 multidict==6.0.5
 oauthlib==3.2.2
 pamqp==3.3.0
@@ -132,7 +132,7 @@ wipac-keycloak-rest-services
 ├── attrs [required: Any, installed: 23.2.0]
 ├── ldap3 [required: Any, installed: 2.9.1]
 │   └── pyasn1 [required: >=0.4.6, installed: 0.6.0]
-├── motor [required: Any, installed: 3.5.0]
+├── motor [required: Any, installed: 3.5.1]
 │   └── pymongo [required: >=4.5,<5, installed: 4.8.0]
 │       └── dnspython [required: >=1.16.0,<3.0.0, installed: 2.6.1]
 ├── requests [required: Any, installed: 2.32.3]
