@@ -27,6 +27,9 @@ async def list_users(search=None, attr_query=None, rest_client=None):
     """
     List users in Keycloak.
 
+    Search and query format and semantics here:
+    https://www.keycloak.org/docs-api/24.0.1/rest-api/index.html
+
     The `search` parameter filters by a string contained in username, first or
     last name, or email. Default search behavior is prefix-based (e.g., foo
     or foo*). Use *foo* for infix search and "foo" for exact search. As of
@@ -49,11 +52,11 @@ async def list_users(search=None, attr_query=None, rest_client=None):
     # Validate and if necessary/possible make the queries suitable for embedding in URL
     if attr_query:
         for key, value in attr_query.copy().items():
-            if set('&"\'') & (set(value) | set(key)):
+            if set('&"\'') & (set(str(value)) | set(str(key))):
                 raise NotImplementedError(f"Not sure I am capable of correctly encoding query {attr_query}")
             if isinstance(value, str) and ' ' in value:
                 attr_query[key] = f'"{value}"'
-            if ' ' in key or ':' in key:
+            if ' ' in str(key) or ':' in str(key):
                 new_key = f'"{key}"'
                 if new_key in attr_query:
                     raise NotImplementedError(f"Not sure I am capable of correctly encoding query {attr_query}")
@@ -68,6 +71,7 @@ async def list_users(search=None, attr_query=None, rest_client=None):
         if search:
             url += f'&search={search}'
         if attr_query:
+            # query format here: https://www.keycloak.org/docs-api/24.0.1/rest-api/index.html
             url += "&q=" + " ".join(f"{key}:{val}" for key, val in attr_query.items())
         data = await rest_client.request('GET', url)
         for u in data:
