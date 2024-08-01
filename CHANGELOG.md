@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.108 (2024-08-01)
+
+### Other
+
+* <bot> update dependencies*.log files(s) ([`b2a7078`](https://github.com/WIPACrepo/keycloak-rest-services/commit/b2a7078669d394756bb2d94fcb860d561d12a6e7))
+* Generate unique canonical emails ([#161](https://github.com/WIPACrepo/keycloak-rest-services/issues/161)) ([`374fcad`](https://github.com/WIPACrepo/keycloak-rest-services/commit/374fcada2c0bb91ce209cbcbb9a32f6648f1d0ab))
+
 ## v1.4.107 (2024-07-10)
 
 ### Other
