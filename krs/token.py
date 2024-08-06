@@ -23,7 +23,7 @@ def get_token(url, client_id, client_secret, client_realm='master'):
     return req['access_token']
 
 
-def get_rest_client(retries=None, timeout=10):
+def get_rest_client(retries=None, timeout=15):
     config = from_environment({
         'KEYCLOAK_REALM': 'icecube',
         'KEYCLOAK_URL': 'https://keycloak.icecube.wisc.edu',
