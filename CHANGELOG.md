@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.109 (2024-10-17)
+
+### Other
+
+* Delete actions/create_email_account.py ([#163](https://github.com/WIPACrepo/keycloak-rest-services/issues/163)) ([`0c56756`](https://github.com/WIPACrepo/keycloak-rest-services/commit/0c5675679674b4f896e6bdb58f1912eb57cecf6c))
+
 ## v1.4.108 (2024-08-01)
 
 ### Other
