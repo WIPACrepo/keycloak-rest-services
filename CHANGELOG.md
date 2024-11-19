@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.110 (2024-11-19)
+
+### Other
+
+* Keycloak 26 docker upgrades ([#164](https://github.com/WIPACrepo/keycloak-rest-services/issues/164)) ([`2547f3a`](https://github.com/WIPACrepo/keycloak-rest-services/commit/2547f3a7d0db2948a6376296a980c9c1103c6d3a))
+
 ## v1.4.109 (2024-10-17)
 
 ### Other
