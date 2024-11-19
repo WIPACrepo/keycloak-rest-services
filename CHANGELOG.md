@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.111 (2024-11-19)
+
+### Other
+
+* Use a form of datetime.now() that works with more versions of python ([`3883969`](https://github.com/WIPACrepo/keycloak-rest-services/commit/388396943d28919a6504d91c0ed6b71c8a724acf))
+* Address datetime.utcnow deprecation ([`8cd889e`](https://github.com/WIPACrepo/keycloak-rest-services/commit/8cd889e0c934d54d94ea203cacfc7c5749542ac7))
+
 ## v1.4.110 (2024-11-19)
 
 ### Other
