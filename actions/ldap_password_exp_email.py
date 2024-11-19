@@ -2,7 +2,7 @@
 Send emails about password expiration.
 """
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 import logging
 from pprint import pprint
 import time
@@ -49,7 +49,7 @@ where you can reset your password.
 
 async def _get_expired_users(ldap_users, usernames):
     today = int(time.time()/3600/24)
-    now = datetime.utcnow()
+    now = datetime.now(UTC)
 
     expiring_users = {}
     expired_users = {}
