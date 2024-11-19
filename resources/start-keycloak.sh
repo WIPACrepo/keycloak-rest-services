@@ -2,7 +2,7 @@
 docker build -t krs-test-keycloak -f ./resources/keycloak-image/Dockerfile .
 
 docker run -d --name keycloak --network host \
-  --env KEYCLOAK_ADMIN=admin --env KEYCLOAK_ADMIN_PASSWORD=admin \
+  --env KC_BOOTSTRAP_ADMIN_USERNAME=admin --env KC_BOOTSTRAP_ADMIN_PASSWORD=admin \
   krs-test-keycloak start-dev
 
 until curl http://localhost:8080 >/dev/null 2>/dev/null
