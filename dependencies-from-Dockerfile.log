@@ -54,7 +54,7 @@ urllib3==2.2.3
 wipac-dev-tools==1.13.0
 -e /home/keycloak
 wipac-rest-tools==1.8.2
-yarl==1.17.2
+yarl==1.18.0
 ########################################################################
 #  pipdeptree
 ########################################################################
@@ -124,13 +124,13 @@ wipac-keycloak-rest-services
 ├── aio-pika [required: Any, installed: 9.5.0]
 │   ├── aiormq [required: >=6.8.0,<6.9.0, installed: 6.8.1]
 │   │   ├── pamqp [required: ==3.3.0, installed: 3.3.0]
-│   │   └── yarl [required: Any, installed: 1.17.2]
+│   │   └── yarl [required: Any, installed: 1.18.0]
 │   │       ├── idna [required: >=2.0, installed: 3.10]
 │   │       ├── multidict [required: >=4.0, installed: 6.1.0]
 │   │       │   └── typing_extensions [required: >=4.1.0, installed: 4.12.2]
 │   │       └── propcache [required: >=0.2.0, installed: 0.2.0]
 │   ├── exceptiongroup [required: >=1,<2, installed: 1.2.2]
-│   └── yarl [required: Any, installed: 1.17.2]
+│   └── yarl [required: Any, installed: 1.18.0]
 │       ├── idna [required: >=2.0, installed: 3.10]
 │       ├── multidict [required: >=4.0, installed: 6.1.0]
 │       │   └── typing_extensions [required: >=4.1.0, installed: 4.12.2]
