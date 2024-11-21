@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.112 (2024-11-21)
+
+### Other
+
+* <bot> update dependencies*.log files(s) ([`85da40b`](https://github.com/WIPACrepo/keycloak-rest-services/commit/85da40b4c637e262c78f5948d8d9c8b3ac2df087))
+* Add scope "basic" to user_mgmt_app() ([#165](https://github.com/WIPACrepo/keycloak-rest-services/issues/165)) ([`bd896f5`](https://github.com/WIPACrepo/keycloak-rest-services/commit/bd896f570a65b950a724403f0a00ccf8ef7d91b2))
+
 ## v1.4.111 (2024-11-19)
 
 ### Other
