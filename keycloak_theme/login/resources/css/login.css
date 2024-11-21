@@ -1,7 +1,5 @@
 .login-pf body {
-    background: #eee;
-    background-size: cover;
-    height: 100%;
+    background: #3773a2;
 }
 
 .login-pf .login-pf-page .card-pf {
@@ -10,8 +8,8 @@
 }
 
 #kc-header-wrapper img {
-    height: 60px;
     width: 228px;
+    height: 60px;
     max-width: 228px;
     text-align: center;
 }

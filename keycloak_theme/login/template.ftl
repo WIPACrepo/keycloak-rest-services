@@ -1,6 +1,6 @@
-<#macro registrationLayout bodyClass="" displayInfo=false displayMessage=true displayRequiredFields=false showAnotherWayIfPresent=true>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" class="${properties.kcHtmlClass!}">
+<#macro registrationLayout bodyClass="" displayInfo=false displayMessage=true displayRequiredFields=false>
+<!DOCTYPE html>
+<html class="${properties.kcHtmlClass!}"<#if realm.internationalizationEnabled> lang="${locale.currentLanguageTag}"</#if>>
 
 <head>
     <meta charset="utf-8">
@@ -29,10 +29,22 @@
             <script src="${url.resourcesPath}/${script}" type="text/javascript"></script>
         </#list>
     </#if>
+    <script src="${url.resourcesPath}/js/menu-button-links.js" type="module"></script>
     <#if scripts??>
         <#list scripts as script>
             <script src="${script}" type="text/javascript"></script>
         </#list>
+    </#if>
+    <#if authenticationSession??>
+        <script type="module">
+            import { checkCookiesAndSetTimer } from "${url.resourcesPath}/js/authChecker.js";
+
+            checkCookiesAndSetTimer(
+              "${authenticationSession.authSessionId}",
+              "${authenticationSession.tabId}",
+              "${url.ssoLoginInOtherTabsUrl?no_esc}"
+            );
+        </script>
     </#if>
 </head>
 
@@ -40,26 +52,28 @@
 <div class="${properties.kcLoginClass!}">
     <div id="kc-header" class="${properties.kcHeaderClass!}">
         <div id="kc-header-wrapper"
-             class="${properties.kcHeaderWrapperClass!}">
-             <img src="${url.resourcesPath}/img/icecube_logo.png" alt="${kcSanitize(msg('loginTitleHtml',(realm.displayName!'')))}" />
-        </div>
+             class="${properties.kcHeaderWrapperClass!}"><img src="${url.resourcesPath}/img/icecube_logo.png" alt="${kcSanitize(msg('loginTitleHtml',(realm.displayNameHtml!'')))?no_esc}" /></div>
     </div>
     <div class="${properties.kcFormCardClass!}">
         <header class="${properties.kcFormHeaderClass!}">
             <#if realm.internationalizationEnabled  && locale.supported?size gt 1>
-                <div id="kc-locale">
+                <div class="${properties.kcLocaleMainClass!}" id="kc-locale">
                     <div id="kc-locale-wrapper" class="${properties.kcLocaleWrapperClass!}">
-                        <div class="kc-dropdown" id="kc-locale-dropdown">
-                            <a href="#" id="kc-current-locale-link">${locale.current}</a>
-                            <ul>
+                        <div id="kc-locale-dropdown" class="menu-button-links ${properties.kcLocaleDropDownClass!}">
+                            <button tabindex="1" id="kc-current-locale-link" aria-label="${msg("languages")}" aria-haspopup="true" aria-expanded="false" aria-controls="language-switch1">${locale.current}</button>
+                            <ul role="menu" tabindex="-1" aria-labelledby="kc-current-locale-link" aria-activedescendant="" id="language-switch1" class="${properties.kcLocaleListClass!}">
+                                <#assign i = 1>
                                 <#list locale.supported as l>
-                                    <li class="kc-dropdown-item"><a href="${l.url}">${l.label}</a></li>
+                                    <li class="${properties.kcLocaleListItemClass!}" role="none">
+                                        <a role="menuitem" id="language-${i}" class="${properties.kcLocaleItemClass!}" href="${l.url}">${l.label}</a>
+                                    </li>
+                                    <#assign i++>
                                 </#list>
-                        </ul>
+                            </ul>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </#if>
+            </#if>
         <#if !(auth?has_content && auth.showUsername() && !auth.showResetCredentials())>
             <#if displayRequiredFields>
                 <div class="${properties.kcContentWrapperClass!}">
@@ -83,7 +97,7 @@
                         <#nested "show-username">
                         <div id="kc-username" class="${properties.kcFormGroupClass!}">
                             <label id="kc-attempted-username">${auth.attemptedUsername}</label>
-                            <a id="reset-login" href="${url.loginRestartFlowUrl}">
+                            <a id="reset-login" href="${url.loginRestartFlowUrl}" aria-label="${msg("restartLoginTooltip")}">
                                 <div class="kc-login-tooltip">
                                     <i class="${properties.kcResetFlowIcon!}"></i>
                                     <span class="kc-tooltip-text">${msg("restartLoginTooltip")}</span>
@@ -96,7 +110,7 @@
                 <#nested "show-username">
                 <div id="kc-username" class="${properties.kcFormGroupClass!}">
                     <label id="kc-attempted-username">${auth.attemptedUsername}</label>
-                    <a id="reset-login" href="${url.loginRestartFlowUrl}">
+                    <a id="reset-login" href="${url.loginRestartFlowUrl}" aria-label="${msg("restartLoginTooltip")}">
                         <div class="kc-login-tooltip">
                             <i class="${properties.kcResetFlowIcon!}"></i>
                             <span class="kc-tooltip-text">${msg("restartLoginTooltip")}</span>
@@ -125,15 +139,17 @@
 
           <#nested "form">
 
-            <#if auth?has_content && auth.showTryAnotherWayLink() && showAnotherWayIfPresent>
-                <form id="kc-select-try-another-way-form" action="${url.loginAction}" method="post">
-                    <div class="${properties.kcFormGroupClass!}">
-                        <input type="hidden" name="tryAnotherWay" value="on"/>
-                        <a href="#" id="try-another-way"
-                           onclick="document.forms['kc-select-try-another-way-form'].submit();return false;">${msg("doTryAnotherWay")}</a>
-                    </div>
-                </form>
-            </#if>
+          <#if auth?has_content && auth.showTryAnotherWayLink()>
+              <form id="kc-select-try-another-way-form" action="${url.loginAction}" method="post">
+                  <div class="${properties.kcFormGroupClass!}">
+                      <input type="hidden" name="tryAnotherWay" value="on"/>
+                      <a href="#" id="try-another-way"
+                         onclick="document.forms['kc-select-try-another-way-form'].submit();return false;">${msg("doTryAnotherWay")}</a>
+                  </div>
+              </form>
+          </#if>
+
+          <#nested "socialProviders">
 
           <#if displayInfo>
               <div id="kc-info" class="${properties.kcSignUpClass!}">
