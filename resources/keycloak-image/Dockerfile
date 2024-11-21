@@ -13,7 +13,7 @@ ENV KK_TO_RMQ_PASSWORD=admin
 ENV KK_TO_RMQ_VHOST=keycloak
 
 # theme
-#COPY keycloak_theme /opt/keycloak/themes/keycloak
+COPY keycloak_theme /opt/keycloak/themes/i3_theme
 
 # testing TLS cert
 #RUN keytool -genkeypair -storepass password -storetype PKCS12 -keyalg RSA -keysize 2048 -dname "CN=server" -alias server -ext "SAN:c=DNS:localhost,IP:127.0.0.1" -keystore /opt/keycloak/conf/server.keystore
