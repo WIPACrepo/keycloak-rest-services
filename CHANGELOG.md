@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.113 (2024-11-21)
+
+### Other
+
+* Update keycloak theme ([#166](https://github.com/WIPACrepo/keycloak-rest-services/issues/166)) ([`7eaedfa`](https://github.com/WIPACrepo/keycloak-rest-services/commit/7eaedfae11e09068d61836a8464829528fd7300c))
+
 ## v1.4.112 (2024-11-21)
 
 ### Other
