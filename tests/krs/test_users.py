@@ -37,6 +37,7 @@ async def test_list_users(keycloak_bootstrap):
 async def test_important_user_attr_query_quirks(keycloak_bootstrap):
     await users.create_user('user', first_name='f', last_name='l', email='user@test',
                             attribs={'colon:in:key': 1}, rest_client=keycloak_bootstrap)
+    # Query format buried here: https://www.keycloak.org/docs-api/26.0.6/rest-api/index.html
     res = await keycloak_bootstrap.request('GET', '/users?q="colon:in:key":1')
     assert not res
 
