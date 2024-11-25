@@ -23,6 +23,24 @@ async def test_list_users(keycloak_bootstrap):
     assert ret['testuser']['email'] == 'foo@test'
 
 
+# krs.users.list_users()'s query validation is based in part on assumptions about
+# version-specific behavior of Keycloak. Some of this assumed behavior is problematic
+# from the operational standpoint and could be result of bugs that prevent certain
+# valid attribute keys/values to be queried using the /users q= API. The purpose of
+# this test is to confirm out-of-band that the *reasonable* queries blocked by the
+# validation code of krs.users.list_users() indeed don't work correctly with the
+# version of Keycloak being tested. If this test fails, krs.users.list_users()'s
+# query *validation* logic needs to be updated to allow the type of query in question
+# (proper handling of the query should be tested elsewhere)
+# noinspection LongLine
+@pytest.mark.asyncio
+async def test_important_user_attr_query_quirks(keycloak_bootstrap):
+    await users.create_user('user', first_name='f', last_name='l', email='user@test',
+                            attribs={'colon:in:key': 1}, rest_client=keycloak_bootstrap)
+    res = await keycloak_bootstrap.request('GET', '/users?q="colon:in:key":1')
+    assert not res
+
+
 # noinspection LongLine
 @pytest.mark.asyncio
 async def test_list_user_attr_query_simple(keycloak_bootstrap):
@@ -37,34 +55,67 @@ async def test_list_user_attr_query_simple(keycloak_bootstrap):
     assert sorted(ret.keys()) == ['mult_attrs_match1', 'mult_attrs_match2']
 
 
+# Construct "tricky" user attribute query keys and values that are valid,
+# but need to be handled with care by krs.users.list_users() (simple cases
+# should be tested from test_list_user_attr_query_simple(). The intention
+# here is not to be exhaustive and try to detect every minute change in
+# behavior between Keycloak's versions, but to only test for edge cases
+# that are reasonable (e.g. as of Keycloak 24.0.3 "  " is a valid key, but
+# don't test for it because using such a key is not super smart).
+valid_tricky_attr_query_keys = [' beginning_with_space',
+                                'ending_with_space ',
+                                'containing space',
+                                "'single-quoted string'"]
+valid_tricky_attr_query_values = ['a:b may_cause_ambiguity'] + valid_tricky_attr_query_keys
+
+
 # noinspection LongLine
+@pytest.mark.parametrize('key', valid_tricky_attr_query_keys)
 @pytest.mark.asyncio
-async def test_list_user_attr_query_transforms(keycloak_bootstrap):
-    await users.create_user('spaces', first_name='f', last_name='l', email='spaces@test',
-                            attribs={'_ _': '_ _'}, rest_client=keycloak_bootstrap)
-    ret = await users.list_users(attr_query={'_ _': '_ _'}, rest_client=keycloak_bootstrap)
-    assert sorted(ret.keys()) == ['spaces']
-
-    await users.create_user('colons', first_name='f', last_name='l', email='colons@test',
-                            attribs={':': ':'}, rest_client=keycloak_bootstrap)
-    ret = await users.list_users(attr_query={':': ':'}, rest_client=keycloak_bootstrap)
-    assert sorted(ret.keys()) == ['colons']
+async def test_list_user_attr_query_tricky_valid_key(key, keycloak_bootstrap):
+    await users.create_user('user', first_name='f', last_name='l', email='user@test',
+                            attribs={key: 'value'}, rest_client=keycloak_bootstrap)
+    ret = await users.list_users(attr_query={key: 'value'}, rest_client=keycloak_bootstrap)
+    assert list(ret.keys()) == ['user']
 
 
 # noinspection LongLine
+@pytest.mark.parametrize('value', valid_tricky_attr_query_values)
 @pytest.mark.asyncio
-async def test_list_user_attr_query_invalid(keycloak_bootstrap):
-    bad_chars = "&'\""
-    for i, char in enumerate(bad_chars):
-        await users.create_user(f'attr_val_not_impl{i}', first_name='f', last_name='l', email=f'val-not-impl{i}@test',
-                                attribs={'not_impl_val': f"{char}"}, rest_client=keycloak_bootstrap)
-        with pytest.raises(NotImplementedError):
-            assert not await users.list_users(attr_query={'not_impl_val': f"{char}"}, rest_client=keycloak_bootstrap)
+async def test_list_user_attr_query_tricky_valid_value(value, keycloak_bootstrap):
+    await users.create_user('user', first_name='f', last_name='l', email='user@test',
+                            attribs={'key': value}, rest_client=keycloak_bootstrap)
+    ret = await users.list_users(attr_query={'key': value}, rest_client=keycloak_bootstrap)
+    assert list(ret.keys()) == ['user']
 
-        await users.create_user(f'attr_name_not_impl{i}', first_name='f', last_name='l', email=f'name-not-impl{i}@test',
-                                attribs={f'{char}': 'not_impl_name'}, rest_client=keycloak_bootstrap)
+
+# Construct user attribute query keys and values that are either inherently
+# invalid, or may not be formatted correctly by krs.users.list_users(), or are
+# handled inconsistently by different versions of Keycloak, and so should be
+# rejected by krs.users.list_users(). Only test for reasonable cases. If you
+# use "  " as a value, there is no helping you.
+problematic_attr_query_keys = [':a', 'a&a', 'a"a']
+problematic_attr_query_values = ['a&a', 'a"a']
+
+
+# noinspection LongLine
+@pytest.mark.parametrize('key', problematic_attr_query_keys)
+@pytest.mark.asyncio
+async def test_list_user_attr_query_problematic_keys(key, keycloak_bootstrap):
+        await users.create_user(f'bad', first_name='f', last_name='l', email=f'bad@test',
+                                attribs={key: "value"}, rest_client=keycloak_bootstrap)
         with pytest.raises(NotImplementedError):
-            assert not await users.list_users(attr_query={f"{char}": "not_impl_name"}, rest_client=keycloak_bootstrap)
+            assert not await users.list_users(attr_query={key: "value"}, rest_client=keycloak_bootstrap)
+
+
+# noinspection LongLine
+@pytest.mark.parametrize('value', problematic_attr_query_values)
+@pytest.mark.asyncio
+async def test_list_user_attr_query_problematic_values(value, keycloak_bootstrap):
+    await users.create_user(f'bad', first_name='f', last_name='l', email=f'bad@test',
+                            attribs={"key": value}, rest_client=keycloak_bootstrap)
+    with pytest.raises(NotImplementedError):
+        assert not await users.list_users(attr_query={"key": value}, rest_client=keycloak_bootstrap)
 
 
 # noinspection LongLine

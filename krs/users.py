@@ -49,19 +49,16 @@ async def list_users(search=None, attr_query=None, rest_client=None):
         # As of KeyCloak 24, the q parameter is ignored if search is specified
         raise ValueError("Parameters search and query are mutually exclusive")
 
-    # Validate and if necessary/possible make the queries suitable for embedding in URL
+    # Do basic query validation. This will reject possibly valid queries if
+    # I am not confident that I can format them correctly in the URL.
+    bad_chars = set('&"')
     if attr_query:
-        for key, value in attr_query.copy().items():
-            if set('&"\'') & (set(str(value)) | set(str(key))):
-                raise NotImplementedError(f"Not yet capable of encoding attribute query {attr_query}")
-            if ' ' in str(value):
-                attr_query[key] = f'"{value}"'
-            if ' ' in str(key) or ':' in str(key):
-                new_key = f'"{key}"'
-                if new_key in attr_query:
-                    raise NotImplementedError(f"Not yet capable of encoding attribute {attr_query}")
-                attr_query[new_key] = attr_query[key]
-                attr_query.pop(key)
+        for key, value in attr_query.items():
+            if (bad_chars & (set(str(value)) | set(str(key)))
+                    or ':' in str(key)):
+                raise NotImplementedError(f"Cowardly refusing to run query { {key:value} }."
+                                          f" Either I don't know how to format the query or"
+                                          f" Keycloak is known to have trouble with similar queries.")
 
     inc = 50
     ret = {}
@@ -72,7 +69,8 @@ async def list_users(search=None, attr_query=None, rest_client=None):
             url += f'&search={search}'
         if attr_query:
             # query format here: https://www.keycloak.org/docs-api/24.0.1/rest-api/index.html
-            url += "&q=" + " ".join(f"{key}:{val}" for key, val in attr_query.items())
+            # double quote everything to be safe
+            url += "&q=" + " ".join(f'"{key}":"{val}"' for key, val in attr_query.items())
         data = await rest_client.request('GET', url)
         for u in data:
             fix_singleton_attributes(u)
