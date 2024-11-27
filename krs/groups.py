@@ -11,14 +11,6 @@ from .util import fix_singleton_attributes
 
 logger = logging.getLogger('krs.groups')
 
-# Keycloak 23 introduced a breaking change where calls to various group-related
-# REST endpoints no longer populate the subGroups attribute of the returned group
-# objects (https://github.com/keycloak/keycloak/issues/27694). In some cases there
-# is no work-around, and GET to the /admin/realms/{realm}/groups/{group-id}/children
-# endpoint is needed. That endpoint doesn't exist in versions prior to 23. This global
-# variable will be set to True/False once we determine whether the endpoint exists.
-KEYCLOAK_HAS_GROUP_CHILDREN_ENDPOINT = None
-
 
 def _recursive_fix_group_attributes(group):
     """
@@ -119,40 +111,6 @@ async def group_info(group_path, rest_client=None):
     return await group_info_by_id(group_id, rest_client=rest_client)
 
 
-async def _keycloak_doesnt_populate_subgroups(group_id, rest_client):
-    """
-    Return True if the Keycloak server we are dealing with has the
-    /admin/realms/{realm}/groups/{group-id}/children endpoint.
-
-    Args:
-        group_id (str): id of an existing group
-    """
-    global KEYCLOAK_HAS_GROUP_CHILDREN_ENDPOINT
-
-    # Set KEYCLOAK_HAS_GROUP_CHILDREN_ENDPOINT if it hasn't been set yet
-    if KEYCLOAK_HAS_GROUP_CHILDREN_ENDPOINT is None:
-        # If the probing request we are about to issue fails with a 405 (method
-        # not allowed), at log level INFO, rest_client will log an exception with
-        # traceback, which would be confusing. As a work-around, temporarily raise
-        # the logging level of rest_client if necessary.
-        saved_rest_client_log_level = rest_client.logger.getEffectiveLevel()
-        if saved_rest_client_log_level == logging.getLevelName('INFO'):
-            rest_client.logger.setLevel('WARNING')
-        try:
-            await rest_client.request("GET", f"/groups/{group_id}/children")
-        except HTTPError as exc:
-            if exc.response.status_code == 405:  # Method Not Allowed
-                KEYCLOAK_HAS_GROUP_CHILDREN_ENDPOINT = False
-            else:
-                raise
-        else:
-            KEYCLOAK_HAS_GROUP_CHILDREN_ENDPOINT = True
-        finally:
-            rest_client.logger.setLevel(saved_rest_client_log_level)
-
-    return KEYCLOAK_HAS_GROUP_CHILDREN_ENDPOINT
-
-
 async def _recursive_populate_subgroups(grp, rest_client=None):
     """
     Recursively populate the subGroups attribute of grp.
@@ -188,8 +146,7 @@ async def group_info_by_id(group_id, rest_client=None):
     if not ret:
         raise GroupDoesNotExist(f'group "{group_id}" does not exist')
 
-    if await _keycloak_doesnt_populate_subgroups(group_id, rest_client):
-        await _recursive_populate_subgroups(ret, rest_client)
+    await _recursive_populate_subgroups(ret, rest_client)
     _recursive_fix_group_attributes(ret)
     return ret
 
