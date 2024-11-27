@@ -6,6 +6,28 @@ from krs import groups, users
 from ..util import keycloak_bootstrap
 
 @pytest.mark.asyncio
+async def test_confirm_empty_subgroups_keycloak_quirk(keycloak_bootstrap):
+    await groups.create_group('/group', rest_client=keycloak_bootstrap)
+    await groups.create_group('/group/subgroup', rest_client=keycloak_bootstrap)
+    ret = await keycloak_bootstrap.request(
+        'GET', "/groups?briefRepresentation=false&populateHierarchy=true")
+    if ret[0]['subGroups']:
+        pytest.fail("""See full failure message.
+It looks like bug where /groups incorrectly returns empty subgroups has been fixed
+(see https://github.com/keycloak/keycloak/issues/27694).
+This means that some functions that use the /groups endpoint unnecessarily apply
+workarounds, which probably significantly slows them down.
+ 
+At the time of writing these are the affected functions:
+
+* group_info_by_id(): unnecessarily calls a function to populate subgroups,
+                      which is quite slow.
+
+* get_group_hierarchy(): unnecessarily inserts "search=" into the URL,
+                         which probably slows it down.
+""")
+
+@pytest.mark.asyncio
 async def test_list_groups_empty(keycloak_bootstrap):
     ret = await groups.list_groups(rest_client=keycloak_bootstrap)
     assert ret == {}
