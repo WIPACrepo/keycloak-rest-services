@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.115 (2024-11-27)
+
+### Other
+
+* <bot> update dependencies*.log files(s) ([`9ee5e57`](https://github.com/WIPACrepo/keycloak-rest-services/commit/9ee5e57119afc1ac5fe4120d254e2927c44e6144))
+* Remove pre-v24 compatibility code ([#168](https://github.com/WIPACrepo/keycloak-rest-services/issues/168)) ([`c630de7`](https://github.com/WIPACrepo/keycloak-rest-services/commit/c630de742d84ed7d3e7b9860ab9d3d38cc85cba0))
+
 ## v1.4.114 (2024-11-25)
 
 ### Other
