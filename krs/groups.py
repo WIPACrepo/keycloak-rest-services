@@ -3,7 +3,6 @@ Group actions against Keycloak.
 """
 import asyncio
 import logging
-from requests.exceptions import HTTPError
 
 from .token import get_rest_client
 from .users import user_info
