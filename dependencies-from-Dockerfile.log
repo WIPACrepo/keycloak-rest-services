@@ -6,7 +6,7 @@
 ########################################################################
 #  pip freeze
 ########################################################################
-aio-pika==9.5.0
+aio-pika==9.5.3
 aiormq==6.8.1
 asyncache==0.3.1
 attrs==24.2.0
@@ -32,13 +32,13 @@ multidict==6.1.0
 oauthlib==3.2.2
 pamqp==3.3.0
 ply==3.11
-propcache==0.2.0
+propcache==0.2.1
 proto-plus==1.25.0
 protobuf==5.29.0
 pyasn1==0.6.1
 pyasn1_modules==0.4.1
 pycparser==2.22
-PyJWT==2.10.0
+PyJWT==2.10.1
 pymongo==4.9.2
 pyparsing==3.2.0
 qrcode==8.0
@@ -54,7 +54,7 @@ urllib3==2.2.3
 wipac-dev-tools==1.13.0
 -e /home/keycloak
 wipac-rest-tools==1.8.2
-yarl==1.18.0
+yarl==1.18.3
 ########################################################################
 #  pipdeptree
 ########################################################################
@@ -119,22 +119,22 @@ pipdeptree==2.24.0
 ├── packaging [required: >=24.1, installed: 24.2]
 └── pip [required: >=24.2, installed: 24.3.1]
 setuptools==65.5.1
-wheel==0.45.0
+wheel==0.45.1
 wipac-keycloak-rest-services
-├── aio-pika [required: Any, installed: 9.5.0]
-│   ├── aiormq [required: >=6.8.0,<6.9.0, installed: 6.8.1]
+├── aio-pika [required: Any, installed: 9.5.3]
+│   ├── aiormq [required: >=6.8,<6.9, installed: 6.8.1]
 │   │   ├── pamqp [required: ==3.3.0, installed: 3.3.0]
-│   │   └── yarl [required: Any, installed: 1.18.0]
+│   │   └── yarl [required: Any, installed: 1.18.3]
 │   │       ├── idna [required: >=2.0, installed: 3.10]
 │   │       ├── multidict [required: >=4.0, installed: 6.1.0]
 │   │       │   └── typing_extensions [required: >=4.1.0, installed: 4.12.2]
-│   │       └── propcache [required: >=0.2.0, installed: 0.2.0]
+│   │       └── propcache [required: >=0.2.0, installed: 0.2.1]
 │   ├── exceptiongroup [required: >=1,<2, installed: 1.2.2]
-│   └── yarl [required: Any, installed: 1.18.0]
+│   └── yarl [required: Any, installed: 1.18.3]
 │       ├── idna [required: >=2.0, installed: 3.10]
 │       ├── multidict [required: >=4.0, installed: 6.1.0]
 │       │   └── typing_extensions [required: >=4.1.0, installed: 4.12.2]
-│       └── propcache [required: >=0.2.0, installed: 0.2.0]
+│       └── propcache [required: >=0.2.0, installed: 0.2.1]
 ├── attrs [required: Any, installed: 24.2.0]
 ├── ldap3 [required: Any, installed: 2.9.1]
 │   └── pyasn1 [required: >=0.4.6, installed: 0.6.1]
@@ -156,7 +156,7 @@ wipac-keycloak-rest-services
 │   └── typing_extensions [required: Any, installed: 4.12.2]
 └── wipac-rest-tools [required: Any, installed: 1.8.2]
     ├── cachetools [required: Any, installed: 5.5.0]
-    ├── PyJWT [required: !=2.6.0, installed: 2.10.0]
+    ├── PyJWT [required: !=2.6.0, installed: 2.10.1]
     ├── qrcode [required: Any, installed: 8.0]
     ├── requests [required: Any, installed: 2.32.3]
     │   ├── certifi [required: >=2017.4.17, installed: 2024.8.30]
