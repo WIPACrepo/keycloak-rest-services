@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.116 (2024-12-04)
+
+### Other
+
+* <bot> update dependencies*.log files(s) ([`ca4091b`](https://github.com/WIPACrepo/keycloak-rest-services/commit/ca4091b56b9550cb21783429cc86bbce54e4c950))
+* Start using keycloak:26.0.7 for testing ([`c6a529c`](https://github.com/WIPACrepo/keycloak-rest-services/commit/c6a529ccaf8d07539f629967fd814761bdd13a2f))
+
 ## v1.4.115 (2024-11-27)
 
 ### Other
