@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.117 (2024-12-06)
+
+### Other
+
+* <bot> update dependencies*.log files(s) ([`56c9cde`](https://github.com/WIPACrepo/keycloak-rest-services/commit/56c9cde47f6db6a648c0e0ecb9271205cddd5776))
+* Krs/users.py: fix argument parsing bug ([`b0c568a`](https://github.com/WIPACrepo/keycloak-rest-services/commit/b0c568a990f9179bd5b74215c79ff9d8d53d1894))
+
 ## v1.4.116 (2024-12-04)
 
 ### Other
