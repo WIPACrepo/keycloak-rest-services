@@ -320,7 +320,7 @@ def main():
 
     rest_client = get_rest_client()
     func = args.pop('func')
-    if 'attr_query' in args:
+    if args.get('attr_query'):
         query_pairs = args['attr_query']
         if len(query_pairs) % 2:
             parser.error('The number of arguments to --attr-query must be even')
