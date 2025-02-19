@@ -1,28 +1,46 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
 [project]
 version = "1.4.117"
-dependencies = [
-    "aio_pika",
-    "attrs",
-    "ldap3",
-    "motor",
-    "requests",
-    "unidecode",
-    "wipac-dev-tools",
-    "wipac-rest-tools",
-]
+dependencies = ["aio_pika", "attrs", "ldap3", "motor", "requests", "unidecode", "wipac-dev-tools", "wipac-rest-tools"]
+name = "wipac-keycloak-rest-services"
+description = "Services surrounding KeyCloak, that use the REST API to read/update state"
+readme = "README.md"
+keywords = ["WIPAC", "rest tools", "utilities"]
+classifiers = ["Development Status :: 5 - Production/Stable", "Programming Language :: Python :: 3.9", "Programming Language :: Python :: 3.10", "Programming Language :: Python :: 3.11", "Programming Language :: Python :: 3.12", "Programming Language :: Python :: 3.13"]
+requires-python = ">=3.9, <3.14"
+
+[[project.authors]]
+name = "WIPAC Developers"
+email = "developers@icecube.wisc.edu"
+
+[project.license]
+file = "LICENSE"
 
 [project.optional-dependencies]
-tests = [
-    "pytest",
-    "pytest-asyncio",
-    "pytest-cov",
-    "pytest-mock",
-    "coverage",
-    "flake8",
-]
-actions = [
-    "asyncache",
-    "google-api-python-client",
-    "google-auth-oauthlib",
-    "jsonpath_ng",
-]
+tests = ["pytest", "pytest-asyncio", "pytest-cov", "pytest-mock", "coverage", "flake8"]
+actions = ["asyncache", "google-api-python-client", "google-auth-oauthlib", "jsonpath_ng"]
+
+[project.urls]
+Homepage = "https://pypi.org/project/wipac-keycloak-rest-services/"
+Tracker = "https://github.com/WIPACrepo/keycloak-rest-services/issues"
+Source = "https://github.com/WIPACrepo/keycloak-rest-services"
+
+[tool.semantic_release]
+version_toml = ["pyproject.toml:project.version"]
+version_variables = ["krs/__init__.py:__version__"]
+commit_parser = "emoji"
+build_command = "pip install build && python -m build"
+
+[tool.semantic_release.commit_parser_options]
+major_tags = ["[major]"]
+minor_tags = ["[minor]", "[feature]"]
+patch_tags = ["[patch]", "[fix]", " ", "!", "#", "$", "%", "&", "'", "(", ")", "*", "+", "-", ".", "/", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ":", ";", "<", "=", ">", "?", "@", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "[", "]", "^", "_", "`", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "{", "|", "}", "~"]
+
+[tool.setuptools.package-data]
+"*" = ["py.typed"]
+
+[tool.setuptools.packages.find]
+include = ["krs", "krs.*"]
