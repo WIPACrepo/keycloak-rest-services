@@ -228,6 +228,10 @@ jobs:
     needs: [ py-setup, py-dependencies, flake8, pip-install, py-tests ]
     runs-on: ubuntu-latest
     concurrency: release
+    permissions:
+      id-token: write
+      contents: write
+      packages: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -244,10 +248,6 @@ jobs:
     name: "Docker Image"
     needs: [ py-setup, py-dependencies, flake8, pip-install, py-tests ]
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: write
-      packages: write
     steps:
       - name: Checkout Project
         uses: actions/checkout@v4
