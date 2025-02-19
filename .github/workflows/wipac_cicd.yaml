@@ -137,7 +137,7 @@ jobs:
       max-parallel: 4
       fail-fast: false
       matrix:
-        version: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
+        py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
