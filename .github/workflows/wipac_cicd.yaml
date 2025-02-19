@@ -137,6 +137,8 @@ jobs:
           tags: krs:py-dep-this
           load: true
       - uses: WIPACrepo/wipac-dev-py-dependencies-action@docker-ignores
+        with:
+          dockerfile_ignore_paths: "resources/keycloak-image/Dockerfile, resources/ldap-image/Dockerfile"
 
 
   #############################################################################
