@@ -28,7 +28,7 @@ jobs:
     outputs:
       keycloak-tag: ${{ steps.docker_meta.outputs.tags }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Docker meta
         id: docker_meta
         uses: docker/metadata-action@v4
@@ -57,7 +57,7 @@ jobs:
     outputs:
       ldap-tag: ${{ steps.docker_meta.outputs.tags }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Docker meta
         id: docker_meta
         uses: docker/metadata-action@v4
@@ -88,12 +88,18 @@ jobs:
 
   flake8:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: '3.x'
-      - uses: WIPACrepo/wipac-dev-flake8-action@v1.0
+          python-version: ${{ matrix.py3 }}
+      - uses: WIPACrepo/wipac-dev-flake8-action@v1.2
+        with:
+          max-complexity: 10
 
 
   #############################################################################
@@ -104,7 +110,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
       - uses: WIPACrepo/wipac-dev-py-setup-action@v3.1
@@ -114,7 +120,7 @@ jobs:
     needs: [ py-setup ]
     steps:
       - name: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
       - uses: WIPACrepo/wipac-dev-py-dependencies-action@v1.1
@@ -133,10 +139,10 @@ jobs:
       matrix:
         version: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.version }}
+          python-version: ${{ matrix.py3 }}
       - run: |
           set -euo pipefail
           pip install --upgrade pip wheel setuptools
@@ -186,7 +192,7 @@ jobs:
         RABBITMQ_MGMT_URL: http://rabbitmq:15672
         RABBITMQ_URL: amqp://admin:admin@rabbitmq/keycloak
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: |
           set -euo pipefail
           pip install --upgrade pip wheel setuptools
@@ -204,11 +210,11 @@ jobs:
 
   release:
     if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
-    needs: [ py-setup, py-dependencies, pip-install, py-tests ]
+    needs: [ py-setup, py-dependencies, flake8, pip-install, py-tests ]
     runs-on: ubuntu-latest
     concurrency: release
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
@@ -221,11 +227,11 @@ jobs:
 
   docker:
     name: "Docker Image"
-    needs: [ py-setup, py-dependencies, pip-install, py-tests ]
+    needs: [ py-setup, py-dependencies, flake8, pip-install, py-tests ]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Project
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Docker meta
         id: docker_meta
         uses: docker/metadata-action@v4
