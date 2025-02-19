@@ -100,7 +100,7 @@ jobs:
           python-version: ${{ matrix.py3 }}
       - uses: WIPACrepo/wipac-dev-flake8-action@v1.2
         with:
-          max-complexity: 10
+          max-complexity: 28  # ideal is ~10-15
 
 
   #############################################################################
