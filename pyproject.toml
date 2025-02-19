@@ -1,12 +1,28 @@
-# WIPACrepo/wipac-dev-py-setup-action@v4+ Migration Helper:
-
-# set these fields:
 [project]
-version = "0.0.0"
-dependencies = []  # leave empty if there are no dependencies
+version = "1.4.117"
+dependencies = [
+    "aio_pika",
+    "attrs",
+    "ldap3",
+    "motor",
+    "requests",
+    "unidecode",
+    "wipac-dev-tools",
+    "wipac-rest-tools",
+]
 
-# optional sections:
-
-# [project.optional-dependencies]
-# foo = []
-# bar = []
+[project.optional-dependencies]
+tests = [
+    "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
+    "pytest-mock",
+    "coverage",
+    "flake8",
+]
+actions = [
+    "asyncache",
+    "google-api-python-client",
+    "google-auth-oauthlib",
+    "jsonpath_ng",
+]
