@@ -191,9 +191,11 @@ jobs:
           set -euo pipefail
           pip install --upgrade pip wheel setuptools
           pip install .[tests,actions]
+        shell: bash
       - run: |
           set -euo pipefail
           python -m pytest tests/${{ matrix.test }} --tb=short --log-level=DEBUG
+        shell: bash
 
 
   #############################################################################
