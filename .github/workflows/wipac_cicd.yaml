@@ -114,7 +114,14 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-      - uses: WIPACrepo/wipac-dev-py-setup-action@v3.1
+      - uses: WIPACrepo/wipac-dev-py-setup-action@v4.3
+        with:
+          python_min: 3.9
+          pypi_name: wipac-keycloak-rest-services
+          package_dirs: krs
+          author: WIPAC Developers
+          author_email: developers@icecube.wisc.edu
+          keywords: "WIPAC, rest tools, utilities"
 
   py-dependencies:
     runs-on: ubuntu-latest
