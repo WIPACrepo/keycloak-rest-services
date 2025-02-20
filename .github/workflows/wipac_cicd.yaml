@@ -233,16 +233,41 @@ jobs:
       contents: write
       packages: write
     steps:
-      - uses: actions/checkout@v4
+      # Note: we need to checkout the repository at the workflow sha in case during the workflow
+      # the branch was updated. To keep PSR working with the configured release branches,
+      # we force a checkout of the desired release branch but at the workflow sha HEAD.
+      - name: Setup | Checkout Repository at workflow sha
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-      - name: Python Semantic Release
-        uses: relekang/python-semantic-release@v7.34.6
+          ref: ${{ github.sha }}
+
+      - name: Setup | Force correct release branch on workflow sha
+        run: |
+          set -euo pipefail
+          git checkout -B ${{ github.ref_name }} ${{ github.sha }}
+
+      - name: Action | Semantic Version Release
+        id: release
+        # Adjust tag with desired version if applicable.
+        uses: python-semantic-release/python-semantic-release@v9.16.1
         with:
-          github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-          repository_username: __token__
-          repository_password: ${{ secrets.PYPI_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          git_committer_name: "github-actions"
+          git_committer_email: "actions@users.noreply.github.com"
+
+      - name: PyPI Release
+        uses: pypa/gh-action-pypi-publish@v1.8.14
+        if: steps.release.outputs.released == 'true'
+        with:
+          password: ${{ secrets.PYPI_TOKEN }}
+
+      - name: Publish | Upload to GitHub Release Assets
+        uses: python-semantic-release/publish-action@v9.16.1
+        if: steps.release.outputs.released == 'true'
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ steps.release.outputs.tag }}
 
   docker:
     name: "Docker Image"
