@@ -1,10 +1,14 @@
 """
 Bootstrap a Keycloak instance with an admin role account for REST access.
 """
-import time
-import requests
 
-from wipac_dev_tools import from_environment
+import os
+import time
+
+import requests
+from wipac_dev_tools import from_environment, strtobool
+
+_DISABLE_SSL_VERIFY = strtobool(os.getenv("KEYCLOAK_DISABLE_SSL_VERIFY", "false"))
 
 
 def wait_for_keycloak(timeout=300):
@@ -16,7 +20,10 @@ def wait_for_keycloak(timeout=300):
     start_time = time.time()
     while True:
         try:
-            r = requests.get(url)
+            r = requests.get(
+                url,
+                verify=not _DISABLE_SSL_VERIFY,
+            )
             r.raise_for_status()
             break
         except requests.exceptions.RequestException as e:
@@ -40,7 +47,11 @@ def get_token():
         'password': cfg['PASSWORD'],
     }
 
-    r = requests.post(url, data=args)
+    r = requests.post(
+        url,
+        data=args,
+        verify=not _DISABLE_SSL_VERIFY,
+    )
     r.raise_for_status()
     req = r.json()
     return req['access_token']
@@ -53,13 +64,21 @@ def create_realm(realm, token=None):
 
     try:
         url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/{realm}'
-        r = requests.get(url, headers={'Authorization': f'bearer {token}'})
+        r = requests.get(
+            url,
+            headers={'Authorization': f'bearer {token}'},
+            verify=not _DISABLE_SSL_VERIFY,
+        )
         r.raise_for_status()
     except requests.exceptions.HTTPError:
         print(f'creating realm "{realm}"')
         url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/'
-        r = requests.post(url, json={'realm': realm, 'enabled': True},
-                          headers={'Authorization': f'bearer {token}'})
+        r = requests.post(
+            url,
+            json={'realm': realm, 'enabled': True},
+            headers={'Authorization': f'bearer {token}'},
+            verify=not _DISABLE_SSL_VERIFY,
+        )
         r.raise_for_status()
         print(f'realm "{realm}" created')
 
@@ -70,11 +89,20 @@ def create_realm(realm, token=None):
         # when our realm was created. So, enable unmanaged user attributes to make the
         # test realm behave like our production realm.
         url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/{realm}/users/profile'
-        r = requests.get(url, headers={'Authorization': f'bearer {token}'})
+        r = requests.get(
+            url,
+            headers={'Authorization': f'bearer {token}'},
+            verify=not _DISABLE_SSL_VERIFY,
+        )
         r.raise_for_status()
         json = r.json()
         json["unmanagedAttributePolicy"] = "ENABLED"
-        requests.put(url, json=json, headers={'Authorization': f'bearer {token}'})
+        requests.put(
+            url,
+            json=json,
+            headers={'Authorization': f'bearer {token}'},
+            verify=not _DISABLE_SSL_VERIFY,
+        )
         r.raise_for_status()
     else:
         print(f'realm "{realm}" already exists')
@@ -87,14 +115,22 @@ def delete_realm(realm, token=None):
 
     try:
         url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/{realm}'
-        r = requests.get(url, headers={'Authorization': f'bearer {token}'})
+        r = requests.get(
+            url,
+            headers={'Authorization': f'bearer {token}'},
+            verify=not _DISABLE_SSL_VERIFY,
+        )
         r.raise_for_status()
     except requests.exceptions.HTTPError:
         print(f'realm "{realm}" does not exist')
     else:
         print(f'deleting realm "{realm}"')
         url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/{realm}'
-        r = requests.delete(url, headers={'Authorization': f'bearer {token}'})
+        r = requests.delete(
+            url,
+            headers={'Authorization': f'bearer {token}'},
+            verify=not _DISABLE_SSL_VERIFY,
+        )
         r.raise_for_status()
         print(f'realm "{realm}" deleted')
 
@@ -105,7 +141,11 @@ def create_service_role(client_id, realm=None, token=None):
     })
 
     url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/master/clients'
-    r = requests.get(url, headers={'Authorization': f'bearer {token}'})
+    r = requests.get(
+        url,
+        headers={'Authorization': f'bearer {token}'},
+        verify=not _DISABLE_SSL_VERIFY,
+    )
     r.raise_for_status()
     clients = r.json()
 
@@ -134,8 +174,12 @@ def create_service_role(client_id, realm=None, token=None):
             'serviceAccountsEnabled': True,
             'standardFlowEnabled': False,
         }
-        r = requests.post(url, json=args,
-                          headers={'Authorization': f'bearer {token}'})
+        r = requests.post(
+            url,
+            json=args,
+            headers={'Authorization': f'bearer {token}'},
+            verify=not _DISABLE_SSL_VERIFY,
+        )
         try:
             r.raise_for_status()
         except Exception:
@@ -143,7 +187,11 @@ def create_service_role(client_id, realm=None, token=None):
             raise
 
         url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/master/clients'
-        r = requests.get(url, headers={'Authorization': f'bearer {token}'})
+        r = requests.get(
+            url,
+            headers={'Authorization': f'bearer {token}'},
+            verify=not _DISABLE_SSL_VERIFY,
+        )
         r.raise_for_status()
         clients = r.json()
         if not any(c['clientId'] == client_id for c in clients):
@@ -160,34 +208,57 @@ def create_service_role(client_id, realm=None, token=None):
 
     # get service account
     url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/master/clients/{kc_id}/service-account-user'
-    r = requests.get(url, headers={'Authorization': f'bearer {token}'})
+    r = requests.get(
+        url,
+        headers={'Authorization': f'bearer {token}'},
+        verify=not _DISABLE_SSL_VERIFY,
+    )
     r.raise_for_status()
     svc_user = r.json()
 
     # get roles available
     url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/master/users/{svc_user["id"]}/role-mappings/clients/{realm_client}/available'
-    r = requests.get(url, headers={'Authorization': f'bearer {token}'})
+    r = requests.get(
+        url,
+        headers={'Authorization': f'bearer {token}'},
+        verify=not _DISABLE_SSL_VERIFY,
+    )
     r.raise_for_status()
     roles = r.json()
 
     client_roles = []
     for r in roles:
-        if r['name'] in ('create-client', 'manage-clients', 'manage-users', 'query-clients', 'view-clients', 'view-users', 'view-realm'):
+        if r['name'] in (
+                'create-client', 'manage-clients', 'manage-users', 'query-clients', 'view-clients', 'view-users',
+                'view-realm'):
             client_roles.append(r)
 
     if client_roles:
         print('service account roles to add:', client_roles)
         url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/master/users/{svc_user["id"]}/role-mappings/clients/{realm_client}'
-        r = requests.post(url, json=client_roles, headers={'Authorization': f'bearer {token}'})
+        r = requests.post(
+            url,
+            json=client_roles,
+            headers={'Authorization': f'bearer {token}'},
+            verify=not _DISABLE_SSL_VERIFY,
+        )
         r.raise_for_status()
 
     # get service account secret
     url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/master/clients/{kc_id}/client-secret'
-    r = requests.get(url, headers={'Authorization': f'bearer {token}'})
+    r = requests.get(
+        url,
+        headers={'Authorization': f'bearer {token}'},
+        verify=not _DISABLE_SSL_VERIFY,
+    )
     r.raise_for_status()
     if 'value' not in r.json():
         url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/master/clients/{kc_id}/client-secret'
-        r = requests.post(url, headers={'Authorization': f'bearer {token}'})
+        r = requests.post(
+            url,
+            headers={'Authorization': f'bearer {token}'},
+            verify=not _DISABLE_SSL_VERIFY,
+        )
         r.raise_for_status()
     return r.json()['value']
 
@@ -198,7 +269,11 @@ def delete_service_role(client_id, token=None):
     })
 
     url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/master/clients'
-    r = requests.get(url, headers={'Authorization': f'bearer {token}'})
+    r = requests.get(
+        url,
+        headers={'Authorization': f'bearer {token}'},
+        verify=not _DISABLE_SSL_VERIFY,
+    )
     r.raise_for_status()
     clients = r.json()
 
@@ -214,7 +289,11 @@ def delete_service_role(client_id, token=None):
     else:
         print(f'deleting client "{client_id}"')
         url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/master/clients/{system_id}'
-        r = requests.delete(url, headers={'Authorization': f'bearer {token}'})
+        r = requests.delete(
+            url,
+            headers={'Authorization': f'bearer {token}'},
+            verify=not _DISABLE_SSL_VERIFY,
+        )
         try:
             r.raise_for_status()
         except Exception:
@@ -231,7 +310,11 @@ def create_public_app(realm=None, token=None):
     appurl = ''
 
     url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/{realm}/clients?clientId={appname}'
-    r = requests.get(url, headers={'Authorization': f'bearer {token}'})
+    r = requests.get(
+        url,
+        headers={'Authorization': f'bearer {token}'},
+        verify=not _DISABLE_SSL_VERIFY,
+    )
     r.raise_for_status()
     ret = r.json()
 
@@ -279,7 +362,12 @@ def create_public_app(realm=None, token=None):
             'surrogateAuthRequired': False,
             'webOrigins': [],
         }
-        r = requests.post(url, json=args, headers={'Authorization': f'bearer {token}'})
+        r = requests.post(
+            url,
+            json=args,
+            headers={'Authorization': f'bearer {token}'},
+            verify=not _DISABLE_SSL_VERIFY,
+        )
         r.raise_for_status()
         print('public app created')
 
@@ -301,7 +389,11 @@ def user_mgmt_app(appurl, passwordGrant=False, token=None):
     appname = 'user_mgmt'
 
     url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/{cfg["KEYCLOAK_REALM"]}/clients?clientId={appname}'
-    r = requests.get(url, headers={'Authorization': f'bearer {token}'})
+    r = requests.get(
+        url,
+        headers={'Authorization': f'bearer {token}'},
+        verify=not _DISABLE_SSL_VERIFY,
+    )
     r.raise_for_status()
     ret = r.json()
 
@@ -336,11 +428,20 @@ def user_mgmt_app(appurl, passwordGrant=False, token=None):
             'surrogateAuthRequired': False,
             'webOrigins': [appurl],
         }
-        r = requests.post(url, json=args, headers={'Authorization': f'bearer {token}'})
+        r = requests.post(
+            url,
+            json=args,
+            headers={'Authorization': f'bearer {token}'},
+            verify=not _DISABLE_SSL_VERIFY,
+        )
         r.raise_for_status()
 
         url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/{cfg["KEYCLOAK_REALM"]}/clients?clientId={appname}'
-        r = requests.get(url, headers={'Authorization': f'bearer {token}'})
+        r = requests.get(
+            url,
+            headers={'Authorization': f'bearer {token}'},
+            verify=not _DISABLE_SSL_VERIFY,
+        )
         r.raise_for_status()
         ret = r.json()
         if not ret:
@@ -360,7 +461,12 @@ def user_mgmt_app(appurl, passwordGrant=False, token=None):
             'protocol': 'openid-connect',
             'protocolMapper': 'oidc-group-membership-mapper',
         }
-        r = requests.post(url, json=args, headers={'Authorization': f'bearer {token}'})
+        r = requests.post(
+            url,
+            json=args,
+            headers={'Authorization': f'bearer {token}'},
+            verify=not _DISABLE_SSL_VERIFY,
+        )
         r.raise_for_status()
 
         url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/{cfg["KEYCLOAK_REALM"]}/clients/{client_id}/protocol-mappers/models'
@@ -378,7 +484,12 @@ def user_mgmt_app(appurl, passwordGrant=False, token=None):
             'protocol': 'openid-connect',
             'protocolMapper': 'oidc-usermodel-property-mapper',
         }
-        r = requests.post(url, json=args, headers={'Authorization': f'bearer {token}'})
+        r = requests.post(
+            url,
+            json=args,
+            headers={'Authorization': f'bearer {token}'},
+            verify=not _DISABLE_SSL_VERIFY,
+        )
         r.raise_for_status()
 
         print('user_mgmt app created')
@@ -390,7 +501,11 @@ def add_rabbitmq_listener(realm=None, token=None):
     })
 
     url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/{realm}/events/config'
-    r = requests.get(url, headers={'Authorization': f'bearer {token}'})
+    r = requests.get(
+        url,
+        headers={'Authorization': f'bearer {token}'},
+        verify=not _DISABLE_SSL_VERIFY,
+    )
     r.raise_for_status()
     event_config = r.json()
 
@@ -400,7 +515,11 @@ def add_rabbitmq_listener(realm=None, token=None):
     else:
         print('registering rabbitmq listener')
         event_config['eventsListeners'].append('keycloak-to-rabbitmq')
-        r = requests.put(url, json=event_config, headers={'Authorization': f'bearer {token}'})
+        r = requests.put(
+            url,
+            json=event_config, headers={'Authorization': f'bearer {token}'},
+            verify=not _DISABLE_SSL_VERIFY,
+        )
         try:
             r.raise_for_status()
         except Exception:
@@ -414,7 +533,11 @@ def add_custom_theme(realm=None, token=None):
     })
 
     url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/{realm}/'
-    r = requests.get(url, headers={'Authorization': f'bearer {token}'})
+    r = requests.get(
+        url,
+        headers={'Authorization': f'bearer {token}'},
+        verify=not _DISABLE_SSL_VERIFY,
+    )
     r.raise_for_status()
     main_config = r.json()
 
@@ -424,7 +547,12 @@ def add_custom_theme(realm=None, token=None):
     else:
         print('registering custom theme')
         main_config['loginTheme'] = 'custom'
-        r = requests.put(url, json=main_config, headers={'Authorization': f'bearer {token}'})
+        r = requests.put(
+            url,
+            json=main_config,
+            headers={'Authorization': f'bearer {token}'},
+            verify=not _DISABLE_SSL_VERIFY,
+        )
         try:
             r.raise_for_status()
         except Exception:

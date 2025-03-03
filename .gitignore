@@ -133,3 +133,6 @@ dmypy.json
 
 # wipac-dev-py-setup-action
 !dependencies*.log
+
+.idea/
+
