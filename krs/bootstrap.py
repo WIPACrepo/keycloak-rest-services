@@ -560,13 +560,13 @@ def add_custom_theme(realm=None, token=None):
             raise
 
 
-def bootstrap():
+def bootstrap(startup_timeout=300):
     cfg = from_environment({
         'KEYCLOAK_REALM': None,
         'KEYCLOAK_CLIENT_ID': 'rest-access',
     })
 
-    wait_for_keycloak()
+    wait_for_keycloak(startup_timeout)
 
     for i in range(3):
         try:
