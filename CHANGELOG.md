@@ -2,6 +2,13 @@
 
 
 
+## v1.4.119 (2025-03-04)
+
+###  
+
+* Re-enable the Testing Image&#39;s TLS Cert (#173) ([`d124c58`](https://github.com/WIPACrepo/keycloak-rest-services/commit/d124c589e89c7298ea508b014d7f3d22ee61747f))
+
+
 ## v1.4.118 (2025-02-20)
 
 ###  
