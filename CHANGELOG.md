@@ -2,6 +2,15 @@
 
 
 
+## v1.4.120 (2025-04-15)
+
+###  
+
+* &lt;bot&gt; update dependencies*.log files(s) ([`e8c9d1b`](https://github.com/WIPACrepo/keycloak-rest-services/commit/e8c9d1b2cf57fde34163a5f69f5c6f94e71e45c8))
+
+* Use `pypa/gh-action-pypi-publish@v1.12.4` ([`1dd781a`](https://github.com/WIPACrepo/keycloak-rest-services/commit/1dd781a4318682f50775a8706b79749359ba19eb))
+
+
 ## v1.4.119 (2025-03-04)
 
 ###  
