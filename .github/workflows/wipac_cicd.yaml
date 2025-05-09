@@ -29,6 +29,11 @@ jobs:
       keycloak-tag: ${{ steps.docker_meta.outputs.tags }}
     steps:
       - uses: actions/checkout@v4
+      - name: custom jar build
+        run: |
+          set -euo pipefail
+          cd custom-jars
+          ./build.sh
       - name: Docker meta
         id: docker_meta
         uses: docker/metadata-action@v4
