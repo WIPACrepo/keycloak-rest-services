@@ -1,10 +1,10 @@
-FROM quay.io/keycloak/keycloak:26.0.7 as builder
+FROM quay.io/keycloak/keycloak:26.2.0 as builder
 
 # Keycloak core settings
 ENV KC_HTTP_ENABLED="true"
 ENV KC_HTTP_RELATIVE_PATH="/auth"
 ENV KC_HOSTNAME_STRICT="false"
-ENV KC_FEATURES=token-exchange,scripts,dynamic-scopes
+ENV KC_FEATURES=scripts,dynamic-scopes
 ENV KC_LOG=console
 
 # rabbitmq settings

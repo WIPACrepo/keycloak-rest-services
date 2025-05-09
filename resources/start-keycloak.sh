@@ -5,6 +5,8 @@ podman build -t krs-test-keycloak -f ./resources/keycloak-image/Dockerfile .
 
 podman run --rm -it --name keycloak --network host \
   --env KC_BOOTSTRAP_ADMIN_USERNAME=admin --env KC_BOOTSTRAP_ADMIN_PASSWORD=admin \
+  --env WLCG_AUTH_URL=http://localhost:8888/auth \
+  --env WLCG_AUTH_SECRET=secret \
   -v $PWD/resources/test-master-realm.json:/opt/keycloak/data/import/master-realm.json \
   krs-test-keycloak start-dev  --import-realm
 
