@@ -29,11 +29,6 @@ jobs:
       keycloak-tag: ${{ steps.docker_meta.outputs.tags }}
     steps:
       - uses: actions/checkout@v4
-      - name: custom jar build
-        run: |
-          set -euo pipefail
-          cd custom-jars
-          ./build.sh
       - name: Docker meta
         id: docker_meta
         uses: docker/metadata-action@v4
@@ -43,13 +38,13 @@ jobs:
           tags: |
             type=ref,prefix=test-keycloak-,event=branch
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Push Docker Image
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: resources/keycloak-image/Dockerfile
