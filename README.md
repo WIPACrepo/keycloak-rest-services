@@ -4,6 +4,18 @@
 # keycloak-rest-services
 Services surrounding Keycloak, that use the REST API to read/update state.
 
+## JavaScript claims mappers
+
+In the `custom-jars` directory are custom extensions to Keycloak. This is most useful
+for adding JavaScript claims mappers that can edit a token before it is issued.
+
+Each mapper requires meta-inf info and one or more script files. Then it needs to be
+packaged into a jar for deployment to Keycloak. The `build.sh` script will build
+all subdirectories into jars.
+
+These jars need to be added to `/opt/keycloak/providers/` during the Keycloak build
+process or before Keycloak starts. After Keycloak is started no changes are allowed.
+
 ## Running Tests
 
 The tests run automatically in CircleCI, but for those that want to run them
