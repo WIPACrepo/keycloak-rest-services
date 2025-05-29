@@ -53,7 +53,7 @@ async def get_group_hierarchy(*, rest_client):
     # As of Keycloak 23.0.3, subGroups are not populated regardless of
     # the value of `populateHierarchy` of unless `q` or `search` parameters
     # are used. Using `search=` is much faster than using `q=`.
-    url = "/groups?briefRepresentation=false&populateHierarchy=true&search=*"
+    url = "/groups?briefRepresentation=false&populateHierarchy=true&search=%20"
     ret = await rest_client.request('GET', url)
     for grp in ret:
         _recursive_fix_group_attributes(grp)
@@ -72,7 +72,7 @@ async def list_groups(max_groups=10000, rest_client=None):
     # Starting with KeyCloak 23, GET /admin/realms/{realm}/groups doesn't populate
     # subgroups unless "search" parameter is used. It is not clear whether it's
     # a bug or a feature https://github.com/keycloak/keycloak/issues/27694
-    url = f'/groups?max={max_groups}&briefRepresentation=false&search=*'
+    url = f'/groups?max={max_groups}&briefRepresentation=false&search=%20'
     group_hierarchy = await rest_client.request('GET', url)
     ret = {}
 
