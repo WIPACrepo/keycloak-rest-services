@@ -1,5 +1,14 @@
 /**
- * Available variables:
+ * WLCG / SciTokens scope mapper.
+ * 
+ * Takes storage scopes and verifies them via an external microservice.
+ * 
+ * Requires two ENV variables:
+ * * WLCG_AUTH_URL: the address of the validating microservice
+ * * WLCG_AUTH_SECRET: a shared secret with the microservice for auth
+ * 
+ * 
+ * Available variables from Keycloak:
  * user - the current user
  * realm - the current realm
  * token - the current token
