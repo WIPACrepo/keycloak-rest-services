@@ -2,6 +2,49 @@
 
 
 
+## v1.4.121 (2025-05-29)
+
+###  
+
+* custom jar to hold script mappers (#174)
+
+* custom jar to hold script mappers
+
+* &lt;bot&gt; update dependencies*.log files(s)
+
+* a working version of the scitokens mapper
+
+* &lt;bot&gt; update dependencies*.log files(s)
+
+* add readme for custom jars
+
+* remove built jars
+
+* &lt;bot&gt; update dependencies*.log files(s)
+
+* fix FROM/AS casing error
+
+* build custom jars for keycloak image build in CI
+
+* add jar back to git. it&#39;s just easier this way
+
+* bump ci versions for docker actions
+
+* empty search no longer does the right thing in 26.2
+
+* &lt;bot&gt; update dependencies*.log files(s)
+
+* empty search no longer does the right thing in 26.2. attempt 2
+
+* do same fix for list_insts
+
+* add more docs to mapper header
+
+---------
+
+Co-authored-by: github-actions &lt;github-actions@github.com&gt; ([`26c4584`](https://github.com/WIPACrepo/keycloak-rest-services/commit/26c4584c4a3743a66663266a4eb63bc4362b999a))
+
+
 ## v1.4.120 (2025-04-15)
 
 ###  

@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-version = "1.4.120"
+version = "1.4.121"
 dependencies = ["aio_pika", "attrs", "ldap3", "motor", "requests", "unidecode", "wipac-dev-tools", "wipac-rest-tools"]
 name = "wipac-keycloak-rest-services"
 description = "Services surrounding KeyCloak, that use the REST API to read/update state"
