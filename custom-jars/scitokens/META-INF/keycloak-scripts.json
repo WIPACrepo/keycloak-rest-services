@@ -1,0 +1,9 @@
+{
+    "mappers": [
+        {
+            "name": "SciTokens Mapper",
+            "fileName": "scitokens-mapper.js",
+            "description": "Maps SciTokens scopes to the OIDC token of a user"
+        }
+    ]
+}
