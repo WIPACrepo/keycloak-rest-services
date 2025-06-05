@@ -370,6 +370,9 @@ class LDAP:
         except Exception:
             logger.debug('ldap exception', exc_info=True)
             raise Exception(f'Modify user {username} failed')
+        else:
+            if not ret:
+                raise Exception(f'Modify user {username} failed: {c.result["message"]}')
 
         # close the connection
         c.unbind()
