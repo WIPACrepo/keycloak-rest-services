@@ -28,7 +28,7 @@ class LDAP:
         if self.config['LDAP_TLS_VERSION']:
             # set up TLS
             t_kwargs = {
-                'version': ssl.getattr('PROTOCOL_'+self.config['LDAP_TLS_VERSION'])
+                'version': getattr(ssl, 'PROTOCOL_'+self.config['LDAP_TLS_VERSION'])
             }
             if self.config['LDAP_TLS_CIPHERS']:
                 t_kwargs['ciphers'] = self.config['LDAP_TLS_CIPHERS']
