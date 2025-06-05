@@ -1,6 +1,7 @@
 import logging
+import ssl
 
-from ldap3 import Server, Connection, ALL, ALL_ATTRIBUTES, MODIFY_ADD, MODIFY_REPLACE, MODIFY_DELETE
+from ldap3 import Server, Connection, Tls, ALL, ALL_ATTRIBUTES, MODIFY_ADD, MODIFY_REPLACE, MODIFY_DELETE
 from rest_tools.client import RestClient
 from wipac_dev_tools import from_environment
 
@@ -18,7 +19,28 @@ class LDAP:
             'LDAP_ADMIN_PASSWORD': 'admin',
             'LDAP_USER_BASE': 'ou=People,dc=icecube,dc=wisc,dc=edu',
             'LDAP_GROUP_BASE': 'ou=Group,dc=icecube,dc=wisc,dc=edu',
+            'LDAP_TLS_VERSION': '',
+            'LDAP_TLS_CIPHERS': '',
         })
+
+    def _connect(self, **c_kwargs):
+        s_kwargs = {}
+        if self.config['LDAP_TLS_VERSION']:
+            # set up TLS
+            t_kwargs = {
+                'version': ssl.getattr('PROTOCOL_'+self.config['LDAP_TLS_VERSION'])
+            }
+            if self.config['LDAP_TLS_CIPHERS']:
+                t_kwargs['ciphers'] = self.config['LDAP_TLS_CIPHERS']
+            s_kwargs['tls'] = Tls(**t_kwargs)
+
+        # define the server
+        s = Server(self.config['LDAP_URL'], get_info=ALL, **s_kwargs)
+
+        # define the connection
+        c = Connection(s, auto_bind=True, **c_kwargs)
+
+        return c
 
     async def keycloak_ldap_link(self, keycloak_token=None):
         cfg = from_environment({
@@ -216,11 +238,7 @@ class LDAP:
         Returns:
             dict: username: attr dict
         """
-        # define the server
-        s = Server(self.config['LDAP_URL'], get_info=ALL)
-
-        # define the connection
-        c = Connection(s, auto_bind=True)
+        c = self._connect()
 
         # search for the user
         c.search(self.config['LDAP_USER_BASE'], '(uid=*)', attributes=ALL_ATTRIBUTES, paged_size=100)
@@ -263,11 +281,7 @@ class LDAP:
         Raises:
             KeyError
         """
-        # define the server
-        s = Server(self.config['LDAP_URL'], get_info=ALL)
-
-        # define the connection
-        c = Connection(s, auto_bind=True)
+        c = self._connect()
 
         # search for the user
         ret = c.search(self.config['LDAP_USER_BASE'], f'(uid={username})', attributes=ALL_ATTRIBUTES)
@@ -285,11 +299,7 @@ class LDAP:
             lastName (str): last name of user
             email (str): email of user
         """
-        # define the server
-        s = Server(self.config['LDAP_URL'], get_info=ALL)
-
-        # define the connection
-        c = Connection(s, user=self.config['LDAP_ADMIN_USER'], password=self.config['LDAP_ADMIN_PASSWORD'], auto_bind=True)
+        c = self._connect(user=self.config['LDAP_ADMIN_USER'], password=self.config['LDAP_ADMIN_PASSWORD'])
 
         # check if user already exists
         ret = c.search(self.config['LDAP_USER_BASE'], f'(uid={username})')
@@ -325,11 +335,7 @@ class LDAP:
         if not attributes:
             attributes = {}
 
-        # define the server
-        s = Server(self.config['LDAP_URL'], get_info=ALL)
-
-        # define the connection
-        c = Connection(s, user=self.config['LDAP_ADMIN_USER'], password=self.config['LDAP_ADMIN_PASSWORD'], auto_bind=True, raise_exceptions=True)
+        c = self._connect(user=self.config['LDAP_ADMIN_USER'], password=self.config['LDAP_ADMIN_PASSWORD'])
 
         # check if user exists
         ret = c.search(self.config['LDAP_USER_BASE'], f'(uid={username})', attributes=ALL_ATTRIBUTES)
@@ -364,6 +370,9 @@ class LDAP:
         except Exception:
             logger.debug('ldap exception', exc_info=True)
             raise Exception(f'Modify user {username} failed')
+        else:
+            if not ret:
+                raise Exception(f'Modify user {username} failed: {c.result["message"]}')
 
         # close the connection
         c.unbind()
@@ -382,11 +391,7 @@ class LDAP:
         if not groupbase:
             groupbase = self.config['LDAP_GROUP_BASE']
 
-        # define the server
-        s = Server(self.config['LDAP_URL'], get_info=ALL)
-
-        # define the connection
-        c = Connection(s, auto_bind=True)
+        c = self._connect()
 
         # paged search for the group
         c.search(groupbase, '(cn=*)', attributes=ALL_ATTRIBUTES, paged_size=100)
@@ -433,11 +438,7 @@ class LDAP:
         if not groupbase:
             groupbase = self.config['LDAP_GROUP_BASE']
 
-        # define the server
-        s = Server(self.config['LDAP_URL'], get_info=ALL)
-
-        # define the connection
-        c = Connection(s, auto_bind=True)
+        c = self._connect()
 
         # search for the group
         ret = c.search(groupbase, f'(cn={groupname})', attributes=ALL_ATTRIBUTES)
@@ -458,11 +459,7 @@ class LDAP:
         if not groupbase:
             groupbase = self.config['LDAP_GROUP_BASE']
 
-        # define the server
-        s = Server(self.config['LDAP_URL'], get_info=ALL)
-
-        # define the connection
-        c = Connection(s, user=self.config['LDAP_ADMIN_USER'], password=self.config['LDAP_ADMIN_PASSWORD'], auto_bind=True)
+        c = self._connect(user=self.config['LDAP_ADMIN_USER'], password=self.config['LDAP_ADMIN_PASSWORD'])
 
         # check if group already exists
         ret = c.search(groupbase, f'(cn={groupname})')
@@ -497,11 +494,7 @@ class LDAP:
         if not groupbase:
             groupbase = self.config['LDAP_GROUP_BASE']
 
-        # define the server
-        s = Server(self.config['LDAP_URL'], get_info=ALL)
-
-        # define the connection
-        c = Connection(s, user=self.config['LDAP_ADMIN_USER'], password=self.config['LDAP_ADMIN_PASSWORD'], auto_bind=True)
+        c = self._connect(user=self.config['LDAP_ADMIN_USER'], password=self.config['LDAP_ADMIN_PASSWORD'])
 
         # check if group exists
         ret = c.search(groupbase, f'(cn={groupname})', attributes=ALL_ATTRIBUTES)
@@ -548,11 +541,7 @@ class LDAP:
         if not groupbase:
             groupbase = self.config['LDAP_GROUP_BASE']
 
-        # define the server
-        s = Server(self.config['LDAP_URL'], get_info=ALL)
-
-        # define the connection
-        c = Connection(s, user=self.config['LDAP_ADMIN_USER'], password=self.config['LDAP_ADMIN_PASSWORD'], auto_bind=True)
+        c = self._connect(user=self.config['LDAP_ADMIN_USER'], password=self.config['LDAP_ADMIN_PASSWORD'])
 
         # check if group exists
         ret = c.search(groupbase, f'(cn={groupname})', attributes=ALL_ATTRIBUTES)
