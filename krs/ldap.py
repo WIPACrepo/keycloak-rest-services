@@ -456,7 +456,7 @@ class LDAP:
         if not groupbase:
             groupbase = self.config['LDAP_GROUP_BASE']
 
-        c = self._connect(user=self.config['LDAP_ADMIN_USER'], password=self.config['LDAP_ADMIN_PASSWORD'], auto_bind=True)
+        c = self._connect(user=self.config['LDAP_ADMIN_USER'], password=self.config['LDAP_ADMIN_PASSWORD'])
 
         # check if group already exists
         ret = c.search(groupbase, f'(cn={groupname})')
@@ -491,7 +491,7 @@ class LDAP:
         if not groupbase:
             groupbase = self.config['LDAP_GROUP_BASE']
 
-        c = self._connect(user=self.config['LDAP_ADMIN_USER'], password=self.config['LDAP_ADMIN_PASSWORD'], auto_bind=True)
+        c = self._connect(user=self.config['LDAP_ADMIN_USER'], password=self.config['LDAP_ADMIN_PASSWORD'])
 
         # check if group exists
         ret = c.search(groupbase, f'(cn={groupname})', attributes=ALL_ATTRIBUTES)
@@ -538,7 +538,7 @@ class LDAP:
         if not groupbase:
             groupbase = self.config['LDAP_GROUP_BASE']
 
-        c = self._connect(user=self.config['LDAP_ADMIN_USER'], password=self.config['LDAP_ADMIN_PASSWORD'], auto_bind=True)
+        c = self._connect(user=self.config['LDAP_ADMIN_USER'], password=self.config['LDAP_ADMIN_PASSWORD'])
 
         # check if group exists
         ret = c.search(groupbase, f'(cn={groupname})', attributes=ALL_ATTRIBUTES)
