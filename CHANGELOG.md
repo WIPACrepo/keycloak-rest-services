@@ -2,6 +2,25 @@
 
 
 
+## v1.4.122 (2025-06-05)
+
+###  
+
+* allow specifying TLS settings for the ldap connection (#175)
+
+* allow specifying TLS settings for the ldap connection
+
+* &lt;bot&gt; update dependencies*.log files(s)
+
+* remove dup argument
+
+* catch error better
+
+---------
+
+Co-authored-by: github-actions &lt;github-actions@github.com&gt; ([`2cc285b`](https://github.com/WIPACrepo/keycloak-rest-services/commit/2cc285b7e28b66b5e314dac1e852246f0d42b9c2))
+
+
 ## v1.4.121 (2025-05-29)
 
 ###  
