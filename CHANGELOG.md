@@ -2,6 +2,13 @@
 
 
 
+## v1.4.123 (2025-06-05)
+
+###  
+
+* fix getattr error (#176) ([`d6fa407`](https://github.com/WIPACrepo/keycloak-rest-services/commit/d6fa4072c2d2faea8de3e86740d5248d13ec243d))
+
+
 ## v1.4.122 (2025-06-05)
 
 ###  
