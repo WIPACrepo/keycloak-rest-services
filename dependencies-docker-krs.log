@@ -17,9 +17,9 @@ charset-normalizer==3.4.2
 cryptography==45.0.3
 dnspython==2.7.0
 exceptiongroup==1.3.0
-google-api-core==2.24.2
-google-api-python-client==2.170.0
-google-auth==2.40.2
+google-api-core==2.25.0
+google-api-python-client==2.171.0
+google-auth==2.40.3
 google-auth-httplib2==0.2.0
 google-auth-oauthlib==1.2.2
 googleapis-common-protos==1.70.0
@@ -49,9 +49,9 @@ requests-oauthlib==2.0.0
 rsa==4.9.1
 six==1.17.0
 tornado==6.5.1
-typing_extensions==4.13.2
+typing_extensions==4.14.0
 Unidecode==1.4.0
-uritemplate==4.1.1
+uritemplate==4.2.0
 urllib3==2.4.0
 wipac-dev-tools==1.16.11
 -e /home/keycloak
@@ -65,17 +65,17 @@ asyncache==0.3.1
 cryptography==45.0.3
 └── cffi [required: >=1.14, installed: 1.17.1]
     └── pycparser [required: Any, installed: 2.22]
-google-api-python-client==2.170.0
+google-api-python-client==2.171.0
 ├── httplib2 [required: >=0.19.0,<1.0.0, installed: 0.22.0]
 │   └── pyparsing [required: >=2.4.2,<4,!=3.0.3,!=3.0.2,!=3.0.1,!=3.0.0, installed: 3.2.3]
-├── google-auth [required: >=1.32.0,<3.0.0,!=2.25.0,!=2.24.0, installed: 2.40.2]
+├── google-auth [required: >=1.32.0,<3.0.0,!=2.25.0,!=2.24.0, installed: 2.40.3]
 │   ├── cachetools [required: >=2.0.0,<6.0, installed: 5.5.2]
 │   ├── pyasn1_modules [required: >=0.2.1, installed: 0.4.2]
 │   │   └── pyasn1 [required: >=0.6.1,<0.7.0, installed: 0.6.1]
 │   └── rsa [required: >=3.1.4,<5, installed: 4.9.1]
 │       └── pyasn1 [required: >=0.1.3, installed: 0.6.1]
 ├── google-auth-httplib2 [required: >=0.2.0,<1.0.0, installed: 0.2.0]
-│   ├── google-auth [required: Any, installed: 2.40.2]
+│   ├── google-auth [required: Any, installed: 2.40.3]
 │   │   ├── cachetools [required: >=2.0.0,<6.0, installed: 5.5.2]
 │   │   ├── pyasn1_modules [required: >=0.2.1, installed: 0.4.2]
 │   │   │   └── pyasn1 [required: >=0.6.1,<0.7.0, installed: 0.6.1]
@@ -83,13 +83,13 @@ google-api-python-client==2.170.0
 │   │       └── pyasn1 [required: >=0.1.3, installed: 0.6.1]
 │   └── httplib2 [required: >=0.19.0, installed: 0.22.0]
 │       └── pyparsing [required: >=2.4.2,<4,!=3.0.3,!=3.0.2,!=3.0.1,!=3.0.0, installed: 3.2.3]
-├── google-api-core [required: >=1.31.5,<3.0.0,!=2.3.0,!=2.2.*,!=2.1.*,!=2.0.*, installed: 2.24.2]
+├── google-api-core [required: >=1.31.5,<3.0.0,!=2.3.0,!=2.2.*,!=2.1.*,!=2.0.*, installed: 2.25.0]
 │   ├── googleapis-common-protos [required: >=1.56.2,<2.0.0, installed: 1.70.0]
 │   │   └── protobuf [required: >=3.20.2,<7.0.0,!=4.21.5,!=4.21.4,!=4.21.3,!=4.21.2,!=4.21.1, installed: 6.31.1]
 │   ├── protobuf [required: >=3.19.5,<7.0.0,!=4.21.5,!=4.21.4,!=4.21.3,!=4.21.2,!=4.21.1,!=4.21.0,!=3.20.1,!=3.20.0, installed: 6.31.1]
 │   ├── proto-plus [required: >=1.22.3,<2.0.0, installed: 1.26.1]
 │   │   └── protobuf [required: >=3.19.0,<7.0.0, installed: 6.31.1]
-│   ├── google-auth [required: >=2.14.1,<3.0.0, installed: 2.40.2]
+│   ├── google-auth [required: >=2.14.1,<3.0.0, installed: 2.40.3]
 │   │   ├── cachetools [required: >=2.0.0,<6.0, installed: 5.5.2]
 │   │   ├── pyasn1_modules [required: >=0.2.1, installed: 0.4.2]
 │   │   │   └── pyasn1 [required: >=0.6.1,<0.7.0, installed: 0.6.1]
@@ -100,9 +100,9 @@ google-api-python-client==2.170.0
 │       ├── idna [required: >=2.5,<4, installed: 3.10]
 │       ├── urllib3 [required: >=1.21.1,<3, installed: 2.4.0]
 │       └── certifi [required: >=2017.4.17, installed: 2025.4.26]
-└── uritemplate [required: >=3.0.1,<5, installed: 4.1.1]
+└── uritemplate [required: >=3.0.1,<5, installed: 4.2.0]
 google-auth-oauthlib==1.2.2
-├── google-auth [required: >=2.15.0, installed: 2.40.2]
+├── google-auth [required: >=2.15.0, installed: 2.40.3]
 │   ├── cachetools [required: >=2.0.0,<6.0, installed: 5.5.2]
 │   ├── pyasn1_modules [required: >=0.2.1, installed: 0.4.2]
 │   │   └── pyasn1 [required: >=0.6.1,<0.7.0, installed: 0.6.1]
@@ -129,14 +129,14 @@ wipac-keycloak-rest-services
 │   │   └── yarl [required: Any, installed: 1.20.0]
 │   │       ├── idna [required: >=2.0, installed: 3.10]
 │   │       ├── multidict [required: >=4.0, installed: 6.4.4]
-│   │       │   └── typing_extensions [required: >=4.1.0, installed: 4.13.2]
+│   │       │   └── typing_extensions [required: >=4.1.0, installed: 4.14.0]
 │   │       └── propcache [required: >=0.2.1, installed: 0.3.1]
 │   ├── exceptiongroup [required: >=1,<2, installed: 1.3.0]
-│   │   └── typing_extensions [required: >=4.6.0, installed: 4.13.2]
+│   │   └── typing_extensions [required: >=4.6.0, installed: 4.14.0]
 │   └── yarl [required: Any, installed: 1.20.0]
 │       ├── idna [required: >=2.0, installed: 3.10]
 │       ├── multidict [required: >=4.0, installed: 6.4.4]
-│       │   └── typing_extensions [required: >=4.1.0, installed: 4.13.2]
+│       │   └── typing_extensions [required: >=4.1.0, installed: 4.14.0]
 │       └── propcache [required: >=0.2.1, installed: 0.3.1]
 ├── attrs [required: Any, installed: 25.3.0]
 ├── ldap3 [required: Any, installed: 2.9.1]
@@ -158,7 +158,7 @@ wipac-keycloak-rest-services
 │   │   ├── idna [required: >=2.5,<4, installed: 3.10]
 │   │   ├── urllib3 [required: >=1.21.1,<3, installed: 2.4.0]
 │   │   └── certifi [required: >=2017.4.17, installed: 2025.4.26]
-│   └── typing_extensions [required: Any, installed: 4.13.2]
+│   └── typing_extensions [required: Any, installed: 4.14.0]
 └── wipac-rest-tools [required: Any, installed: 1.8.7]
     ├── cachetools [required: Any, installed: 5.5.2]
     ├── PyJWT [required: !=2.6.0, installed: 2.10.1]
@@ -184,4 +184,4 @@ wipac-keycloak-rest-services
         │   ├── idna [required: >=2.5,<4, installed: 3.10]
         │   ├── urllib3 [required: >=1.21.1,<3, installed: 2.4.0]
         │   └── certifi [required: >=2017.4.17, installed: 2025.4.26]
-        └── typing_extensions [required: Any, installed: 4.13.2]
+        └── typing_extensions [required: Any, installed: 4.14.0]
