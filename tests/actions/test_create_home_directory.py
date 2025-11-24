@@ -84,7 +84,7 @@ async def test_already_exists(keycloak_bootstrap, tmp_path):
 @pytest_asyncio.fixture
 async def listener(keycloak_bootstrap, tmp_path):
     rabbitmq.create_user('guest', 'guest')
-    mq = create_home_directory.listener(root_dir=tmp_path, dedup=None, keycloak_client=keycloak_bootstrap)
+    mq = create_home_directory.listener(root_dir=tmp_path, dedup=0, keycloak_client=keycloak_bootstrap)
     await mq.start()
     try:
         yield mq
