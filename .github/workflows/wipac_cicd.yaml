@@ -204,12 +204,12 @@ jobs:
         test: [ "actions", "krs" ]
     services:
       rabbitmq:
-        image: bitnami/rabbitmq:3.8
+        image: rabbitmq:4.2
         env:
-          RABBITMQ_USERNAME: admin
-          RABBITMQ_PASSWORD: admin
-          RABBITMQ_VHOST: keycloak
-          RABBITMQ_NODE_NAME: rabbit@rabbitmq
+          RABBITMQ_DEFAULT_USER: admin
+          RABBITMQ_DEFAULT_PASS: admin
+          RABBITMQ_DEFAULT_VHOST: keycloak
+          RABBITMQ_NODENAME: rabbit@rabbitmq
         options: --health-cmd "rabbitmqctl node_health_check" --health-interval 10s --health-timeout 5s --health-retries 5
         ports:
           - 5672:5672
