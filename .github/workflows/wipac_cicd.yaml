@@ -178,7 +178,7 @@ jobs:
           pip install --upgrade pip wheel setuptools
           pip install .[actions]
 
-  py-tests:
+  tests:
     needs: [ keycloak-image-build, ldap-image-build, py-versions ]
     runs-on: ubuntu-latest
     strategy:
