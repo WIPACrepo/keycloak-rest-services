@@ -206,7 +206,7 @@ jobs:
         test: [ "actions", "krs" ]
     services:
       rabbitmq:
-        image: rabbitmq:4.2
+        image: rabbitmq:4.2-management
         env:
           RABBITMQ_DEFAULT_USER: admin
           RABBITMQ_DEFAULT_PASS: admin
