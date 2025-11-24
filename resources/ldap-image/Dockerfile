@@ -1,4 +1,4 @@
-FROM bitnami/openldap:2
+FROM symas/openldap:2
 
 COPY resources/ldap-ldifs /ldifs
 
