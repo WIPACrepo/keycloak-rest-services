@@ -26,6 +26,7 @@ jobs:
   #############################################################################
 
   keycloak-image-build:
+    if: ${{ github.actor != 'dependabot[bot]' }} # dependabot cannot access PAT
     runs-on: ubuntu-latest
     outputs:
       keycloak-tag: ${{ steps.docker_meta.outputs.tags }}
@@ -58,6 +59,7 @@ jobs:
           labels: ${{ steps.docker_meta.outputs.labels }}
 
   ldap-image-build:
+    if: ${{ github.actor != 'dependabot[bot]' }} # dependabot cannot access PAT
     runs-on: ubuntu-latest
     outputs:
       ldap-tag: ${{ steps.docker_meta.outputs.tags }}
@@ -135,6 +137,7 @@ jobs:
   #############################################################################
 
   py-setup:
+    if: ${{ github.actor != 'dependabot[bot]' }} # dependabot cannot access PAT
     runs-on: ubuntu-latest
     steps:
       - name: checkout
