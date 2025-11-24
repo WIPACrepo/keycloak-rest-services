@@ -145,7 +145,7 @@ jobs:
       - uses: WIPACrepo/wipac-dev-py-setup-action@v5.9
         with:
           mode: PACKAGING_AND_PYPI
-          python_min: 3.9
+          python_min: 3.10
           pypi_name: wipac-keycloak-rest-services
           package_dirs: krs
           author: WIPAC Developers
