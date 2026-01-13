@@ -149,7 +149,7 @@ def scp_and_run(host, script_data, script_name='create.py'):
         subprocess.check_call(cmd, stderr=subprocess.DEVNULL)
 
     try:
-        ssh(host, 'python', f'/tmp/{script_name}')
+        ssh(host, 'python3', f'/tmp/{script_name}')
     finally:
         ssh(host, 'rm', f'/tmp/{script_name}')
 
@@ -164,6 +164,6 @@ def scp_and_run_sudo(host, script_data, script_name='create.py'):
         subprocess.check_call(cmd, stderr=subprocess.DEVNULL)
 
     try:
-        ssh(host, 'sudo', 'python', f'/tmp/{script_name}')
+        ssh(host, 'sudo', 'python3', f'/tmp/{script_name}')
     finally:
         ssh(host, 'rm', f'/tmp/{script_name}')
