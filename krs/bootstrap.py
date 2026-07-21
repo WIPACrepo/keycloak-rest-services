@@ -7,19 +7,32 @@ import requests
 from wipac_dev_tools import from_environment
 
 
-def wait_for_keycloak(timeout=300):
+def keycloak_base_url(url: str | None = None) -> str:
+    """Figure out keycloak base url"""
     cfg = from_environment({
-        'KEYCLOAK_URL': None,
+        'KEYCLOAK_URL': url,
     })
 
-    url = f'{cfg["KEYCLOAK_URL"]}/auth/'
+    url = f'{cfg["KEYCLOAK_URL"]}/realms/master/protocol/openid-connect/token'
+    r = requests.get(url)
+    if r.status_code != 404:
+        return str(cfg['KEYCLOAK_URL'])
+    else:
+        url = f'{cfg["KEYCLOAK_URL"]}/auth/realms/master/protocol/openid-connect/token'
+        r = requests.get(url)
+        if r.status_code != 404:
+            return f'{cfg["KEYCLOAK_URL"]}/auth'
+        else:
+            raise Exception('Cannot connect to Keycloak!')
+
+
+def wait_for_keycloak(timeout=300):
     start_time = time.time()
     while True:
         try:
-            r = requests.get(url)
-            r.raise_for_status()
+            keycloak_base_url()
             break
-        except requests.exceptions.RequestException as e:
+        except Exception:
             if start_time + timeout > time.time():
                 time.sleep(1)
                 continue
@@ -28,11 +41,10 @@ def wait_for_keycloak(timeout=300):
 
 def get_token():
     cfg = from_environment({
-        'KEYCLOAK_URL': None,
         'USERNAME': None,
         'PASSWORD': None,
     })
-    url = f'{cfg["KEYCLOAK_URL"]}/auth/realms/master/protocol/openid-connect/token'
+    url = f'{keycloak_base_url()}/realms/master/protocol/openid-connect/token'
     args = {
         'client_id': 'admin-cli',
         'grant_type': 'password',
@@ -47,17 +59,14 @@ def get_token():
 
 
 def create_realm(realm, token=None):
-    cfg = from_environment({
-        'KEYCLOAK_URL': None,
-    })
-
+    base_url = keycloak_base_url()
     try:
-        url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/{realm}'
+        url = f'{base_url}/admin/realms/{realm}'
         r = requests.get(url, headers={'Authorization': f'bearer {token}'})
         r.raise_for_status()
     except requests.exceptions.HTTPError:
         print(f'creating realm "{realm}"')
-        url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/'
+        url = f'{base_url}/admin/realms/'
         r = requests.post(url, json={'realm': realm, 'enabled': True},
                           headers={'Authorization': f'bearer {token}'})
         r.raise_for_status()
@@ -69,7 +78,7 @@ def create_realm(realm, token=None):
         # different in our production realm because declarative-user-profile was disabled
         # when our realm was created. So, enable unmanaged user attributes to make the
         # test realm behave like our production realm.
-        url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/{realm}/users/profile'
+        url = f'{base_url}/admin/realms/{realm}/users/profile'
         r = requests.get(url, headers={'Authorization': f'bearer {token}'})
         r.raise_for_status()
         json = r.json()
@@ -81,30 +90,24 @@ def create_realm(realm, token=None):
 
 
 def delete_realm(realm, token=None):
-    cfg = from_environment({
-        'KEYCLOAK_URL': None,
-    })
-
+    base_url = keycloak_base_url()
     try:
-        url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/{realm}'
+        url = f'{base_url}/admin/realms/{realm}'
         r = requests.get(url, headers={'Authorization': f'bearer {token}'})
         r.raise_for_status()
     except requests.exceptions.HTTPError:
         print(f'realm "{realm}" does not exist')
     else:
         print(f'deleting realm "{realm}"')
-        url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/{realm}'
+        url = f'{base_url}/admin/realms/{realm}'
         r = requests.delete(url, headers={'Authorization': f'bearer {token}'})
         r.raise_for_status()
         print(f'realm "{realm}" deleted')
 
 
 def create_service_role(client_id, realm=None, token=None):
-    cfg = from_environment({
-        'KEYCLOAK_URL': None,
-    })
-
-    url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/master/clients'
+    base_url = keycloak_base_url()
+    url = f'{base_url}/admin/realms/master/clients'
     r = requests.get(url, headers={'Authorization': f'bearer {token}'})
     r.raise_for_status()
     clients = r.json()
@@ -120,7 +123,7 @@ def create_service_role(client_id, realm=None, token=None):
 
     if not any(c['clientId'] == client_id for c in clients):
         print(f'creating client "{client_id}"')
-        url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/master/clients'
+        url = f'{base_url}/admin/realms/master/clients'
         args = {
             'authorizationServicesEnabled': False,
             'clientId': client_id,
@@ -142,7 +145,7 @@ def create_service_role(client_id, realm=None, token=None):
             print(r.text)
             raise
 
-        url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/master/clients'
+        url = f'{base_url}/admin/realms/master/clients'
         r = requests.get(url, headers={'Authorization': f'bearer {token}'})
         r.raise_for_status()
         clients = r.json()
@@ -159,13 +162,13 @@ def create_service_role(client_id, realm=None, token=None):
             break
 
     # get service account
-    url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/master/clients/{kc_id}/service-account-user'
+    url = f'{base_url}/admin/realms/master/clients/{kc_id}/service-account-user'
     r = requests.get(url, headers={'Authorization': f'bearer {token}'})
     r.raise_for_status()
     svc_user = r.json()
 
     # get roles available
-    url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/master/users/{svc_user["id"]}/role-mappings/clients/{realm_client}/available'
+    url = f'{base_url}/admin/realms/master/users/{svc_user["id"]}/role-mappings/clients/{realm_client}/available'
     r = requests.get(url, headers={'Authorization': f'bearer {token}'})
     r.raise_for_status()
     roles = r.json()
@@ -177,27 +180,24 @@ def create_service_role(client_id, realm=None, token=None):
 
     if client_roles:
         print('service account roles to add:', client_roles)
-        url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/master/users/{svc_user["id"]}/role-mappings/clients/{realm_client}'
+        url = f'{base_url}/admin/realms/master/users/{svc_user["id"]}/role-mappings/clients/{realm_client}'
         r = requests.post(url, json=client_roles, headers={'Authorization': f'bearer {token}'})
         r.raise_for_status()
 
     # get service account secret
-    url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/master/clients/{kc_id}/client-secret'
+    url = f'{base_url}/admin/realms/master/clients/{kc_id}/client-secret'
     r = requests.get(url, headers={'Authorization': f'bearer {token}'})
     r.raise_for_status()
     if 'value' not in r.json():
-        url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/master/clients/{kc_id}/client-secret'
+        url = f'{base_url}/admin/realms/master/clients/{kc_id}/client-secret'
         r = requests.post(url, headers={'Authorization': f'bearer {token}'})
         r.raise_for_status()
     return r.json()['value']
 
 
 def delete_service_role(client_id, token=None):
-    cfg = from_environment({
-        'KEYCLOAK_URL': None,
-    })
-
-    url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/master/clients'
+    base_url = keycloak_base_url()
+    url = f'{base_url}/admin/realms/master/clients'
     r = requests.get(url, headers={'Authorization': f'bearer {token}'})
     r.raise_for_status()
     clients = r.json()
@@ -213,7 +213,7 @@ def delete_service_role(client_id, token=None):
         print(f'client "{client_id}" does not exist')
     else:
         print(f'deleting client "{client_id}"')
-        url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/master/clients/{system_id}'
+        url = f'{base_url}/admin/realms/master/clients/{system_id}'
         r = requests.delete(url, headers={'Authorization': f'bearer {token}'})
         try:
             r.raise_for_status()
@@ -223,14 +223,11 @@ def delete_service_role(client_id, token=None):
 
 
 def create_public_app(realm=None, token=None):
-    cfg = from_environment({
-        'KEYCLOAK_URL': None,
-    })
-
+    base_url = keycloak_base_url()
     appname = 'public'
     appurl = ''
 
-    url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/{realm}/clients?clientId={appname}'
+    url = f'{base_url}/admin/realms/{realm}/clients?clientId={appname}'
     r = requests.get(url, headers={'Authorization': f'bearer {token}'})
     r.raise_for_status()
     ret = r.json()
@@ -238,7 +235,7 @@ def create_public_app(realm=None, token=None):
     if ret:
         print('public app already exists')
     else:
-        url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/{realm}/clients'
+        url = f'{base_url}/admin/realms/{realm}/clients'
         args = {
             'access': {'configure': True, 'manage': True, 'view': True},
             'adminUrl': appurl,
@@ -294,13 +291,12 @@ def user_mgmt_app(appurl, passwordGrant=False, token=None):
         token (str): admin rest api token
     """
     cfg = from_environment({
-        'KEYCLOAK_URL': None,
         'KEYCLOAK_REALM': None,
     })
-
+    base_url = keycloak_base_url()
     appname = 'user_mgmt'
 
-    url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/{cfg["KEYCLOAK_REALM"]}/clients?clientId={appname}'
+    url = f'{base_url}/admin/realms/{cfg["KEYCLOAK_REALM"]}/clients?clientId={appname}'
     r = requests.get(url, headers={'Authorization': f'bearer {token}'})
     r.raise_for_status()
     ret = r.json()
@@ -308,7 +304,7 @@ def user_mgmt_app(appurl, passwordGrant=False, token=None):
     if ret:
         print('user_mgmt app already exists')
     else:
-        url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/{cfg["KEYCLOAK_REALM"]}/clients'
+        url = f'{base_url}/admin/realms/{cfg["KEYCLOAK_REALM"]}/clients'
         args = {
             'access': {'configure': True, 'manage': True, 'view': True},
             'adminUrl': appurl,
@@ -339,7 +335,7 @@ def user_mgmt_app(appurl, passwordGrant=False, token=None):
         r = requests.post(url, json=args, headers={'Authorization': f'bearer {token}'})
         r.raise_for_status()
 
-        url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/{cfg["KEYCLOAK_REALM"]}/clients?clientId={appname}'
+        url = f'{base_url}/admin/realms/{cfg["KEYCLOAK_REALM"]}/clients?clientId={appname}'
         r = requests.get(url, headers={'Authorization': f'bearer {token}'})
         r.raise_for_status()
         ret = r.json()
@@ -347,7 +343,7 @@ def user_mgmt_app(appurl, passwordGrant=False, token=None):
             raise Exception('failed to create user_mgmt_app')
         client_id = ret[0]['id']
 
-        url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/{cfg["KEYCLOAK_REALM"]}/clients/{client_id}/protocol-mappers/models'
+        url = f'{base_url}/admin/realms/{cfg["KEYCLOAK_REALM"]}/clients/{client_id}/protocol-mappers/models'
         args = {
             'config': {
                 'access.token.claim': 'true',
@@ -363,7 +359,7 @@ def user_mgmt_app(appurl, passwordGrant=False, token=None):
         r = requests.post(url, json=args, headers={'Authorization': f'bearer {token}'})
         r.raise_for_status()
 
-        url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/{cfg["KEYCLOAK_REALM"]}/clients/{client_id}/protocol-mappers/models'
+        url = f'{base_url}/admin/realms/{cfg["KEYCLOAK_REALM"]}/clients/{client_id}/protocol-mappers/models'
         args = {
             'config': {
                 'access.token.claim': 'true',
@@ -385,11 +381,8 @@ def user_mgmt_app(appurl, passwordGrant=False, token=None):
 
 
 def add_rabbitmq_listener(realm=None, token=None):
-    cfg = from_environment({
-        'KEYCLOAK_URL': None,
-    })
-
-    url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/{realm}/events/config'
+    base_url = keycloak_base_url()
+    url = f'{base_url}/admin/realms/{realm}/events/config'
     r = requests.get(url, headers={'Authorization': f'bearer {token}'})
     r.raise_for_status()
     event_config = r.json()
@@ -409,11 +402,8 @@ def add_rabbitmq_listener(realm=None, token=None):
 
 
 def add_custom_theme(realm=None, token=None):
-    cfg = from_environment({
-        'KEYCLOAK_URL': None,
-    })
-
-    url = f'{cfg["KEYCLOAK_URL"]}/auth/admin/realms/{realm}/'
+    base_url = keycloak_base_url()
+    url = f'{base_url}/admin/realms/{realm}/'
     r = requests.get(url, headers={'Authorization': f'bearer {token}'})
     r.raise_for_status()
     main_config = r.json()
