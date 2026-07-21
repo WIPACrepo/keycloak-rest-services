@@ -1,5 +1,6 @@
 import os
 from functools import partial
+import time
 
 import pytest
 from ldap3 import Connection

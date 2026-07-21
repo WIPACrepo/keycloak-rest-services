@@ -4,7 +4,7 @@ COPY resources/ldap-ldifs /container/service/slapd/assets/config/bootstrap/ldif/
 
 # basic env settings
 # PORT=1389
-ENV LDAP_ORGANIZATION="CI"
+ENV LDAP_ORGANIZATION="IceCube"
 ENV LDAP_DOMAIN="icecube.wisc.edu"
 
 # can override

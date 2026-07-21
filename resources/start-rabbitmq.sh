@@ -1,8 +1,8 @@
 #!/bin/bash
-docker run -d --name rabbitmq -h rabbitmq -p 5672:5672 -p 15672:15672 \
- --env RABBITMQ_USERNAME=admin --env RABBITMQ_PASSWORD=admin \
- --env RABBITMQ_VHOST=keycloak \
- bitnami/rabbitmq:3.8
+podman run -d --name rabbitmq -h rabbitmq -p 5672:5672 -p 15672:15672 \
+ --env RABBITMQ_DEFAULT_USER=admin --env RABBITMQ_DEFAULT_PASS=admin \
+ --env RABBITMQ_DEFAULT_VHOST=keycloak --env RABBITMQ_NODENAME=rabbit@rabbitmq \
+ rabbitmq:4.2-management
 
 until curl -u admin:admin http://localhost:15672/api/users >/dev/null 2>/dev/null
 do
@@ -22,5 +22,5 @@ echo "RabbitMQ Ready"
 ( trap exit SIGINT ; read -r -d '' _ </dev/tty ) ## wait for Ctrl-C
 
 echo "Stopping RabbitMQ"
-docker stop rabbitmq
-docker rm rabbitmq
+podman stop rabbitmq
+podman rm rabbitmq
