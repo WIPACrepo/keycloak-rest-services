@@ -1,5 +1,5 @@
 # add basedn
-dn: dc=icecube,dc=wisc,dc=edu
+#dn: dc=icecube,dc=wisc,dc=edu
 objectclass: dcObject
 objectclass: organization
 o: IceCube

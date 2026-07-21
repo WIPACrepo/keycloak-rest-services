@@ -1,12 +1,11 @@
-FROM symas/openldap:2
+FROM osixia/openldap:1.5.0
 
-COPY resources/ldap-ldifs /ldifs
+COPY resources/ldap-ldifs /container/service/slapd/assets/config/bootstrap/ldif/custom
 
 # basic env settings
-ENV LDAP_PORT_NUMBER=1389
-ENV LDAP_CUSTOM_LDIF_DIR=/ldifs
-ENV LDAP_ROOT="dc=icecube,dc=wisc,dc=edu"
+# PORT=1389
+ENV LDAP_ORGANIZATION="CI"
+ENV LDAP_DOMAIN="icecube.wisc.edu"
 
 # can override
-ENV LDAP_ADMIN_USERNAME=admin
 ENV LDAP_ADMIN_PASSWORD=admin

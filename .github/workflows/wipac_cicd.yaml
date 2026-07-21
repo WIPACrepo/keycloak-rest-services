@@ -196,7 +196,7 @@ jobs:
       ldap:
         image: ${{ needs.ldap-image-build.outputs.ldap-tag }}
         ports:
-          - 1389:1389
+          - 1389:389
       keycloak:
         image: ${{ needs.keycloak-image-build.outputs.keycloak-tag }}
         env:
