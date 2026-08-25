@@ -1,22 +1,22 @@
 import argparse
 import asyncio
-from collections import defaultdict
-from xml.etree import ElementTree
-from html import unescape
 import logging
+from collections import defaultdict
+from html import unescape
+from xml.etree import ElementTree
 
 import requests
 
-from krs.users import list_users, modify_user
 from krs.groups import add_user_group
 from krs.token import get_rest_client
+from krs.users import list_users, modify_user
 
-from .institution_list import ICECUBE_INSTS, GEN2_INSTS
+from .institution_list import GEN2_INSTS, ICECUBE_INSTS
 
 logger = logging.getLogger('import_authorlist')
 
 
-IGNORE_LIST = set(['IceCube', 'wipac'])
+IGNORE_LIST = {'IceCube', 'wipac'}
 
 
 def get_attr_as_list(group, name, default=None):
@@ -31,7 +31,7 @@ def get_attr_as_list(group, name, default=None):
 async def import_authorlist_insts(keycloak_conn, base_group='/institutions/IceCube', INSTS=ICECUBE_INSTS, dryrun=False):
     # get authorlist data
     url = f'https://authorlist.icecube.wisc.edu/api/authors?formatting=inspire&collab={base_group.split("/")[-1]}'
-    r = requests.get(url)
+    r = await asyncio.to_thread(requests.get, url)
     inspire_xml = unescape(r.json()['inspire']['format_text'])
     author_data = ElementTree.fromstring(inspire_xml)
     author_insts = {}

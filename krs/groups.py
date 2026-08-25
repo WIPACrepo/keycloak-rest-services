@@ -183,7 +183,7 @@ async def create_group(group_path, attrs=None, rest_client=None):
         logger.info(f'group "{group_path}" created')
 
 
-async def modify_group(group_path, attrs={}, new_group_name=None, rest_client=None):
+async def modify_group(group_path, attrs=None, new_group_name=None, rest_client=None):
     """
     Modify attributes for a group.
 
@@ -196,6 +196,8 @@ async def modify_group(group_path, attrs={}, new_group_name=None, rest_client=No
         attrs (dict): attributes to modify
         new_group_name (str): new group name
     """
+    if attrs is None:
+        attrs = {}
     groups = await list_groups(rest_client=rest_client)
     if group_path in groups:
         url = f'/groups/{groups[group_path]["id"]}'
@@ -370,8 +372,8 @@ async def remove_user_group(group_path, username, rest_client=None):
 
 def main():
     import argparse
-    from pprint import pprint
     from collections import defaultdict
+    from pprint import pprint
 
     parser = argparse.ArgumentParser(description='Keycloak group management')
     subparsers = parser.add_subparsers()

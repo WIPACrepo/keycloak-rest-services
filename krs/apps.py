@@ -21,15 +21,14 @@ App structure:
 Also available: a generic "public" app for public access to scopes,
 if the application scope is allowed to be public.
 """
-import os
 import asyncio
 import logging
+import os
 
 import requests
 
+from .groups import group_info, list_groups
 from .token import get_rest_client
-from .groups import list_groups, group_info
-
 
 logger = logging.getLogger('krs.apps')
 
@@ -105,7 +104,7 @@ async def list_scopes(only_apps=True, mappers=False, rest_client=None):
     return ret
 
 
-async def create_app(appname, appurl, roles=['read', 'write'], builtin_scopes=[], access='public', service_account=False, rest_client=None):
+async def create_app(appname, appurl, roles=None, builtin_scopes=None, access='public', service_account=False, rest_client=None):
     """
     Create an application ("client") in Keycloak.
 
@@ -117,6 +116,10 @@ async def create_app(appname, appurl, roles=['read', 'write'], builtin_scopes=[]
         access (str): app scope access to roles (public, apps, none) (default: public)
         service_account (bool): enable the service account (default: False)
     """
+    if builtin_scopes is None:
+        builtin_scopes = []
+    if roles is None:
+        roles = ['read', 'write']
     if access not in ('public', 'apps', 'none'):
         raise Exception('access is not one of the options: ["public", "apps", "none"]')
     if any(True for s in builtin_scopes if s not in ('profile', 'email', 'institution')):
@@ -410,8 +413,9 @@ async def delete_app_role_mapping(appname, role, group, rest_client=None):
 
 
 def get_public_token(username, password, scopes=None, openid_url=None, client='public', secret=None, raw=False, **kwargs):
-    import jwt
     import json
+
+    import jwt
 
     if not scopes:
         scopes = []
@@ -458,7 +462,7 @@ def get_public_token(username, password, scopes=None, openid_url=None, client='p
         r.raise_for_status()
     except requests.exceptions.HTTPError as e:
         try:
-            logger.info('Error:', e.response.json()['error_description'])
+            logger.info('Error: %s', e.response.json()['error_description'])
         except Exception:
             pass
         raise
@@ -473,6 +477,7 @@ def get_public_token(username, password, scopes=None, openid_url=None, client='p
 def main():
     import argparse
     from pprint import pprint
+
     from wipac_dev_tools import from_environment
 
     parser = argparse.ArgumentParser(description='Keycloak application management')

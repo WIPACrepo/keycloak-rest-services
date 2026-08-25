@@ -8,7 +8,6 @@ import string
 from krs.ldap import LDAP
 from krs.rabbitmq import RabbitMQListener
 
-
 logger = logging.getLogger('update_ldap_shadow_expire')
 
 

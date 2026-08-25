@@ -4,8 +4,8 @@ Get an admin token for KeyCloak.
 import logging
 
 import requests
-from wipac_dev_tools import from_environment
 from rest_tools.client import ClientCredentialsAuth, SavedDeviceGrantAuth
+from wipac_dev_tools import from_environment
 
 
 def get_token(url, client_id, client_secret, client_realm='master'):

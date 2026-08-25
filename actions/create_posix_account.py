@@ -6,10 +6,9 @@ import logging
 import time
 
 from krs.groups import get_group_membership
-from krs.token import get_rest_client
 from krs.ldap import LDAP
 from krs.rabbitmq import RabbitMQListener
-
+from krs.token import get_rest_client
 
 logger = logging.getLogger('create_posix_account')
 

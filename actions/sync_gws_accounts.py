@@ -22,11 +22,10 @@ import time
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
+from actions.util import retry_execute
 from krs.ldap import LDAP
 from krs.token import get_rest_client
 from krs.users import list_users
-
-from actions.util import retry_execute
 
 logger = logging.getLogger('sync_gws_accounts')
 SHADOWEXPIRE_DAYS_REMAINING_CUTOFF_FOR_ELIGIBILITY = -365 * 2
@@ -47,7 +46,7 @@ def get_gws_accounts(gws_users_client):
         response = retry_execute(request)
         user_list.extend(response.get('users', []))
         request = gws_users_client.list_next(request, response)
-    return dict((u['primaryEmail'].split('@')[0], u) for u in user_list)
+    return {u['primaryEmail'].split('@')[0]: u for u in user_list}
 
 
 def add_canonical_alias(gws_users_client, kc_attrs):
@@ -168,7 +167,7 @@ def create_missing_eligible_accounts(gws_users_client, gws_accounts, ldap_accoun
                     add_canonical_alias(gws_users_client, attrs)
                     time.sleep(3)  # give time to finish alias creation before setting is as sendas
                     set_canonical_sendas(gws_creds, attrs)
-                except:  # noqa
+                except:
                     logger.error(f'Account config failed midway. Canonical alias and/or SendAs of '
                                  f'{username} must be manually set to {attrs["attributes"]["canonical_email"]}')
                     raise
@@ -184,7 +183,7 @@ async def sync_gws_accounts(gws_users_client, ldap_client, keycloak_client,
     """
     kc_accounts = await list_users(rest_client=keycloak_client)
     gws_accounts = get_gws_accounts(gws_users_client)
-    ldap_accounts = ldap_client.list_users(attrs=['shadowExpire'])  # noqa pycharm bug?
+    ldap_accounts = ldap_client.list_users(attrs=['shadowExpire'])
 
     create_missing_eligible_accounts(gws_users_client, gws_accounts, ldap_accounts,
                                      kc_accounts, gws_creds, dryrun)

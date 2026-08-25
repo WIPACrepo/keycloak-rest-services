@@ -75,25 +75,31 @@ import logging
 import re
 import string
 import sys
-from asyncache import cached  # type: ignore
-from attrs import define, field, fields, NOTHING
-from cachetools import Cache
 from collections import defaultdict
 from contextlib import suppress
 from datetime import datetime, timedelta
 from enum import Enum
 from itertools import chain
+
+from asyncache import cached  # type: ignore
+from attrs import NOTHING, define, field, fields
+from cachetools import Cache
 from jsonpath_ng.ext import parse  # type: ignore
 from rest_tools.client import RestClient
 
+from actions.util import reflow_text
 from krs.email import send_email
-from krs.groups import (get_group_membership, group_info, remove_user_group,
-                        add_user_group, get_group_hierarchy, list_groups, modify_group)
+from krs.groups import (
+    add_user_group,
+    get_group_hierarchy,
+    get_group_membership,
+    group_info,
+    list_groups,
+    modify_group,
+    remove_user_group,
+)
 from krs.token import get_rest_client
 from krs.users import user_info
-
-from actions.util import reflow_text
-
 
 ACTION_ID = "sync_synchronized_groups"
 logger = logging.getLogger(f'{ACTION_ID}')
@@ -373,13 +379,17 @@ class SyncGroupConfig(SyncGroupCoreConfig):
             group: dict = await group_info(self.group_path, rest_client=keycloak)
             group_attrs: dict = group.get('attributes', {})
             deferred_removals_raw: dict = json.loads(group_attrs.get(self.deferred_removals_attr, '{}'))
-            self._deferred_removals_cache = dict((user, datetime.fromisoformat(ts))
-                                                 for user, ts in deferred_removals_raw.items())
+            self._deferred_removals_cache = {}
+            for user, ts in deferred_removals_raw.items():
+                parsed_ts = datetime.fromisoformat(ts)
+                if parsed_ts.tzinfo is None:
+                    parsed_ts = parsed_ts.astimezone()
+                self._deferred_removals_cache[user] = parsed_ts
         return self._deferred_removals_cache
 
     async def set_deferred_removal(self, username: str, keycloak: RestClient):
         """Set deferred removal state of user to current time."""
-        new_deferred_removal_str = datetime.now().isoformat()
+        new_deferred_removal_str = datetime.now().astimezone().isoformat()
         logger.info(f"Setting {username}'s removal timestamp to {new_deferred_removal_str}")
         deferred_removals = await self.get_deferred_removals(keycloak)
         deferred_removals[username] = new_deferred_removal_str
@@ -536,7 +546,7 @@ async def grace_period_check_with_init(username: str, cfg: SyncGroupConfig, dryr
     deferred_removals = await cfg.get_deferred_removals(keycloak)
 
     if removal_scheduled_at := deferred_removals.get(username):
-        if datetime.now() < removal_scheduled_at + timedelta(days=cfg.removal_grace_days):
+        if datetime.now().astimezone() < removal_scheduled_at + timedelta(days=cfg.removal_grace_days):
             return True  # grace not expired, check passed
         else:
             logger.info(f"Removal grace period of {username} expired ({removal_scheduled_at,cfg.removal_grace_days=})")
@@ -667,9 +677,9 @@ async def sync_synchronized_group(target_path: str,
 
     # Prune extraneous members
     for extraneous_member in current_members - source_members:
-        if cfg.removal_grace_days:
-            if await grace_period_check_with_init(extraneous_member, cfg, dryrun, allow_notifications, keycloak):
-                continue
+        if cfg.removal_grace_days and await grace_period_check_with_init(
+                extraneous_member, cfg, dryrun, allow_notifications, keycloak):
+            continue
         await remove_extraneous_member(extraneous_member, cfg, dryrun, allow_notifications, keycloak)
 
     # Add missing members if policy is to match union of membership of constituents

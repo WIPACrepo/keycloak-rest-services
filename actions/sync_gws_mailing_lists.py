@@ -55,23 +55,21 @@ PLEASE KEEP THAT PAGE IN-SYNC WITH THIS CODE.
 """
 import asyncio
 import logging
+from collections import defaultdict
 
 from asyncache import cached  # type: ignore
 from cachetools import Cache
-from collections import defaultdict
-
-# noinspection PyProtectedMember
-from googleapiclient.discovery import build, Resource  # type: ignore
 from google.oauth2 import service_account  # type: ignore
 
+# noinspection PyProtectedMember
+from googleapiclient.discovery import Resource, build  # type: ignore
 from rest_tools.client import RestClient
 
-from krs.token import get_rest_client
-from krs.groups import get_group_membership, group_info
-from krs.users import user_info, UserDoesNotExist
+from actions.util import group_tree_to_list, reflow_text, retry_execute
 from krs.email import send_email
-
-from actions.util import retry_execute, group_tree_to_list, reflow_text
+from krs.groups import get_group_membership, group_info
+from krs.token import get_rest_client
+from krs.users import UserDoesNotExist, user_info
 
 ACTION_ID = 'sync_gws_mailing_lists'
 SKIP_GROUP_ATTR_NAME = f"{ACTION_ID}_skip_this_group"  # link:Uo1in3ae

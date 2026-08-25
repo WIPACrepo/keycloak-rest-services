@@ -17,9 +17,9 @@ import logging
 from asyncache import cached
 from cachetools import TTLCache
 
+from krs.groups import get_group_membership_by_id, list_groups
 from krs.token import get_rest_client
 from krs.users import user_info
-from krs.groups import list_groups, get_group_membership_by_id
 
 
 @cached(TTLCache(1024, 60))

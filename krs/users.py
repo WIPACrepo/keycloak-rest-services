@@ -7,11 +7,12 @@ https://bookstack.icecube.wisc.edu/ops/books/services/page/custom-keycloak-attri
 import asyncio
 import logging
 from random import randint
-# noinspection PyPackageRequirements
-from unidecode import unidecode
 
 # noinspection PyPackageRequirements
 import requests.exceptions
+
+# noinspection PyPackageRequirements
+from unidecode import unidecode
 
 from .token import get_rest_client
 from .util import fix_singleton_attributes
@@ -56,7 +57,7 @@ async def list_users(search=None, attr_query=None, rest_client=None):
         for key, value in attr_query.items():
             if (bad_chars & (set(str(value)) | set(str(key)))
                     or ':' in str(key)):
-                raise NotImplementedError(f"Cowardly refusing to run query {dict([(key,value)])}."
+                raise NotImplementedError(f"Cowardly refusing to run query { {key: value} }."
                                           f" Either I don't know how to format the query or"
                                           f" Keycloak is known to have trouble with similar queries.")
 

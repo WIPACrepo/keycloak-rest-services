@@ -1,9 +1,9 @@
 # add basedn
-dn: dc=icecube,dc=wisc,dc=edu
-objectclass: dcObject
-objectclass: organization
-o: IceCube
-dc: icecube
+#dn: dc=icecube,dc=wisc,dc=edu
+#objectclass: dcObject
+#objectclass: organization
+#o: IceCube
+#dc: icecube
 
 # add ldap groups
 dn: ou=Groups,dc=icecube,dc=wisc,dc=edu

@@ -47,16 +47,14 @@ Example::
 """
 import asyncio
 import logging
-
 from datetime import datetime, timedelta
 
-from krs.token import get_rest_client
-from krs.groups import get_group_membership, group_info, remove_user_group
-from krs.users import user_info
-from krs.institutions import list_insts
-from krs.email import send_email
-
 from actions.util import group_tree_to_list
+from krs.email import send_email
+from krs.groups import get_group_membership, group_info, remove_user_group
+from krs.institutions import list_insts
+from krs.token import get_rest_client
+from krs.users import user_info
 
 ACTION_ID = 'prune_mail_groups_by_experiment'
 logger = logging.getLogger(ACTION_ID)
@@ -105,7 +103,9 @@ async def _prune_group(group_path, removal_grace_days, allowed_institutions,
             if 'institutions_last_changed' in user['attributes']:
                 insts_changed = user['attributes']['institutions_last_changed']
                 insts_changed = datetime.fromisoformat(insts_changed)
-                time_since_inst_change = datetime.now() - insts_changed
+                if insts_changed.tzinfo is None:
+                    insts_changed = insts_changed.astimezone()
+                time_since_inst_change = datetime.now().astimezone() - insts_changed
                 if time_since_inst_change < timedelta(days=removal_grace_days):
                     logger.debug(f"Leaving {username} alone because grace period hasn't expired")
                     continue

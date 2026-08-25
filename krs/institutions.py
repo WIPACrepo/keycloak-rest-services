@@ -2,9 +2,9 @@
 Institution actions against Keycloak.
 """
 import asyncio
-from enum import Enum
 import json
 import logging
+from enum import Enum
 
 from . import groups
 from .token import get_rest_client

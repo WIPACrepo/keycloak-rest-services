@@ -8,11 +8,10 @@ import asyncio
 import logging
 import string
 
-from krs.groups import list_groups, get_group_membership_by_id
-from krs.token import get_rest_client
+from krs.groups import get_group_membership_by_id, list_groups
 from krs.ldap import LDAP, get_ldap_members
 from krs.rabbitmq import RabbitMQListener
-
+from krs.token import get_rest_client
 
 logger = logging.getLogger('sync_ldap_groups')
 
@@ -46,11 +45,7 @@ async def process(group_path, ldap_ou=None, posix=False, recursive=False, dryrun
     ret = await list_groups(rest_client=keycloak_client)
     groups = []
     for p in sorted(ret):
-        if not p.startswith(group_path+'/'):
-            continue
-        elif ret[p]['name'].startswith('_'):
-            continue
-        elif (not recursive) and '/' in p[len(group_path)+1:]:
+        if not p.startswith(group_path+'/') or ret[p]['name'].startswith('_') or (not recursive) and '/' in p[len(group_path)+1:]:
             continue
         groups.append(ret[p])
 
@@ -68,7 +63,7 @@ async def process(group_path, ldap_ou=None, posix=False, recursive=False, dryrun
 
         keycloak_members = await get_group_membership_by_id(group['id'], rest_client=keycloak_client)
         logger.debug(f'  keycloak_members: {keycloak_members}')
-        ldap_members = get_ldap_members(ldap_groups[ldap_cn] if ldap_cn in ldap_groups else {})
+        ldap_members = get_ldap_members(ldap_groups.get(ldap_cn, {}))
         logger.debug(f'  ldap_members: {ldap_members}')
         ldap_members = set(ldap_members).intersection(ldap_users)
         logger.debug(f'  ldap_members_users: {ldap_members}')

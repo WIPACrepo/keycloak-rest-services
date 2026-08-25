@@ -24,15 +24,16 @@ Example::
 """
 import asyncio
 import logging
-from datetime import datetime
 from collections import defaultdict
+from datetime import datetime
+
 from requests.exceptions import HTTPError
 
-from krs.token import get_rest_client
+from krs.email import send_email
 from krs.groups import get_group_membership
 from krs.institutions import list_insts
+from krs.token import get_rest_client
 from krs.users import list_users, modify_user
-from krs.email import send_email
 
 logger = logging.getLogger('track_user_institutions')
 
@@ -61,7 +62,7 @@ async def update_institution_tracking(keycloak_client=None, notify=True, dryrun=
 
     user_insts = defaultdict(list)
     insts = await list_insts(rest_client=keycloak_client)
-    for inst_path in insts.keys():
+    for inst_path in insts:
         inst_usernames = await get_group_membership(inst_path, rest_client=keycloak_client)
         for inst_username in inst_usernames:
             user_insts[inst_username].append(inst_path)
@@ -83,14 +84,14 @@ async def update_institution_tracking(keycloak_client=None, notify=True, dryrun=
             # Keycloak 22 deletes attributes set to empty string, so use "none"
             # instead, to make this code future-proof.
             attribs = {"institutions_last_seen": (','.join(insts_actual) or "none"),
-                       "institutions_last_changed": datetime.now().isoformat()}
+                       "institutions_last_changed": datetime.now().astimezone().isoformat()}
             if dryrun:
                 continue
             try:
                 await modify_user(username, attribs=attribs, rest_client=keycloak_client)
             except HTTPError as exc:
                 if exc.response.status_code == 400:
-                    logger.info(f"Got HTTP 400 (bad request): {repr(exc)}")
+                    logger.info(f"Got HTTP 400 (bad request): {exc!r}")
                     logger.info("Field probably failed validation. Invalid 'email' is often the cause.")
                     continue
                 else:
