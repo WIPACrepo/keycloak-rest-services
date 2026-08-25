@@ -6,8 +6,13 @@ async def keycloak_version(rest_client):
     API endpoints should contain the keycloakVersion attribute. As of Keycloak
     24.0.1, keycloakVersion is not included, so we have to employ a hack.
 
+    As of Keycloak 26.7, the /serverinfo endpoint only includes systemInfo
+    (which carries the version) for accounts holding the manage-realm role
+    in the master realm, so rest_client must authenticate as a master-realm
+    admin for this to work.
+
     Args:
-        rest_client: REST client to a Keycloak server
+        rest_client: REST client authenticated as a master-realm admin
 
     Returns:
         str: version string
