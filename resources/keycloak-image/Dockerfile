@@ -26,10 +26,13 @@ RUN /opt/keycloak/bin/kc.sh build
 
 # GitHub Actions service containers can't be given a docker command/args, so
 # let the desired kc.sh subcommand (e.g. "start-dev") be chosen at runtime via
-# the CMD env var. This wraps kc.sh rather than patching its internals, since
-# kc.sh's own launch line has changed across Keycloak versions and silently
-# broke a previous sed-based patch, leaving the entrypoint running with no
-# subcommand at all (it just printed --help and exited).
-RUN printf '#!/bin/sh\nset -e\nexec /opt/keycloak/bin/kc.sh "${CMD:-start-dev}" "$@"\n' > /opt/keycloak/bin/docker-entrypoint.sh \
+# the CMD env var when no command is given at all. This wraps kc.sh rather
+# than patching its internals, since kc.sh's own launch line has changed
+# across Keycloak versions and silently broke a previous sed-based patch,
+# leaving the entrypoint running with no subcommand at all (it just printed
+# --help and exited). When a command IS given (e.g. `podman run image
+# start-dev`, as resources/start-keycloak.sh does), use that instead of
+# also appending CMD, or kc.sh sees "start-dev start-dev" and fails.
+RUN printf '#!/bin/sh\nset -e\nif [ "$#" -gt 0 ]; then\n  exec /opt/keycloak/bin/kc.sh "$@"\nelse\n  exec /opt/keycloak/bin/kc.sh "${CMD:-start-dev}"\nfi\n' > /opt/keycloak/bin/docker-entrypoint.sh \
     && chmod +x /opt/keycloak/bin/docker-entrypoint.sh
 ENTRYPOINT ["/opt/keycloak/bin/docker-entrypoint.sh"]
