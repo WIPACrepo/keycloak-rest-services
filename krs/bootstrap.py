@@ -32,7 +32,7 @@ def wait_for_keycloak(timeout=300):
         try:
             keycloak_base_url()
             break
-        except Exception:
+        except Exception as e:
             if start_time + timeout > time.time():
                 time.sleep(1)
                 continue
