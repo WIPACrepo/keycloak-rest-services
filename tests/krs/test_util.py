@@ -1,17 +1,16 @@
 import os
 
 import pytest
-
 from packaging import version
 from rest_tools.client import RestClient
 
 from krs import bootstrap, util
 
-from ..util import keycloak_bootstrap  # type: ignore
+from ..util import keycloak_bootstrap  # type: ignore # noqa: F401
 
 
 @pytest.mark.asyncio
-async def test_keycloak_version(keycloak_bootstrap):
+async def test_keycloak_version(keycloak_bootstrap):  # noqa: F811
     # As of Keycloak 26.7, /serverinfo only includes systemInfo (which carries
     # the version) for accounts holding manage-realm in the master realm, so
     # a realm-scoped service account like keycloak_bootstrap's can't see it.
