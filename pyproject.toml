@@ -94,6 +94,20 @@ exclude = [
     "resources/**"
 ]
 
+[tool.mypy]
+exclude = [
+    "(^|/)actions/",
+    "(^|/)build/",
+    "(^|/)keycloak_setup/",
+    "(^|/)scripts/",
+    "(^|/)tests/",
+    "^setup\\.py$",
+]
+
+[[tool.mypy.overrides]]
+module = ["ldap3"]
+ignore_missing_imports = true
+
 [tool.ruff]
 exclude = ["env", "*tests", "bin", "docs", "resources"]
 target-version = "py313"
