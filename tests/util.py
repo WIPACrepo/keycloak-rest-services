@@ -11,6 +11,7 @@ from wipac_dev_tools import from_environment
 from krs import bootstrap, ldap, rabbitmq
 from krs.token import get_token
 
+
 @pytest.fixture
 def keycloak_bootstrap(monkeypatch):
     monkeypatch.setenv('KEYCLOAK_REALM', 'testrealm')
