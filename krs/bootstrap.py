@@ -2,8 +2,8 @@
 Bootstrap a Keycloak instance with an admin role account for REST access.
 """
 import time
-import requests
 
+import requests
 from wipac_dev_tools import from_environment
 
 

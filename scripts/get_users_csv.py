@@ -11,14 +11,12 @@ Examples::
 import asyncio
 import csv
 import logging
-import sys
 
 from asyncache import cached
 from cachetools import TTLCache
 
 from krs.token import get_rest_client
 from krs.users import list_users, user_info
-from krs.groups import list_groups
 
 
 @cached(TTLCache(1024, 60))

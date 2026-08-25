@@ -11,16 +11,15 @@ Example::
 This will create user home dirs with directories like `/foo/bar/home/user1`.
 
 """
-import os
-import logging
 import asyncio
 import getpass
+import logging
+import os
 import pathlib
 
-from krs.users import list_users
-from krs.token import get_rest_client
 from krs.rabbitmq import RabbitMQListener
-
+from krs.token import get_rest_client
+from krs.users import list_users
 
 logger = logging.getLogger('create_home_directory')
 
@@ -33,8 +32,7 @@ async def process(root_dir, keycloak_client=None):
                 and 'uidNumber' in user['attributes']
                 and 'gidNumber' in user['attributes']):
             homedir = user['attributes']['homeDirectory']
-            if homedir.startswith('/'):
-                homedir = homedir[1:]
+            homedir = homedir.removeprefix('/')
             path = root_dir / homedir
             if not path.exists():
                 logger.info(f'creating home directory at {path}')

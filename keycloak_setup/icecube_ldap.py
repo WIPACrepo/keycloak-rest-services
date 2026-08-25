@@ -2,13 +2,19 @@ import argparse
 import asyncio
 import logging
 
-from krs.ldap import LDAP, get_ldap_members
-from krs.users import UserDoesNotExist
-from krs.groups import list_groups, create_group, modify_group, add_user_group, remove_user_group
 from krs.bootstrap import get_token
+from krs.groups import (
+    add_user_group,
+    create_group,
+    list_groups,
+    modify_group,
+    remove_user_group,
+)
+from krs.ldap import LDAP, get_ldap_members
 from krs.token import get_rest_client
+from krs.users import UserDoesNotExist
 
-from .institution_list import ICECUBE_INSTS, GEN2_INSTS
+from .institution_list import GEN2_INSTS, ICECUBE_INSTS
 
 logger = logging.getLogger('import_ldap')
 

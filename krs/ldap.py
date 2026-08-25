@@ -1,7 +1,16 @@
 import logging
 import ssl
 
-from ldap3 import Server, Connection, Tls, ALL, ALL_ATTRIBUTES, MODIFY_ADD, MODIFY_REPLACE, MODIFY_DELETE
+from ldap3 import (
+    ALL,
+    ALL_ATTRIBUTES,
+    MODIFY_ADD,
+    MODIFY_DELETE,
+    MODIFY_REPLACE,
+    Connection,
+    Server,
+    Tls,
+)
 from rest_tools.client import RestClient
 from wipac_dev_tools import from_environment
 

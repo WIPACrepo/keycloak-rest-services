@@ -1,12 +1,11 @@
 """Utilities for sending email."""
 
 import smtplib
-from email.message import EmailMessage
 from email.headerregistry import Address
+from email.message import EmailMessage
 from email.utils import localtime
 
 from wipac_dev_tools import from_environment
-
 
 TEMPLATE = """{}
 

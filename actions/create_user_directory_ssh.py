@@ -16,12 +16,11 @@ import json
 import logging
 import pathlib
 
-from krs.groups import get_group_membership
-from krs.users import list_users
-from krs.token import get_rest_client
-from krs.rabbitmq import RabbitMQListener
 import actions.util
-
+from krs.groups import get_group_membership
+from krs.rabbitmq import RabbitMQListener
+from krs.token import get_rest_client
+from krs.users import list_users
 
 logger = logging.getLogger('create_user_directory_ssh')
 

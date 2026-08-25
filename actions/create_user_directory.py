@@ -11,20 +11,19 @@ Example::
 This will create user dirs with directories like `/foo/bar/user1`.
 
 """
-import os
-import logging
 import asyncio
 import getpass
+import logging
+import os
 import pathlib
 import subprocess
 
 from krs.groups import get_group_membership
-from krs.users import list_users
-from krs.token import get_rest_client
 from krs.rabbitmq import RabbitMQListener
+from krs.token import get_rest_client
+from krs.users import list_users
 
 from .util import QUOTAS
-
 
 logger = logging.getLogger('create_user_directory')
 

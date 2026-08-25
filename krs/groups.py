@@ -370,8 +370,8 @@ async def remove_user_group(group_path, username, rest_client=None):
 
 def main():
     import argparse
-    from pprint import pprint
     from collections import defaultdict
+    from pprint import pprint
 
     parser = argparse.ArgumentParser(description='Keycloak group management')
     subparsers = parser.add_subparsers()

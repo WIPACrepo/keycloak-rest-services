@@ -108,8 +108,7 @@ def retry_execute(request, max_attempts=8):
                 continue
             else:
                 raise RetryError(sleep_time_history, exception_history) from exc
-    else:
-        raise RetryError(sleep_time_history, exception_history)
+    raise RetryError(sleep_time_history, exception_history)
 
 
 def reflow_text(text, para_sep="\n\n", **kwargs):

@@ -1,17 +1,17 @@
 import argparse
 import asyncio
-from collections import defaultdict
-from xml.etree import ElementTree
-from html import unescape
 import logging
+from collections import defaultdict
+from html import unescape
+from xml.etree import ElementTree
 
 import requests
 
-from krs.users import list_users, modify_user
 from krs.groups import add_user_group
 from krs.token import get_rest_client
+from krs.users import list_users, modify_user
 
-from .institution_list import ICECUBE_INSTS, GEN2_INSTS
+from .institution_list import GEN2_INSTS, ICECUBE_INSTS
 
 logger = logging.getLogger('import_authorlist')
 

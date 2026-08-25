@@ -37,20 +37,17 @@ Example::
 import asyncio
 import logging
 import sys
-
-from collections import namedtuple, defaultdict
+from collections import defaultdict, namedtuple
 from contextlib import suppress
 from pprint import pformat
 
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
-from krs.email import send_email
-from krs.token import get_rest_client
-from krs.groups import get_group_membership, group_info, GroupDoesNotExist
-
 from actions.util import retry_execute
-
+from krs.email import send_email
+from krs.groups import GroupDoesNotExist, get_group_membership, group_info
+from krs.token import get_rest_client
 
 ACTION_ID = 'sync_gws_calendars'
 logger = logging.getLogger(f'{ACTION_ID}')

@@ -75,25 +75,31 @@ import logging
 import re
 import string
 import sys
-from asyncache import cached  # type: ignore
-from attrs import define, field, fields, NOTHING
-from cachetools import Cache
 from collections import defaultdict
 from contextlib import suppress
 from datetime import datetime, timedelta
 from enum import Enum
 from itertools import chain
+
+from asyncache import cached  # type: ignore
+from attrs import NOTHING, define, field, fields
+from cachetools import Cache
 from jsonpath_ng.ext import parse  # type: ignore
 from rest_tools.client import RestClient
 
+from actions.util import reflow_text
 from krs.email import send_email
-from krs.groups import (get_group_membership, group_info, remove_user_group,
-                        add_user_group, get_group_hierarchy, list_groups, modify_group)
+from krs.groups import (
+    add_user_group,
+    get_group_hierarchy,
+    get_group_membership,
+    group_info,
+    list_groups,
+    modify_group,
+    remove_user_group,
+)
 from krs.token import get_rest_client
 from krs.users import user_info
-
-from actions.util import reflow_text
-
 
 ACTION_ID = "sync_synchronized_groups"
 logger = logging.getLogger(f'{ACTION_ID}')

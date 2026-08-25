@@ -7,11 +7,12 @@ https://bookstack.icecube.wisc.edu/ops/books/services/page/custom-keycloak-attri
 import asyncio
 import logging
 from random import randint
-# noinspection PyPackageRequirements
-from unidecode import unidecode
 
 # noinspection PyPackageRequirements
 import requests.exceptions
+
+# noinspection PyPackageRequirements
+from unidecode import unidecode
 
 from .token import get_rest_client
 from .util import fix_singleton_attributes

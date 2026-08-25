@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """The master list of IceCube institutions and their details.
 
 More or less, a more structured JSON file (or less structured MongoDB)
@@ -7,7 +6,7 @@ NOTE: Keep things simple here. Avoid non-basic imports,
       so file can be imported by 3rd parties independently.
 """
 
-from typing import Dict, TypedDict
+from typing import TypedDict
 
 _NORTH_AMERICA = "North America"
 _EUROPE = "Europe"
@@ -23,7 +22,7 @@ class InstitutionMeta(TypedDict):
     is_US: bool
     region: str
     authorlist: bool
-    authorlists: Dict[str, str]
+    authorlists: dict[str, str]
     _ldap_o: str
 
 

@@ -4,11 +4,10 @@ RabbitMQ utilities
 import asyncio
 import logging
 
+import aio_pika
+import requests
 from rest_tools.utils.json_util import json_decode
 from wipac_dev_tools import from_environment
-import requests
-import aio_pika
-
 
 logger = logging.getLogger('rabbitmq')
 

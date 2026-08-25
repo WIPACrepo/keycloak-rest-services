@@ -21,15 +21,14 @@ App structure:
 Also available: a generic "public" app for public access to scopes,
 if the application scope is allowed to be public.
 """
-import os
 import asyncio
 import logging
+import os
 
 import requests
 
+from .groups import group_info, list_groups
 from .token import get_rest_client
-from .groups import list_groups, group_info
-
 
 logger = logging.getLogger('krs.apps')
 
@@ -410,8 +409,9 @@ async def delete_app_role_mapping(appname, role, group, rest_client=None):
 
 
 def get_public_token(username, password, scopes=None, openid_url=None, client='public', secret=None, raw=False, **kwargs):
-    import jwt
     import json
+
+    import jwt
 
     if not scopes:
         scopes = []
@@ -473,6 +473,7 @@ def get_public_token(username, password, scopes=None, openid_url=None, client='p
 def main():
     import argparse
     from pprint import pprint
+
     from wipac_dev_tools import from_environment
 
     parser = argparse.ArgumentParser(description='Keycloak application management')

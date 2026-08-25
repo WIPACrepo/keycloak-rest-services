@@ -20,8 +20,8 @@ from krs.groups import create_group
 from krs.institutions import create_inst
 from krs.token import get_rest_client
 
-from .institution_list import ICECUBE_INSTS, GEN2_INSTS
 from .icecube_ldap import import_ldap_groups, import_ldap_insts
+from .institution_list import GEN2_INSTS, ICECUBE_INSTS
 
 sys.path.append(os.getcwd())
 
