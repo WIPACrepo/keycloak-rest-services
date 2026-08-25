@@ -8,10 +8,8 @@ from ldap3 import Connection
 from rest_tools.client import RestClient
 from wipac_dev_tools import from_environment
 
-from krs import bootstrap
+from krs import bootstrap, ldap, rabbitmq
 from krs.token import get_token
-from krs import ldap
-from krs import rabbitmq
 
 @pytest.fixture
 def keycloak_bootstrap(monkeypatch):
