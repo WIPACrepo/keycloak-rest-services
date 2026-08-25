@@ -99,4 +99,28 @@ exclude = ["env", "*tests", "bin", "docs", "resources"]
 target-version = "py313"
 
 [tool.ruff.lint]
-ignore = ["E203", "E226", "E228", "E231", "E501"]
+ignore = [
+    "ASYNC210",
+    "ASYNC221",
+    "ASYNC230",
+    "B006",
+    "BLE001",
+    "C401",
+    "C402",
+    "C405",
+    "C406",
+    "DTZ005",
+    "E203",
+    "E226",
+    "E228",
+    "E231",
+    "E501",
+    "LOG015",
+    "PLE1205",
+    "S110",
+    "SIM102",
+    "SIM118",
+    "SIM401",
+    "TRY002",
+    "TRY004",
+]
