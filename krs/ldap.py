@@ -2,7 +2,6 @@ import logging
 import ssl
 
 import requests
-
 from ldap3 import (
     ALL,
     ALL_ATTRIBUTES,
