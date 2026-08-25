@@ -18,8 +18,7 @@ process or before Keycloak starts. After Keycloak is started no changes are allo
 
 ## Running Tests
 
-The tests run automatically in CircleCI, but for those that want to run them
-locally, there is a way.
+To run tests locally:
 
 First, build and load the local python environment:
 
