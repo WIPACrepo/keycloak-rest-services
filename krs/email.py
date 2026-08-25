@@ -104,5 +104,5 @@ def send_email(recipient, subject, content, cc=None, headline="IceCube Identity 
     msg.add_alternative(HTML_TEMPLATE.format(content.replace('\n', '<br>'), headline=headline),
                         subtype='html')
 
-    with smtplib.SMTP(config['EMAIL_SMTP_SERVER'], timeout=config['EMAIL_SMTP_TIMEOUT']) as s:
+    with smtplib.SMTP(str(config['EMAIL_SMTP_SERVER']), timeout=float(config['EMAIL_SMTP_TIMEOUT'])) as s:
         s.send_message(msg)

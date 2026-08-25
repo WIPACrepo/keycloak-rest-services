@@ -2,6 +2,7 @@
 Get an admin token for KeyCloak.
 """
 import logging
+from typing import Any
 
 import requests
 from rest_tools.client import ClientCredentialsAuth, SavedDeviceGrantAuth
@@ -31,15 +32,15 @@ def get_rest_client(retries=None, timeout=10):
         'KEYCLOAK_CLIENT_SECRET': '',
         'KEYCLOAK_CLIENT_REALM': 'master',
     })
-    kwargs = {'timeout': timeout}
+    kwargs: dict[str, Any] = {'timeout': timeout}
     if retries is not None:
         kwargs['retries'] = retries
     if config['KEYCLOAK_CLIENT_SECRET']:
         return ClientCredentialsAuth(
             address=f'{config["KEYCLOAK_URL"]}/auth/admin/realms/{config["KEYCLOAK_REALM"]}',
             token_url=f'{config["KEYCLOAK_URL"]}/auth/realms/{config["KEYCLOAK_CLIENT_REALM"]}',
-            client_id=config['KEYCLOAK_CLIENT_ID'],
-            client_secret=config['KEYCLOAK_CLIENT_SECRET'],
+            client_id=str(config['KEYCLOAK_CLIENT_ID']),
+            client_secret=str(config['KEYCLOAK_CLIENT_SECRET']),
             **kwargs
         )
     else:
@@ -49,7 +50,7 @@ def get_rest_client(retries=None, timeout=10):
             address=f'{config["KEYCLOAK_URL"]}/auth/admin/realms/{config["KEYCLOAK_REALM"]}',
             token_url=f'{config["KEYCLOAK_URL"]}/auth/realms/{config["KEYCLOAK_CLIENT_REALM"]}',
             filename='.keycloak-rest-services-auth',
-            client_id=config['KEYCLOAK_CLIENT_ID'],
+            client_id=str(config['KEYCLOAK_CLIENT_ID']),
             **kwargs
         )
 

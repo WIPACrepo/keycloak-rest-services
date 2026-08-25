@@ -1,6 +1,8 @@
 import logging
 import ssl
 
+import requests
+
 from ldap3 import (
     ALL,
     ALL_ATTRIBUTES,
@@ -37,7 +39,7 @@ class LDAP:
         if self.config['LDAP_TLS_VERSION']:
             # set up TLS
             t_kwargs = {
-                'version': getattr(ssl, 'PROTOCOL_'+self.config['LDAP_TLS_VERSION'])
+                'version': getattr(ssl, 'PROTOCOL_'+str(self.config['LDAP_TLS_VERSION']))
             }
             if self.config['LDAP_TLS_CIPHERS']:
                 t_kwargs['ciphers'] = self.config['LDAP_TLS_CIPHERS']
@@ -233,8 +235,8 @@ class LDAP:
 
         try:
             await keycloak_client.request('POST', f'/user-storage/{ldapComponentId}/sync?action=triggerChangedUsersSync')
-        except Exception as e:
-            logger.info(f'error: {e.response.text}')
+        except requests.exceptions.HTTPError as e:
+            logger.info(f'error: {e.response.text if e.response is not None else e}')
             raise
 
     def list_users(self, attrs=None):

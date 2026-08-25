@@ -93,7 +93,6 @@ fallback_version = "CANNOT_BUILD_WITHOUT_GIT_DIR" # used when SCM metadata is mi
 exclude = [
     "actions/**",
     "keycloak_setup/**",
-    "krs/**",
     "resources/**",
     "scripts/**",
     "setup.py",

@@ -35,9 +35,9 @@ class RabbitMQListener:
         })
 
         self.action = action
-        self.address = address if address else config['RABBITMQ_URL']
-        self.exchange = exchange if exchange else config['RABBITMQ_EXCHANGE']
-        self.routing_key = routing_key if routing_key else config['RABBITMQ_ROUTING_KEY']
+        self.address = address if address else str(config['RABBITMQ_URL'])
+        self.exchange = exchange if exchange else str(config['RABBITMQ_EXCHANGE'])
+        self.routing_key = routing_key if routing_key else str(config['RABBITMQ_ROUTING_KEY'])
         self.message_count = message_count
         self.connection = None
 
@@ -99,6 +99,7 @@ class RabbitMQListener:
         self.message_queue.append(message)
 
     async def _process_dedup_helper(self):
+        assert self.dedup is not None  # only scheduled when self.dedup is truthy
         await asyncio.sleep(self.dedup)
         message = self.message_queue.pop()
         self.message_queue = []

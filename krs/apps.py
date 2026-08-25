@@ -412,7 +412,7 @@ async def delete_app_role_mapping(appname, role, group, rest_client=None):
         logger.info(f'app "{appname}" role mapping {role}-{group} deleted')
 
 
-def get_public_token(username, password, scopes=None, openid_url=None, client='public', secret=None, raw=False, **kwargs):
+def get_public_token(username, password, scopes=None, openid_url: str | None = None, client='public', secret=None, raw=False, **kwargs):
     import json
 
     import jwt
@@ -424,6 +424,9 @@ def get_public_token(username, password, scopes=None, openid_url=None, client='p
         # get password from cmdline
         import getpass
         password = getpass.getpass()
+
+    if openid_url is None:
+        raise ValueError('openid_url is required')
 
     # discovery
     r = requests.get(os.path.join(openid_url, '.well-known/openid-configuration'))
