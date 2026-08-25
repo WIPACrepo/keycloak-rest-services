@@ -4,6 +4,6 @@ export KEYCLOAK_URL=http://localhost:8080
 export KEYCLOAK_USERNAME=admin
 export KEYCLOAK_PASSWORD=admin
 
-export LDAP_URL=ldap://localhost:1389
+export LDAP_URL=ldap://127.0.0.1:1389
 export LDAP_ADMIN_USER=cn=admin,dc=icecube,dc=wisc,dc=edu
 export LDAP_ADMIN_PASSWORD=admin
