@@ -91,7 +91,13 @@ fallback_version = "CANNOT_BUILD_WITHOUT_GIT_DIR" # used when SCM metadata is mi
 
 [tool.ty.src]
 exclude = [
+    "actions/**",
+    "keycloak_setup/**",
+    "krs/**",
     "resources/**",
+    "scripts/**",
+    "setup.py",
+    "tests/**",
 ]
 
 [tool.ruff]
