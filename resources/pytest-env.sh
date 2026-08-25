@@ -7,3 +7,5 @@ export KEYCLOAK_PASSWORD=admin
 export LDAP_URL=ldap://127.0.0.1:1389
 export LDAP_ADMIN_USER=cn=admin,dc=icecube,dc=wisc,dc=edu
 export LDAP_ADMIN_PASSWORD=admin
+
+export RABBITMQ_MGMT_URL=http://127.0.0.1:15672
