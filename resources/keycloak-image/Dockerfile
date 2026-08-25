@@ -4,7 +4,7 @@ FROM quay.io/keycloak/keycloak:26.7.2 AS builder
 ENV KC_HTTP_ENABLED="true"
 ENV KC_HTTP_RELATIVE_PATH="/auth"
 ENV KC_HOSTNAME_STRICT="false"
-ENV KC_FEATURES=scripts,dynamic-scopes
+ENV KC_FEATURES=scripts,parameterized-scopes
 ENV KC_LOG=console
 
 # rabbitmq settings
