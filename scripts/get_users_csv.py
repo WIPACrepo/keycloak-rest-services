@@ -11,14 +11,12 @@ Examples::
 import asyncio
 import csv
 import logging
-import sys
 
 from asyncache import cached
 from cachetools import TTLCache
 
 from krs.token import get_rest_client
 from krs.users import list_users, user_info
-from krs.groups import list_groups
 
 
 @cached(TTLCache(1024, 60))
@@ -29,27 +27,23 @@ async def get_name(username, client=None):
 
 async def run(client, filename):
     krs_users = await list_users(rest_client=client)
-    #krs_groups = await list_groups(rest_client=client)
     ret = {}
     data = {}
     fieldnames = set()
     for user in krs_users:
         data = krs_users[user]
-        data.update(data.pop('attributes',{}))
+        data.update(data.pop('attributes', {}))
         ret[user] = data
         fieldnames.update(data.keys())
 
     if ret:
-        #fieldnames = list(fieldnames)
         with open(filename, 'w', newline='') as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
             writer.writerows(ret.values())
-            #for data in ret.values():
-                #row = [data[k] if k in data else '' for k in fieldnames]
-                #writer.writerow(row)
     else:
         logging.warning('no users found!')
+
 
 def main():
     import argparse
