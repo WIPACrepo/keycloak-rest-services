@@ -19,7 +19,7 @@ from .institution_list import GEN2_INSTS, ICECUBE_INSTS
 logger = logging.getLogger('import_ldap')
 
 
-IGNORE_LIST = set(['IceCube', 'wipac'])
+IGNORE_LIST = {'IceCube', 'wipac'}
 
 
 def get_attr_as_list(group, name, default=None):

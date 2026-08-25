@@ -120,17 +120,17 @@ target-version = "py313"
 
 [tool.ruff.lint]
 ignore = [
-    "TRY002",
-    "TRY004",
+    "ASYNC220",
+    "ASYNC221",
+    "ASYNC230",
     "BLE001",
-    "S110",
     "E203",
     "E226",
-    "ASYNC220",
-    "ASYNC230",
-    "ASYNC221",
-    "LOG015",
     "E228",
     "E231",
     "E501"
+    "LOG015",
+    "S110",
+    "TRY002",
+    "TRY004",
 ]

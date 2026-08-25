@@ -46,7 +46,7 @@ def get_gws_accounts(gws_users_client):
         response = retry_execute(request)
         user_list.extend(response.get('users', []))
         request = gws_users_client.list_next(request, response)
-    return dict((u['primaryEmail'].split('@')[0], u) for u in user_list)
+    return {u['primaryEmail'].split('@')[0]: u for u in user_list}
 
 
 def add_canonical_alias(gws_users_client, kc_attrs):

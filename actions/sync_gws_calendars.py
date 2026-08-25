@@ -239,7 +239,7 @@ async def sync_gws_calendar(cal_id, cal_name, calendar_acl, target_rules, creds,
     logger.debug(f"{target_rules=}")
 
     # Owners are managed out of band. Exclude them from actual and target ACL rules.
-    owners = set(addr for addr, rule in actual_rules.items() if rule["role"] == "owner")
+    owners = {addr for addr, rule in actual_rules.items() if rule["role"] == "owner"}
     target_rules = target_rules.copy()
     for owner_addr in owners:
         logger.debug(f"Excluding owner {owner_addr} of '{cal_name}'")

@@ -62,7 +62,7 @@ async def update_institution_tracking(keycloak_client=None, notify=True, dryrun=
 
     user_insts = defaultdict(list)
     insts = await list_insts(rest_client=keycloak_client)
-    for inst_path in insts.keys():
+    for inst_path in insts:
         inst_usernames = await get_group_membership(inst_path, rest_client=keycloak_client)
         for inst_username in inst_usernames:
             user_insts[inst_username].append(inst_path)
@@ -84,7 +84,7 @@ async def update_institution_tracking(keycloak_client=None, notify=True, dryrun=
             # Keycloak 22 deletes attributes set to empty string, so use "none"
             # instead, to make this code future-proof.
             attribs = {"institutions_last_seen": (','.join(insts_actual) or "none"),
-                       "institutions_last_changed": datetime.now().isoformat()}
+                       "institutions_last_changed": datetime.now().astimezone().isoformat()}
             if dryrun:
                 continue
             try:

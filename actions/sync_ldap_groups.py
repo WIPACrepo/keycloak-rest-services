@@ -63,7 +63,7 @@ async def process(group_path, ldap_ou=None, posix=False, recursive=False, dryrun
 
         keycloak_members = await get_group_membership_by_id(group['id'], rest_client=keycloak_client)
         logger.debug(f'  keycloak_members: {keycloak_members}')
-        ldap_members = get_ldap_members(ldap_groups[ldap_cn] if ldap_cn in ldap_groups else {})
+        ldap_members = get_ldap_members(ldap_groups.get(ldap_cn, {}))
         logger.debug(f'  ldap_members: {ldap_members}')
         ldap_members = set(ldap_members).intersection(ldap_users)
         logger.debug(f'  ldap_members_users: {ldap_members}')

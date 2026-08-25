@@ -103,7 +103,9 @@ async def _prune_group(group_path, removal_grace_days, allowed_institutions,
             if 'institutions_last_changed' in user['attributes']:
                 insts_changed = user['attributes']['institutions_last_changed']
                 insts_changed = datetime.fromisoformat(insts_changed)
-                time_since_inst_change = datetime.now() - insts_changed
+                if insts_changed.tzinfo is None:
+                    insts_changed = insts_changed.astimezone()
+                time_since_inst_change = datetime.now().astimezone() - insts_changed
                 if time_since_inst_change < timedelta(days=removal_grace_days):
                     logger.debug(f"Leaving {username} alone because grace period hasn't expired")
                     continue
