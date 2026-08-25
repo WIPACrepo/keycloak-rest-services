@@ -1,12 +1,12 @@
 import os
-from functools import partial
 import time
+from functools import partial
 
 import pytest
+import requests
 from ldap3 import Connection
 from rest_tools.client import RestClient
 from wipac_dev_tools import from_environment
-import requests
 
 from krs import bootstrap
 from krs.token import get_token
