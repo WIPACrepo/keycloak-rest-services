@@ -112,6 +112,9 @@ ignore_missing_imports = true
 exclude = ["env", "*tests", "bin", "docs", "resources"]
 target-version = "py313"
 
+[tool.mypy]
+exclude = ["^actions/", "^keycloak_setup/", "^scripts/", "^tests/"]
+
 [tool.ruff.lint]
 ignore = [
     "ASYNC210",
