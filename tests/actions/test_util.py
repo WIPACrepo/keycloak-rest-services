@@ -1,7 +1,8 @@
 import subprocess
 
 import pytest
-from actions.util import ssh, scp_and_run, scp_and_run_sudo
+
+from actions.util import scp_and_run, scp_and_run_sudo, ssh
 
 from .util import TestException
 
