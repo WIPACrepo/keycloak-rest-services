@@ -1,5 +1,8 @@
+import subprocess
+
 import pytest
-from actions.util import ssh, scp_and_run, scp_and_run_sudo
+
+from actions.util import scp_and_run, scp_and_run_sudo, ssh
 
 from .util import TestException
 
@@ -18,10 +21,22 @@ def test_scp_and_run(mocker):
 
     scp_and_run('test.test.test', 'data data data')
 
-    assert cc.call_count == 3
+    assert cc.call_count == 4
     assert cc.call_args_list[0].args[0][0] == 'scp'
     assert cc.call_args_list[1].args[0][0] == 'ssh'
+    assert cc.call_args_list[1].args[0][-3:] == ['python3', '-c', 'exit']
     assert cc.call_args_list[2].args[0][0] == 'ssh'
+    assert cc.call_args_list[2].args[0][-2:] == ['python3', '/tmp/create.py']
+    assert cc.call_args_list[3].args[0][0] == 'ssh'
+
+def test_scp_and_run_no_python3(mocker):
+    cc = mocker.patch('subprocess.check_call')
+    cc.side_effect = [None, subprocess.CalledProcessError(1, 'ssh'), None, None]
+
+    scp_and_run('test.test.test', 'data data data')
+
+    assert cc.call_count == 4
+    assert cc.call_args_list[2].args[0][-2:] == ['python', '/tmp/create.py']
 
 def test_scp_and_run_error(mocker):
     cc = mocker.patch('subprocess.check_call')
@@ -35,11 +50,23 @@ def test_scp_and_run_sudo(mocker):
 
     scp_and_run_sudo('test.test.test', 'data data data')
 
-    assert cc.call_count == 3
+    assert cc.call_count == 4
     assert cc.call_args_list[0].args[0][0] == 'scp'
     assert cc.call_args_list[1].args[0][0] == 'ssh'
-    assert 'sudo' in cc.call_args_list[1].args[0]
+    assert cc.call_args_list[1].args[0][-3:] == ['python3', '-c', 'exit']
     assert cc.call_args_list[2].args[0][0] == 'ssh'
+    assert 'sudo' in cc.call_args_list[2].args[0]
+    assert cc.call_args_list[2].args[0][-2:] == ['python3', '/tmp/create.py']
+    assert cc.call_args_list[3].args[0][0] == 'ssh'
+
+def test_scp_and_run_sudo_no_python3(mocker):
+    cc = mocker.patch('subprocess.check_call')
+    cc.side_effect = [None, subprocess.CalledProcessError(1, 'ssh'), None, None]
+
+    scp_and_run_sudo('test.test.test', 'data data data')
+
+    assert cc.call_count == 4
+    assert cc.call_args_list[2].args[0][-2:] == ['python', '/tmp/create.py']
 
 def test_scp_and_run_sudo_error(mocker):
     cc = mocker.patch('subprocess.check_call')
