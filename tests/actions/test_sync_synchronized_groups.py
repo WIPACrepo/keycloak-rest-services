@@ -207,7 +207,7 @@ async def test_send_or_log_notification(monkeypatch):
 
 
 def test_auto_allow_notifications_required_unless_dryrun(monkeypatch):
-    monkeypatch.setattr(sync_synchronized_groups_module, 'get_rest_client', lambda: MagicMock())
+    monkeypatch.setattr(sync_synchronized_groups_module, 'get_rest_client', MagicMock)
 
     calls = []
 
