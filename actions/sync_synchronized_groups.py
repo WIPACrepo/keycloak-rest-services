@@ -458,11 +458,12 @@ async def manual_group_sync(target_path: str,
                                          dryrun=dryrun)
 
 
-async def auto_sync_enabled_groups(keycloak_client, dryrun):
+async def auto_sync_enabled_groups(keycloak_client, allow_notifications, dryrun):
     """Discover enabled synchronized groups and sync them.
 
     Args:
         keycloak_client (RestClient): REST client to the KeyCloak server
+        allow_notifications (bool): if False, suppress email notifications
         dryrun (bool): perform a trial run with no changes made
     """
     # Find all enabled synchronized groups. At the moment, it's much faster
@@ -487,7 +488,7 @@ async def auto_sync_enabled_groups(keycloak_client, dryrun):
             await sync_synchronized_group(enabled_group_path,
                                           cfg=cfg,
                                           keycloak=keycloak_client,
-                                          allow_notifications=True,
+                                          allow_notifications=allow_notifications,
                                           dryrun=dryrun)
         except Exception as exc:
             logger.error(f"Exception during sync of {enabled_group_path}: {exc!r}")
@@ -515,6 +516,24 @@ async def send_notification(username: str, subject: str, body: str, keycloak: Re
                cc=cc_addresses, headline="IceCube Automatic Group Management")
 
 
+async def send_or_log_notification(username: str, subject: str, template: str, notify: bool,
+                                   dryrun: bool, keycloak: RestClient, **format_kwargs):
+    """Send a notification, or (if dryrun) log that one would have been sent.
+
+    No-op if `notify` is False or `template` is empty (event notifications disabled).
+    `template` is only formatted once that check passes, so a malformed message
+    template (e.g. a bad admin-supplied override) can't break unrelated dryrun
+    or notify=False syncs.
+    """
+    if not notify or not template:
+        return
+    body = template.format(username=username, **format_kwargs)
+    if dryrun:
+        logger.info(f"Would send '{subject}' notification to {username}")
+    else:
+        await send_notification(username=username, subject=subject, body=body, keycloak=keycloak)
+
+
 async def clear_deferred_removal(username: str, cfg: SyncGroupConfig, dryrun: bool,
                                  notify: bool, keycloak: RestClient):
     """Remove a user from the deferred removal records """
@@ -523,11 +542,10 @@ async def clear_deferred_removal(username: str, cfg: SyncGroupConfig, dryrun: bo
         logger.info(f"Removing {username} from deferred removal state({dryrun=}, {notify=})")
         if not dryrun:
             await cfg.clear_deferred_removal(username, keycloak)
-            if notify and cfg.message_removal_averted:
-                await send_notification(
-                    username=username, keycloak=keycloak,
-                    subject=f"You are no longer scheduled for removal from group {cfg.group_path}",
-                    body=cfg.message_removal_averted.format(username=username, group_path=cfg.group_path))
+        await send_or_log_notification(
+            username=username, keycloak=keycloak, notify=notify, dryrun=dryrun,
+            subject=f"You are no longer scheduled for removal from group {cfg.group_path}",
+            template=cfg.message_removal_averted, group_path=cfg.group_path)
 
 
 async def grace_period_check_with_init(username: str, cfg: SyncGroupConfig, dryrun: bool,
@@ -555,12 +573,11 @@ async def grace_period_check_with_init(username: str, cfg: SyncGroupConfig, dryr
         # Grace period > 0 but "removal scheduled" not set. Set it.
         if not dryrun:
             await cfg.set_deferred_removal(username, keycloak)
-            if notify and cfg.message_removal_pending:
-                await send_notification(
-                    username=username, keycloak=keycloak,
-                    subject=f"You are scheduled for removal from group {cfg.group_path}",
-                    body=cfg.message_removal_pending.format(username=username, group_path=cfg.group_path,
-                                                            grace_days=cfg.removal_grace_days))
+        await send_or_log_notification(
+            username=username, keycloak=keycloak, notify=notify, dryrun=dryrun,
+            subject=f"You are scheduled for removal from group {cfg.group_path}",
+            template=cfg.message_removal_pending, group_path=cfg.group_path,
+            grace_days=cfg.removal_grace_days)
         # Assuming grace=0 case has been handled earlier
         return True  # pass the check since grace>0 and grace period has just been begun
 
@@ -575,27 +592,23 @@ async def remove_extraneous_member(username: str, cfg: SyncGroupConfig, dryrun: 
     logger.info(f"Removing extraneous {username} from {cfg.group_path} ({dryrun=}, {notify=}")
     if not dryrun:
         await remove_user_group(cfg.group_path, username, rest_client=keycloak)
-        if notify and cfg.message_removal_occurred:
-            await send_notification(
-                username=username, keycloak=keycloak,
-                subject=f"You have been removed from group {cfg.group_path}",
-                body=cfg.message_removal_occurred.format(username=username, group_path=cfg.group_path))
+    await send_or_log_notification(
+        username=username, keycloak=keycloak, notify=notify, dryrun=dryrun,
+        subject=f"You have been removed from group {cfg.group_path}",
+        template=cfg.message_removal_occurred, group_path=cfg.group_path)
 
 
 async def add_missing_member(username: str, qualifying_groups: list, cfg: SyncGroupConfig,
                              dryrun: bool, notify: bool, keycloak: RestClient):
     """Add a user who should be group members but isn't."""
     logger.info(f"Adding {username} to {cfg.group_path} ({dryrun=}, {notify=})")
-    if dryrun:
-        return
-    await add_user_group(cfg.group_path, username, rest_client=keycloak)
-    if notify and cfg.message_addition_occurred:
-        await send_notification(
-            username=username, keycloak=keycloak,
-            subject=f"You have been added to group {cfg.group_path}",
-            body=cfg.message_addition_occurred.format(
-                username=username, group_path=cfg.group_path,
-                qualifying_groups=', '.join(qualifying_groups)))
+    if not dryrun:
+        await add_user_group(cfg.group_path, username, rest_client=keycloak)
+    await send_or_log_notification(
+        username=username, keycloak=keycloak, notify=notify, dryrun=dryrun,
+        subject=f"You have been added to group {cfg.group_path}",
+        template=cfg.message_addition_occurred, group_path=cfg.group_path,
+        qualifying_groups=', '.join(qualifying_groups))
 
 
 async def sync_synchronized_group(target_path: str,
@@ -749,7 +762,8 @@ def main():
                             "source groups at paths defined by JSONPATH_EXPR. If JSONPATH_EXPR "
                             "is empty, use the expression from the group's configuration.")
     parser.add_argument('--allow-notifications', action='store_true',
-                        help="Do send out email notifications if so configured. Required in automatic mode.")
+                        help="Do send out email notifications if so configured. Required in "
+                             "automatic mode unless --dryrun is given.")
     parser.add_argument('--log-level', default='info', choices=('debug', 'info', 'warning', 'error'),
                         help='Root logging level.')
     parser.add_argument('--log-level-this', default='info', choices=('debug', 'info', 'warning', 'error'),
@@ -770,8 +784,8 @@ def main():
     this_logger = logging.getLogger(ACTION_ID)
     this_logger.setLevel(getattr(logging, args['log_level_this'].upper()))
 
-    if not args['allow_notifications'] and args['auto']:
-        logger.critical("--allow-notifications is required in automatic mode")
+    if not args['allow_notifications'] and args['auto'] and not args['dryrun']:
+        logger.critical("--allow-notifications is required in automatic mode unless --dryrun is given")
         parser.exit(1)
 
     keycloak_client = get_rest_client()
@@ -783,6 +797,7 @@ def main():
     if args['auto']:
         return asyncio.run(auto_sync_enabled_groups(
             keycloak_client=keycloak_client,
+            allow_notifications=args['allow_notifications'],
             dryrun=args['dryrun']))
     else:
         target_group, source_group_expr = args['manual']

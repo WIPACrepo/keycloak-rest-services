@@ -1,3 +1,6 @@
+import sys
+from unittest.mock import MagicMock
+
 import pytest
 
 from krs.groups import (create_group, add_user_group, get_group_membership,
@@ -7,7 +10,9 @@ from krs.users import create_user
 # noinspection PyUnresolvedReferences
 from ..util import keycloak_bootstrap  # type: ignore
 
-from actions.sync_synchronized_groups import (auto_sync_enabled_groups, manual_group_sync,
+import actions.sync_synchronized_groups as sync_synchronized_groups_module
+from actions.sync_synchronized_groups import (auto_sync_enabled_groups, main, manual_group_sync,
+                                              send_or_log_notification,
                                               SyncGroupNotificationConfig, SyncGroupConfig,
                                               MembershipSyncPolicy)
 from attrs import fields
@@ -113,7 +118,7 @@ async def test_sync_synchronized_group_authorlist(keycloak_bootstrap):
     await add_user_group('/institutions/ExperimentXXX/Irrelevant', u_dont_add_bc_wrong_expt, rest_client=keycloak_bootstrap)
     await add_user_group('/institutions/ExperimentXXX/Irrelevant/authorlist', u_dont_add_bc_wrong_expt, rest_client=keycloak_bootstrap)  # noqa
 
-    await auto_sync_enabled_groups(keycloak_bootstrap, dryrun=False)
+    await auto_sync_enabled_groups(keycloak_bootstrap, allow_notifications=False, dryrun=False)
 
     # noinspection PyTestUnpassedFixture
     async def get_deferred(group_path):
@@ -141,7 +146,7 @@ async def test_sync_synchronized_group_authorlist(keycloak_bootstrap):
     # simulate grace period expiration
     await modify_group(g_authors_grace, rest_client=keycloak_bootstrap,
                        attrs=default_attrs | {removal_grace_attr: '0'})
-    await auto_sync_enabled_groups(keycloak_bootstrap, dryrun=False)
+    await auto_sync_enabled_groups(keycloak_bootstrap, allow_notifications=False, dryrun=False)
     authors_grace_users2 = await get_group_membership(g_authors_grace, rest_client=keycloak_bootstrap)
     assert set(authors_grace_users2) == {u_remain_in_authors, u_add_to_authors}
     authors_grace_deferred = await get_deferred(g_authors_grace)
@@ -155,3 +160,68 @@ async def test_sync_synchronized_group_authorlist(keycloak_bootstrap):
     with pytest.raises(ValueError):
         await manual_group_sync(g_authors_disabled, '$..[*].name', keycloak_client=keycloak_bootstrap,
                                 allow_notifications=False, dryrun=False)
+
+
+@pytest.mark.asyncio
+async def test_send_or_log_notification(monkeypatch):
+    sent = []
+    dummy_keycloak = MagicMock()
+
+    async def fake_send_notification(username, subject, body, keycloak):
+        sent.append((username, subject, body))
+
+    monkeypatch.setattr(sync_synchronized_groups_module, 'send_notification', fake_send_notification)
+
+    # notify=False: no-op, and a malformed template must not raise (lazy formatting)
+    await send_or_log_notification(username='alice', subject='S', template='bad {unmatched',
+                                   notify=False, dryrun=True, keycloak=dummy_keycloak)
+    assert not sent
+
+    # notify=True but template empty (event notification disabled): no-op
+    await send_or_log_notification(username='alice', subject='S', template='',
+                                   notify=True, dryrun=True, keycloak=dummy_keycloak)
+    assert not sent
+
+    # notify=True, dryrun=True: formats the message but only logs, does not send
+    await send_or_log_notification(username='bob', subject='Removed',
+                                   template='Hi {username}, group {group_path}',
+                                   notify=True, dryrun=True, keycloak=dummy_keycloak, group_path='/mail/x')
+    assert not sent
+
+    # notify=True, dryrun=False: actually sends with the formatted body
+    await send_or_log_notification(username='carol', subject='Removed',
+                                   template='Hi {username}, group {group_path}',
+                                   notify=True, dryrun=False, keycloak=dummy_keycloak, group_path='/mail/x')
+    assert sent == [('carol', 'Removed', 'Hi carol, group /mail/x')]
+
+
+def test_auto_allow_notifications_required_unless_dryrun(monkeypatch):
+    monkeypatch.setattr(sync_synchronized_groups_module, 'get_rest_client', lambda: MagicMock())
+
+    calls = []
+
+    async def fake_auto_sync(**kwargs):
+        calls.append(kwargs)
+    monkeypatch.setattr(sync_synchronized_groups_module, 'auto_sync_enabled_groups', fake_auto_sync)
+
+    # --auto without --allow-notifications and without --dryrun: blocked
+    monkeypatch.setattr(sys, 'argv', ['prog', '--auto'])
+    with pytest.raises(SystemExit) as exc_info:
+        main()
+    assert exc_info.value.code == 1
+    assert not calls
+
+    # --auto --dryrun without --allow-notifications: allowed, notifications stay off
+    monkeypatch.setattr(sys, 'argv', ['prog', '--auto', '--dryrun'])
+    main()
+    assert calls[-1]['allow_notifications'] is False
+
+    # --auto --dryrun --allow-notifications: allowed, notifications on
+    monkeypatch.setattr(sys, 'argv', ['prog', '--auto', '--dryrun', '--allow-notifications'])
+    main()
+    assert calls[-1]['allow_notifications'] is True
+
+    # --auto --allow-notifications (no --dryrun): allowed
+    monkeypatch.setattr(sys, 'argv', ['prog', '--auto', '--allow-notifications'])
+    main()
+    assert calls[-1]['allow_notifications'] is True

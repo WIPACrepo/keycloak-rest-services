@@ -1,0 +1,1 @@
+- run ruff and flake8 checks after making changes (as done in github workflows)
