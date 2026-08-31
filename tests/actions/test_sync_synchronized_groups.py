@@ -2,20 +2,31 @@ import sys
 from unittest.mock import MagicMock
 
 import pytest
-
-from krs.groups import (create_group, add_user_group, get_group_membership,
-                        delete_group, group_info, modify_group)
-from krs.institutions import create_inst, Region
-from krs.users import create_user
-# noinspection PyUnresolvedReferences
-from ..util import keycloak_bootstrap  # type: ignore
+from attrs import fields
 
 import actions.sync_synchronized_groups as sync_synchronized_groups_module
-from actions.sync_synchronized_groups import (auto_sync_enabled_groups, main, manual_group_sync,
-                                              send_or_log_notification,
-                                              SyncGroupNotificationConfig, SyncGroupConfig,
-                                              MembershipSyncPolicy)
-from attrs import fields
+from actions.sync_synchronized_groups import (
+    MembershipSyncPolicy,
+    SyncGroupConfig,
+    SyncGroupNotificationConfig,
+    auto_sync_enabled_groups,
+    main,
+    manual_group_sync,
+    send_or_log_notification,
+)
+from krs.groups import (
+    add_user_group,
+    create_group,
+    delete_group,
+    get_group_membership,
+    group_info,
+    modify_group,
+)
+from krs.institutions import Region, create_inst
+from krs.users import create_user
+
+# noinspection PyUnresolvedReferences
+from ..util import keycloak_bootstrap  # type: ignore
 
 
 @pytest.mark.asyncio
