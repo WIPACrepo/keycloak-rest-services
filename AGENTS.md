@@ -1,0 +1,1 @@
+- run ruff and flake8 checks after making changes (as the corresponding github actions will, to catch problems before committing)
