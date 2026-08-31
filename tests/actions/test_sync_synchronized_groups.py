@@ -108,26 +108,26 @@ async def test_sync_synchronized_group_authorlist(keycloak_bootstrap):
     u_add_to_authors = 'add-to-authors'
     await create_user(u_add_to_authors, **user_kwargs.pop())
     await add_user_group('/institutions/Experiment1/Good', u_add_to_authors, rest_client=keycloak_bootstrap)
-    await add_user_group('/institutions/Experiment1/Good/authorlist-special', u_add_to_authors, rest_client=keycloak_bootstrap)  # noqa
+    await add_user_group('/institutions/Experiment1/Good/authorlist-special', u_add_to_authors, rest_client=keycloak_bootstrap)
 
     u_remain_in_authors = 'remain-in-authors'
     await create_user(u_remain_in_authors, **user_kwargs.pop())
     await add_user_group('/institutions/Experiment1/Good', u_remain_in_authors, rest_client=keycloak_bootstrap)
-    await add_user_group('/institutions/Experiment1/Good/authorlist', u_remain_in_authors, rest_client=keycloak_bootstrap)  # noqa
+    await add_user_group('/institutions/Experiment1/Good/authorlist', u_remain_in_authors, rest_client=keycloak_bootstrap)
     for group in all_synchronized_groups:
         await add_user_group(group, u_remain_in_authors, rest_client=keycloak_bootstrap)
 
     u_remove_bc_in_disabled = 'remove-in-disabled-authorlist'
     await create_user(u_remove_bc_in_disabled, **user_kwargs.pop())
-    await add_user_group('/institutions/Experiment1/Authorlist_false', u_remove_bc_in_disabled, rest_client=keycloak_bootstrap)  # noqa
-    await add_user_group('/institutions/Experiment1/Authorlist_false/authorlist', u_remove_bc_in_disabled, rest_client=keycloak_bootstrap)  # noqa
+    await add_user_group('/institutions/Experiment1/Authorlist_false', u_remove_bc_in_disabled, rest_client=keycloak_bootstrap)
+    await add_user_group('/institutions/Experiment1/Authorlist_false/authorlist', u_remove_bc_in_disabled, rest_client=keycloak_bootstrap)
     for group in all_synchronized_groups:
         await add_user_group(group, u_remove_bc_in_disabled, rest_client=keycloak_bootstrap)
 
     u_dont_add_bc_wrong_expt = 'dont-add-wrong-experiment'
     await create_user(u_dont_add_bc_wrong_expt, **user_kwargs.pop())
     await add_user_group('/institutions/ExperimentXXX/Irrelevant', u_dont_add_bc_wrong_expt, rest_client=keycloak_bootstrap)
-    await add_user_group('/institutions/ExperimentXXX/Irrelevant/authorlist', u_dont_add_bc_wrong_expt, rest_client=keycloak_bootstrap)  # noqa
+    await add_user_group('/institutions/ExperimentXXX/Irrelevant/authorlist', u_dont_add_bc_wrong_expt, rest_client=keycloak_bootstrap)
 
     await auto_sync_enabled_groups(keycloak_bootstrap, allow_notifications=False, dryrun=False)
 
