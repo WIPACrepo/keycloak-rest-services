@@ -37,7 +37,7 @@ jobs:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
       - name: Docker meta
         id: docker_meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: |
             ghcr.io/WIPACRepo/keycloak-rest-services
@@ -69,7 +69,7 @@ jobs:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
       - name: Docker meta
         id: docker_meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: |
             ghcr.io/WIPACRepo/keycloak-rest-services
