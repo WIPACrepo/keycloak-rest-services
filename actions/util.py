@@ -167,7 +167,7 @@ def scp_and_run_sudo(host, script_data, script_name='create.py'):
             f.write(script_data)
         cmd = ['scp'] + ssh_opts + [filename, f'{host}:/tmp/{script_name}']
         subprocess.check_call(cmd, stderr=subprocess.DEVNULL)
-    
+
     try:
         ssh(host, 'python3', '-c', 'exit')
         python_bin = 'python3'
