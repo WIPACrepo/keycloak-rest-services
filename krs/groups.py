@@ -97,7 +97,7 @@ async def list_groups(max_groups=10000, rest_client=None):
     Returns a dict of simplified group representations keyed on group path.
 
     Returns:
-        dict: groupname: group details
+        dict: group path: group details
     """
     # Starting with KeyCloak 23, GET /admin/realms/{realm}/groups doesn't populate
     # subgroups unless "search" parameter is used. It is not clear whether it's
