@@ -132,10 +132,16 @@ def reflow_text(text, para_sep="\n\n", **kwargs):
     return para_sep.join(wrapped_paras)
 
 
-def ssh(host, *args):
-    """Run command on remote machine via ssh."""
+def ssh(host, *args, quiet=False):
+    """Run command on remote machine via ssh.
+
+    Args:
+        quiet (bool): suppress the remote command's stderr, e.g. for probing
+            calls where a failure is expected and its message would be
+            confusing noise.
+    """
     cmd = ['ssh'] + ssh_opts + [f'{host}'] + list(args)
-    subprocess.check_call(cmd)
+    subprocess.check_call(cmd, stderr=subprocess.DEVNULL if quiet else None)
 
 
 def scp_and_run(host, script_data, script_name='create.py'):
@@ -148,7 +154,7 @@ def scp_and_run(host, script_data, script_name='create.py'):
         subprocess.check_call(cmd, stderr=subprocess.DEVNULL)
 
     try:
-        ssh(host, 'python3', '-c', 'exit')
+        ssh(host, 'python3', '-c', 'exit', quiet=True)
         python_bin = 'python3'
     except subprocess.CalledProcessError:
         python_bin = 'python'
@@ -169,7 +175,7 @@ def scp_and_run_sudo(host, script_data, script_name='create.py'):
         subprocess.check_call(cmd, stderr=subprocess.DEVNULL)
 
     try:
-        ssh(host, 'python3', '-c', 'exit')
+        ssh(host, 'python3', '-c', 'exit', quiet=True)
         python_bin = 'python3'
     except subprocess.CalledProcessError:
         python_bin = 'python'
