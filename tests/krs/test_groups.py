@@ -40,6 +40,36 @@ async def test_list_groups(keycloak_bootstrap):
     assert list(ret.keys()) == ['/testgroup','/testgroup/testgroup2']
     assert ret['/testgroup']['children'] == ['testgroup2']
 
+def test_flatten_group_hierarchy():
+    hierarchy = [
+        {'id': 'id-a', 'name': 'a', 'path': '/a', 'attributes': {'key': ['value']},
+         'subGroups': [
+             {'id': 'id-a-sub', 'name': 'a-sub', 'path': '/a/a-sub', 'attributes': {}, 'subGroups': []},
+         ]},
+        {'id': 'id-b', 'name': 'b', 'path': '/b', 'attributes': {}, 'subGroups': []},
+    ]
+
+    ret = groups.flatten_group_hierarchy(hierarchy)
+
+    assert set(ret.keys()) == {'/a', '/a/a-sub', '/b'}
+    assert ret['/a'] == {'id': 'id-a', 'name': 'a', 'path': '/a',
+                         'children': ['a-sub'], 'attributes': {'key': 'value'}}
+    assert ret['/a/a-sub'] == {'id': 'id-a-sub', 'name': 'a-sub', 'path': '/a/a-sub',
+                               'children': [], 'attributes': {}}
+    assert ret['/b']['children'] == []
+
+@pytest.mark.asyncio
+async def test_flatten_group_hierarchy_matches_list_groups(keycloak_bootstrap):
+    # get_group_hierarchy() and list_groups() hit different Keycloak endpoints.
+    # sync_synchronized_groups.py resolves group ids from a flattened, cached
+    # get_group_hierarchy() result instead of a separate list_groups() call per
+    # lookup, which is only correct if the two produce equivalent data.
+    await groups.create_group('/testgroup', rest_client=keycloak_bootstrap)
+    await groups.create_group('/testgroup/testgroup2', rest_client=keycloak_bootstrap)
+
+    hierarchy = await groups.get_group_hierarchy(rest_client=keycloak_bootstrap)
+    assert groups.flatten_group_hierarchy(hierarchy) == await groups.list_groups(rest_client=keycloak_bootstrap)
+
 @pytest.mark.asyncio
 async def test_group_info(keycloak_bootstrap):
     with pytest.raises(groups.GroupDoesNotExist):

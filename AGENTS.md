@@ -1,1 +1,5 @@
-- run ruff and flake8 checks after making changes (as the corresponding github actions will, to catch problems before committing)
+- Run ruff and flake8 checks after making changes to quickly catch problems locally, before commits
+    - Use same settings as the corresponding github actions do.
+- See README.md for how to run unit test
+- NEVER USE PRODUCTION KEYCLOAK SERVER OR ENVIRONMENT
+- Don't forget unit tests

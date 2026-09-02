@@ -90,9 +90,11 @@ from rest_tools.client import RestClient
 from actions.util import reflow_text
 from krs.email import send_email
 from krs.groups import (
+    GroupDoesNotExist,
     add_user_group,
+    flatten_group_hierarchy,
     get_group_hierarchy,
-    get_group_membership,
+    get_group_membership_by_id,
     group_info,
     list_groups,
     modify_group,
@@ -111,13 +113,28 @@ async def user_info_cached(username, keycloak):
 
 
 @cached(Cache(maxsize=10000))
-async def get_group_membership_cached(group_path, keycloak):
-    return await get_group_membership(group_path, rest_client=keycloak)
+async def get_group_hierarchy_cached(keycloak):
+    return await get_group_hierarchy(rest_client=keycloak)
+
+
+@cached(Cache(maxsize=1))  # keyed only on `keycloak`, and there's one client per run
+async def get_flattened_hierarchy_cached(keycloak):
+    """Path-> group info map built from the cached hierarchy, so group id
+    lookups don't each need their own expensive /groups request."""
+    return flatten_group_hierarchy(await get_group_hierarchy_cached(keycloak))
+
+
+async def group_id_by_path(group_path, keycloak):
+    flattened = await get_flattened_hierarchy_cached(keycloak)
+    if group_path not in flattened:
+        raise GroupDoesNotExist(f'group "{group_path}" does not exist')
+    return flattened[group_path]['id']
 
 
 @cached(Cache(maxsize=10000))
-async def get_group_hierarchy_cached(keycloak):
-    return await get_group_hierarchy(rest_client=keycloak)
+async def get_group_membership_cached(group_path, keycloak):
+    group_id = await group_id_by_path(group_path, keycloak)
+    return await get_group_membership_by_id(group_id, rest_client=keycloak)
 
 
 class GrpCfgRes:
@@ -477,9 +494,11 @@ async def auto_sync_enabled_groups(keycloak_client, allow_notifications, dryrun)
                            .get(auto_sync_attr, '').lower() == "true"]
 
     for enabled_group_path in enabled_group_paths:
-        enabled_group = await group_info(enabled_group_path, rest_client=keycloak_client)
+        # `all_groups` (from list_groups() above) already carries each group's
+        # attributes -- no need for a separate group_info() call (which would
+        # also uselessly fetch and populate all of the group's subgroups).
         try:
-            cfg = SyncGroupConfig(enabled_group_path, enabled_group['attributes'])
+            cfg = SyncGroupConfig(enabled_group_path, all_groups[enabled_group_path]['attributes'])
         except (SyncGroupConfigAttributeError, SyncGroupConfigValueError) as exc:
             logger.error(f"{enabled_group_path} sync configuration exception {exc!r}")
             raise
@@ -673,7 +692,11 @@ async def sync_synchronized_group(target_path: str,
           for group_path in constituent_group_paths])
     source_groups_member_dict = dict(zip(constituent_group_paths, constituent_member_lists))
     source_members = set(chain.from_iterable(constituent_member_lists))
-    current_members = set(await get_group_membership(target_path, rest_client=keycloak))
+    # Deliberately uncached: this group is about to be mutated by this very sync,
+    # so its membership must be read fresh, not from the cache shared with source-
+    # group lookups (which would poison later reads of this path as a source).
+    current_members = set(await get_group_membership_by_id(
+        await group_id_by_path(target_path, keycloak), rest_client=keycloak))
     logger.debug(f"{sorted(source_members)=}")
 
     user_memberships = defaultdict(list)
