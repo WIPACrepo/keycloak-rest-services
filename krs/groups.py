@@ -60,20 +60,18 @@ async def get_group_hierarchy(*, rest_client):
     return ret
 
 
-async def list_groups(max_groups=10000, rest_client=None):
+def flatten_group_hierarchy(group_hierarchy):
     """
-    List all groups in Keycloak.
+    Flatten a group hierarchy (as returned by get_group_hierarchy) into a
+    dict of simplified group representations keyed on group path.
 
-    Returns a dict of simplified group representations keyed on group path.
+    Lets callers that already fetched the hierarchy (e.g. via
+    get_group_hierarchy) look up group ids/paths without an extra,
+    expensive /groups request.
 
     Returns:
-        dict: groupname: group details
+        dict: group path: group details
     """
-    # Starting with KeyCloak 23, GET /admin/realms/{realm}/groups doesn't populate
-    # subgroups unless "search" parameter is used. It is not clear whether it's
-    # a bug or a feature https://github.com/keycloak/keycloak/issues/27694
-    url = f'/groups?max={max_groups}&briefRepresentation=false&search=%20'
-    group_hierarchy = await rest_client.request('GET', url)
     ret = {}
 
     def add_groups(groups):
@@ -90,6 +88,23 @@ async def list_groups(max_groups=10000, rest_client=None):
                 add_groups(g['subGroups'])
     add_groups(group_hierarchy)
     return ret
+
+
+async def list_groups(max_groups=10000, rest_client=None):
+    """
+    List all groups in Keycloak.
+
+    Returns a dict of simplified group representations keyed on group path.
+
+    Returns:
+        dict: group path: group details
+    """
+    # Starting with KeyCloak 23, GET /admin/realms/{realm}/groups doesn't populate
+    # subgroups unless "search" parameter is used. It is not clear whether it's
+    # a bug or a feature https://github.com/keycloak/keycloak/issues/27694
+    url = f'/groups?max={max_groups}&briefRepresentation=false&search=%20'
+    group_hierarchy = await rest_client.request('GET', url)
+    return flatten_group_hierarchy(group_hierarchy)
 
 
 async def group_info(group_path, rest_client=None):
