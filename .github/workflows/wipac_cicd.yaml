@@ -50,7 +50,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Push Docker Image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: resources/keycloak-image/Dockerfile
@@ -82,7 +82,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Push Docker Image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: resources/ldap-image/Dockerfile
@@ -138,7 +138,7 @@ jobs:
         with:
           fetch-depth: 0  # setuptools-scm needs to access git tags
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v7
         with:
           context: .
           file: Dockerfile
